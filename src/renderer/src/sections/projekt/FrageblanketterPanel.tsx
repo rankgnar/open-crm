@@ -43,6 +43,8 @@ export function FrageblanketterPanel({ frageblanktter, onGenerateFromText, onCre
 
   // Detail state
   const [copiedLink, setCopiedLink] = useState(false)
+  const [linkError, setLinkError] = useState<string | null>(null)
+  const [createError, setCreateError] = useState<string | null>(null)
   const [savingDoc, setSavingDoc] = useState(false)
   const [refreshing, setRefreshing] = useState(false)
   const [saveDocDone, setSaveDocDone] = useState(false)
@@ -63,6 +65,7 @@ export function FrageblanketterPanel({ frageblanktter, onGenerateFromText, onCre
     setEpostDraft(null)
     setEpostSent(false)
     setEpostError(null)
+    setLinkError(null)
     setView('detail')
   }
 
@@ -92,14 +95,21 @@ export function FrageblanketterPanel({ frageblanktter, onGenerateFromText, onCre
   async function handleCreate() {
     if (!titel.trim() || generatedQuestions.length === 0) return
     setCreating(true)
+    setCreateError(null)
     try {
       const b = await onCreateBlankett(titel.trim(), generatedQuestions)
-      const link = await onGetLink(b.id)
-      await navigator.clipboard.writeText(link)
-      setCopiedLink(true)
-      setTimeout(() => setCopiedLink(false), 2000)
       resetCreate()
       openDetail(b)
+      try {
+        const link = await onGetLink(b.id)
+        await navigator.clipboard.writeText(link)
+        setCopiedLink(true)
+        setTimeout(() => setCopiedLink(false), 2000)
+      } catch {
+        // link copy failed — user can retry with the button in detail view
+      }
+    } catch (e) {
+      setCreateError(e instanceof Error ? e.message : 'Kunde inte skapa formuläret')
     } finally {
       setCreating(false)
     }
@@ -107,10 +117,15 @@ export function FrageblanketterPanel({ frageblanktter, onGenerateFromText, onCre
 
   async function handleCopyLink() {
     if (!selectedId) return
-    const link = await onGetLink(selectedId)
-    await navigator.clipboard.writeText(link)
-    setCopiedLink(true)
-    setTimeout(() => setCopiedLink(false), 2000)
+    setLinkError(null)
+    try {
+      const link = await onGetLink(selectedId)
+      await navigator.clipboard.writeText(link)
+      setCopiedLink(true)
+      setTimeout(() => setCopiedLink(false), 2000)
+    } catch (e) {
+      setLinkError(e instanceof Error ? e.message : 'Kunde inte hämta länk')
+    }
   }
 
   async function handleSaveAsDoc() {
@@ -280,6 +295,7 @@ export function FrageblanketterPanel({ frageblanktter, onGenerateFromText, onCre
                 ))}
               </div>
             </div>
+            {createError && <p className="text-xs text-red-400">{createError}</p>}
             <div className="flex gap-2 mt-auto">
               <button onClick={() => setStep(1)} className="flex-1 py-2 rounded text-xs text-muted border border-border hover:text-fg hover:bg-hover transition-colors">
                 Tillbaka
@@ -356,6 +372,7 @@ export function FrageblanketterPanel({ frageblanktter, onGenerateFromText, onCre
           {copiedLink ? <Check size={12} className="text-emerald-400" /> : <Copy size={12} />}
           {copiedLink ? 'Kopierat!' : 'Kopiera länk'}
         </button>
+        {linkError && <p className="text-[10px] text-red-400 text-center">{linkError}</p>}
 
         {/* Send via email */}
         {!epostDraft ? (

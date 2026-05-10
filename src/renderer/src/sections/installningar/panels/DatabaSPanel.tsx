@@ -7,6 +7,7 @@ interface DbConfig {
   supabase_service_role_key: string
   web_app_url: string
   client_app_url: string
+  form_app_url: string
 }
 
 interface TestResult {
@@ -21,6 +22,7 @@ const CONFIG_DEFAULTS: DbConfig = {
   supabase_service_role_key: '',
   web_app_url: '',
   client_app_url: '',
+  form_app_url: '',
 }
 
 export function DatabaSPanel() {
@@ -59,7 +61,8 @@ export function DatabaSPanel() {
     config.supabase_anon_key !== original.supabase_anon_key ||
     config.supabase_service_role_key !== original.supabase_service_role_key ||
     config.web_app_url !== original.web_app_url ||
-    config.client_app_url !== original.client_app_url
+    config.client_app_url !== original.client_app_url ||
+    config.form_app_url !== original.form_app_url
 
   function update(patch: Partial<DbConfig>) {
     setConfig((prev) => ({ ...prev, ...patch }))
@@ -184,6 +187,12 @@ export function DatabaSPanel() {
             onChange={(v) => update({ client_app_url: v })}
             placeholder="https://kund.dittforetag.se"
           />
+          <FieldText
+            label="Formulärappens URL"
+            value={config.form_app_url}
+            onChange={(v) => update({ form_app_url: v })}
+            placeholder="https://form.dittforetag.se"
+          />
 
           <div className="flex items-center gap-3 flex-wrap pt-2 border-t border-border">
             <button
@@ -282,6 +291,10 @@ export function DatabaSPanel() {
           <div className="flex flex-col gap-1.5">
             <label className="text-[11px] uppercase tracking-wider text-muted">Kundportalens URL</label>
             <code className="text-xs font-mono text-fg break-all">{original.client_app_url || '—'}</code>
+          </div>
+          <div className="flex flex-col gap-1.5">
+            <label className="text-[11px] uppercase tracking-wider text-muted">Formulärappens URL</label>
+            <code className="text-xs font-mono text-fg break-all">{original.form_app_url || '—'}</code>
           </div>
         </div>
       )}
