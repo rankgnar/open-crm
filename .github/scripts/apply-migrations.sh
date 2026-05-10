@@ -7,6 +7,11 @@
 
 set -euo pipefail
 
+if [[ -f ".env" && -z "${CI:-}" ]]; then
+  set -a; source .env; set +a
+fi
+SUPABASE_PROJECT_REF="${SUPABASE_PROJECT_REF:-$(echo "${SUPABASE_URL:-}" | sed 's|https://\([^.]*\)\..*|\1|')}"
+
 : "${SUPABASE_ACCESS_TOKEN:?SUPABASE_ACCESS_TOKEN saknas}"
 : "${SUPABASE_PROJECT_REF:?SUPABASE_PROJECT_REF saknas}"
 
