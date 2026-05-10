@@ -112,7 +112,7 @@ export function ForslagDetail({ forslag: forslagProp, statusar, allProjekt, onBa
 
   // Subfaser
   const [subfaserByFas, setSubfaserByFas] = useState<Record<string, ForslagSubfas[]>>({})
-  const [selectedSubfasId, setSelectedSubfasId] = useState<string | null>(null)
+  const [selectedSubfasIds, setSelectedSubfasIds] = useState<Set<string>>(new Set())
   const [addingSubfas, setAddingSubfas] = useState(false)
   const [nySubfasNamn, setNySubfasNamn] = useState('')
   const [editingSubfasId, setEditingSubfasId] = useState<string | null>(null)
@@ -134,7 +134,7 @@ export function ForslagDetail({ forslag: forslagProp, statusar, allProjekt, onBa
       window.api.invoke('db:forslag-ue:list-by-forslag', forslag.id) as Promise<ForslagUnderentreprenor[]>,
     ])
     setFaser(faserData)
-    setCollapsedFaser(new Set(faserData.map((f) => f.id)))
+    setCollapsedFaser(new Set())
 
     if (faserData.length > 0) {
       const fasIds = faserData.map((f) => f.id)
@@ -208,7 +208,7 @@ export function ForslagDetail({ forslag: forslagProp, statusar, allProjekt, onBa
     setSubfaserByFas((prev) => ({ ...prev, [created.id]: [] }))
     setCollapsedFaser((prev) => { const n = new Set(prev); n.delete(created.id); return n })
     setSelectedFasId(created.id)
-    setSelectedSubfasId(null)
+    setSelectedSubfasIds(new Set())
     setNyFasNamn('')
     setAddingFas(false)
   }
@@ -227,7 +227,7 @@ export function ForslagDetail({ forslag: forslagProp, statusar, allProjekt, onBa
     setFaser((prev) => prev.filter((f) => f.id !== fasId))
     setSubfaserByFas((prev) => { const n = { ...prev }; delete n[fasId]; return n })
     setCollapsedFaser((prev) => { const n = new Set(prev); n.delete(fasId); return n })
-    if (selectedFasId === fasId) { setSelectedFasId(null); setSelectedSubfasId(null) }
+    if (selectedFasId === fasId) { setSelectedFasId(null); setSelectedSubfasIds(new Set()) }
   }
 
   // --- Subfas handlers ---
@@ -242,7 +242,7 @@ export function ForslagDetail({ forslag: forslagProp, statusar, allProjekt, onBa
     setUeBySubfas((prev) => ({ ...prev, [created.id]: [] }))
     setNySubfasNamn('')
     setAddingSubfas(false)
-    setSelectedSubfasId(created.id)
+    setSelectedSubfasIds((prev) => { const n = new Set(prev); n.add(created.id); return n })
   }
 
   async function handleRenameSubfas() {
@@ -266,7 +266,7 @@ export function ForslagDetail({ forslag: forslagProp, statusar, allProjekt, onBa
     setArbeteBySubfas((prev) => { const n = { ...prev }; delete n[subfas.id]; return n })
     setMaterialBySubfas((prev) => { const n = { ...prev }; delete n[subfas.id]; return n })
     setUeBySubfas((prev) => { const n = { ...prev }; delete n[subfas.id]; return n })
-    if (selectedSubfasId === subfas.id) setSelectedSubfasId(null)
+    setSelectedSubfasIds((prev) => { const n = new Set(prev); n.delete(subfas.id); return n })
   }
 
   async function handleMoveFas(fas: ForslagFas, dir: 'up' | 'down') {
@@ -287,10 +287,9 @@ export function ForslagDetail({ forslag: forslagProp, statusar, allProjekt, onBa
   }
 
   // --- Arbete handlers ---
-  async function handleAddArbete() {
-    if (!selectedSubfasId) return
-    const created = await window.api.invoke('db:forslag-arbete:create', selectedSubfasId) as ForslagArbete
-    setArbeteBySubfas((prev) => ({ ...prev, [selectedSubfasId]: [...(prev[selectedSubfasId] ?? []), created] }))
+  async function handleAddArbete(subfasId: string) {
+    const created = await window.api.invoke('db:forslag-arbete:create', subfasId) as ForslagArbete
+    setArbeteBySubfas((prev) => ({ ...prev, [subfasId]: [...(prev[subfasId] ?? []), created] }))
   }
 
   async function handleUpdateArbete(id: string, field: string, value: string | number | boolean) {
@@ -301,20 +300,18 @@ export function ForslagDetail({ forslag: forslagProp, statusar, allProjekt, onBa
     }))
   }
 
-  async function handleDeleteArbete(id: string) {
-    if (!selectedSubfasId) return
+  async function handleDeleteArbete(id: string, subfasId: string) {
     await window.api.invoke('db:forslag-arbete:delete', id)
     setArbeteBySubfas((prev) => ({
       ...prev,
-      [selectedSubfasId]: (prev[selectedSubfasId] ?? []).filter((r) => r.id !== id)
+      [subfasId]: (prev[subfasId] ?? []).filter((r) => r.id !== id)
     }))
   }
 
   // --- Material handlers ---
-  async function handleAddMaterial() {
-    if (!selectedSubfasId) return
-    const created = await window.api.invoke('db:forslag-material:create', selectedSubfasId) as ForslagMaterial
-    setMaterialBySubfas((prev) => ({ ...prev, [selectedSubfasId]: [...(prev[selectedSubfasId] ?? []), created] }))
+  async function handleAddMaterial(subfasId: string) {
+    const created = await window.api.invoke('db:forslag-material:create', subfasId) as ForslagMaterial
+    setMaterialBySubfas((prev) => ({ ...prev, [subfasId]: [...(prev[subfasId] ?? []), created] }))
   }
 
   async function handleUpdateMaterial(id: string, field: string, value: string | number) {
@@ -325,20 +322,18 @@ export function ForslagDetail({ forslag: forslagProp, statusar, allProjekt, onBa
     }))
   }
 
-  async function handleDeleteMaterial(id: string) {
-    if (!selectedSubfasId) return
+  async function handleDeleteMaterial(id: string, subfasId: string) {
     await window.api.invoke('db:forslag-material:delete', id)
     setMaterialBySubfas((prev) => ({
       ...prev,
-      [selectedSubfasId]: (prev[selectedSubfasId] ?? []).filter((r) => r.id !== id)
+      [subfasId]: (prev[subfasId] ?? []).filter((r) => r.id !== id)
     }))
   }
 
   // --- Underentreprenör handlers ---
-  async function handleAddUE() {
-    if (!selectedSubfasId) return
-    const created = await window.api.invoke('db:forslag-ue:create', selectedSubfasId) as ForslagUnderentreprenor
-    setUeBySubfas((prev) => ({ ...prev, [selectedSubfasId]: [...(prev[selectedSubfasId] ?? []), created] }))
+  async function handleAddUE(subfasId: string) {
+    const created = await window.api.invoke('db:forslag-ue:create', subfasId) as ForslagUnderentreprenor
+    setUeBySubfas((prev) => ({ ...prev, [subfasId]: [...(prev[subfasId] ?? []), created] }))
   }
 
   async function handleUpdateUE(id: string, field: string, value: string | number | boolean) {
@@ -349,12 +344,11 @@ export function ForslagDetail({ forslag: forslagProp, statusar, allProjekt, onBa
     }))
   }
 
-  async function handleDeleteUE(id: string) {
-    if (!selectedSubfasId) return
+  async function handleDeleteUE(id: string, subfasId: string) {
     await window.api.invoke('db:forslag-ue:delete', id)
     setUeBySubfas((prev) => ({
       ...prev,
-      [selectedSubfasId]: (prev[selectedSubfasId] ?? []).filter((r) => r.id !== id)
+      [subfasId]: (prev[subfasId] ?? []).filter((r) => r.id !== id)
     }))
   }
 
@@ -782,7 +776,7 @@ export function ForslagDetail({ forslag: forslagProp, statusar, allProjekt, onBa
                       {(subfaserByFas[fas.id] ?? []).length} · {fasCount(fas.id)}
                     </span>
                     <button
-                      onClick={(e) => { e.stopPropagation(); setSelectedFasId(fas.id); setAddingSubfas(true); setSelectedSubfasId(null); setCollapsedFaser((prev) => { const n = new Set(prev); n.delete(fas.id); return n }) }}
+                      onClick={(e) => { e.stopPropagation(); setSelectedFasId(fas.id); setAddingSubfas(true); setCollapsedFaser((prev) => { const n = new Set(prev); n.delete(fas.id); return n }) }}
                       className="opacity-0 group-hover:opacity-100 flex items-center gap-0.5 text-[10px] text-subtle hover:text-fg transition-opacity shrink-0"
                     >
                       <Plus size={10} />subfas
@@ -814,15 +808,19 @@ export function ForslagDetail({ forslag: forslagProp, statusar, allProjekt, onBa
                 <div key={sf.id}>
                   {/* Subfas row */}
                   <div
-                    className={`group flex items-center gap-2 px-5 py-2 border-t border-border/30 cursor-pointer transition-colors ${selectedSubfasId === sf.id ? 'bg-hover' : 'hover:bg-hover/60'}`}
+                    className={`group flex items-center gap-2 px-5 py-2 border-t border-border/30 cursor-pointer transition-colors ${selectedSubfasIds.has(sf.id) ? 'bg-hover' : 'hover:bg-hover/60'}`}
                     onClick={() => {
                       setSelectedFasId(fas.id)
-                      setSelectedSubfasId((prev) => prev === sf.id ? null : sf.id)
+                      setSelectedSubfasIds((prev) => {
+                        const n = new Set(prev)
+                        n.has(sf.id) ? n.delete(sf.id) : n.add(sf.id)
+                        return n
+                      })
                       setAddingSubfas(false)
                       setEditingSubfasId(null)
                     }}
                   >
-                    {selectedSubfasId === sf.id
+                    {selectedSubfasIds.has(sf.id)
                       ? <ChevronDown size={12} className="text-subtle shrink-0" />
                       : <ChevronRight size={12} className="text-subtle shrink-0" />
                     }
@@ -873,7 +871,7 @@ export function ForslagDetail({ forslag: forslagProp, statusar, allProjekt, onBa
                   </div>
 
                   {/* Inline editor */}
-                  {selectedSubfasId === sf.id && (
+                  {selectedSubfasIds.has(sf.id) && (
                     <div className="border-t border-border" style={{ height: 380 }}>
                       <FasEditor
                         subfasNamn={sf.namn}
@@ -882,15 +880,15 @@ export function ForslagDetail({ forslag: forslagProp, statusar, allProjekt, onBa
                         material={materialBySubfas[sf.id] ?? []}
                         underentreprenorer={ueBySubfas[sf.id] ?? []}
                         arbetsRoller={arbetsRoller}
-                        onAddArbete={handleAddArbete}
+                        onAddArbete={() => handleAddArbete(sf.id)}
                         onUpdateArbete={handleUpdateArbete}
-                        onDeleteArbete={handleDeleteArbete}
-                        onAddMaterial={handleAddMaterial}
+                        onDeleteArbete={(id) => handleDeleteArbete(id, sf.id)}
+                        onAddMaterial={() => handleAddMaterial(sf.id)}
                         onUpdateMaterial={handleUpdateMaterial}
-                        onDeleteMaterial={handleDeleteMaterial}
-                        onAddUE={handleAddUE}
+                        onDeleteMaterial={(id) => handleDeleteMaterial(id, sf.id)}
+                        onAddUE={() => handleAddUE(sf.id)}
                         onUpdateUE={handleUpdateUE}
-                        onDeleteUE={handleDeleteUE}
+                        onDeleteUE={(id) => handleDeleteUE(id, sf.id)}
                       />
                     </div>
                   )}
