@@ -47,7 +47,10 @@ export function ProjektForm({ kunder, statusar, initial, onSubmit, onCancel }: P
   }, [isEdit])
 
   useEffect(() => {
-    if (!status && statusar.length > 0) setStatus(statusar[0].namn)
+    if (!status && statusar.length > 0) {
+      const inkommen = statusar.find((s) => s.namn === 'Inkommen')
+      setStatus(inkommen?.namn ?? statusar[0].namn)
+    }
   }, [statusar, status])
 
   async function handleSubmit(e: React.FormEvent) {
