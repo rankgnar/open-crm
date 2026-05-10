@@ -169,49 +169,46 @@ export function KundDetail({ kund, statusar, onBack, onEdit, onDelete }: Props) 
         </DetailSection>
 
         <div className="px-8 py-6 border-b border-border">
-          <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center justify-between">
             <p className="text-[11px] uppercase tracking-widest text-muted">Klientportal</p>
-            <div className="flex items-center gap-2">
-              {kundUser && (
+            <div className="flex items-center gap-3">
+              {kundUser?.accepted_at ? (
+                <span className="flex items-center gap-1.5 text-xs text-emerald-400">
+                  <span className="size-1.5 rounded-full bg-emerald-400" />
+                  Aktiv sedan {new Date(kundUser.accepted_at).toLocaleDateString('sv-SE')}
+                </span>
+              ) : kundUser ? (
+                <span className="flex items-center gap-1.5 text-xs text-amber-400">
+                  <span className="size-1.5 rounded-full bg-amber-400" />
+                  Inbjudan skickad · {new Date(kundUser.invited_at).toLocaleDateString('sv-SE')}
+                </span>
+              ) : (
+                <span className="text-xs text-subtle">Ej tillgång</span>
+              )}
+              {kundUser?.accepted_at ? (
                 <button
                   onClick={handlePasswordReset}
                   disabled={resetting || inviting || !kund.email?.trim()}
-                  title="Skicka länk för att återställa lösenord"
                   className="flex items-center gap-1.5 rounded-lg border border-border bg-elevated px-3 py-1.5 text-xs text-fg hover:bg-hover transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
                 >
                   <KeyRound size={12} />
                   {resetting ? 'Skickar...' : 'Återställ lösenord'}
                 </button>
+              ) : (
+                <button
+                  onClick={handleInvite}
+                  disabled={inviting || resetting || !kund.email?.trim()}
+                  title={kund.email?.trim() ? undefined : 'Kunden saknar e-postadress'}
+                  className="flex items-center gap-1.5 rounded-lg border border-border bg-elevated px-3 py-1.5 text-xs text-fg hover:bg-hover transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                >
+                  <Send size={12} />
+                  {inviting ? 'Skickar...' : kundUser ? 'Skicka påminnelse' : 'Bjud in'}
+                </button>
               )}
-              <button
-                onClick={handleInvite}
-                disabled={inviting || resetting || !kund.email?.trim()}
-                title={kund.email?.trim() ? 'Skicka klientportal-inbjudan' : 'Kunden saknar e-postadress'}
-                className="flex items-center gap-1.5 rounded-lg border border-border bg-elevated px-3 py-1.5 text-xs text-fg hover:bg-hover transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
-              >
-                <Send size={12} />
-                {inviting ? 'Skickar...' : kundUser ? 'Skicka igen' : 'Skicka inbjudan'}
-              </button>
             </div>
-          </div>
-          <div className="grid grid-cols-3 gap-x-8 gap-y-5 items-start">
-            <div className="flex flex-col gap-1">
-              <span className="text-[11px] uppercase tracking-wider text-muted">Status</span>
-              <span className={`text-sm ${kundUser?.accepted_at ? 'text-emerald-400' : kundUser ? 'text-amber-400' : 'text-subtle'}`}>
-                {kundUser?.accepted_at ? 'Aktiverad' : kundUser ? 'Inbjudan skickad — väntar' : 'Ej inbjuden'}
-              </span>
-            </div>
-            <DetailField
-              label="Inbjudan skickad"
-              value={kundUser?.invited_at ? new Date(kundUser.invited_at).toLocaleString('sv-SE') : null}
-            />
-            <DetailField
-              label="Aktiverad"
-              value={kundUser?.accepted_at ? new Date(kundUser.accepted_at).toLocaleString('sv-SE') : null}
-            />
           </div>
           {inviteFeedback && (
-            <p className={`mt-4 text-xs ${inviteFeedback.kind === 'ok' ? 'text-emerald-400' : 'text-red-400'}`}>
+            <p className={`mt-3 text-xs ${inviteFeedback.kind === 'ok' ? 'text-emerald-400' : 'text-red-400'}`}>
               {inviteFeedback.msg}
             </p>
           )}
