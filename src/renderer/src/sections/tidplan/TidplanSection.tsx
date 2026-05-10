@@ -700,7 +700,7 @@ export function TidplanSection() {
     <div className="flex flex-col h-full">
       <div className="flex items-center justify-between px-6 py-3 border-b border-border bg-sidebar shrink-0">
         <p className="text-[11px] uppercase tracking-widest text-muted">Tidplan</p>
-        <RefreshButton />
+        <RefreshButton iconOnly />
       </div>
 
       <div className="flex flex-1 min-h-0">

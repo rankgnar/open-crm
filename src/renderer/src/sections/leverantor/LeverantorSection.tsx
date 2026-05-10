@@ -223,7 +223,7 @@ export function LeverantorSection() {
           <label htmlFor="leverantorer-csv-input" title="Importera CSV" className="inline-flex items-center gap-1.5 px-3 py-2.5 text-[10px] font-semibold uppercase tracking-wider text-muted hover:text-fg transition-colors cursor-pointer">
             <Upload size={11} />Importera
           </label>
-          <RefreshButton />
+          <RefreshButton iconOnly />
           <button onClick={handleAdd} className="inline-flex items-center gap-1.5 px-3 py-2.5 text-[10px] font-semibold uppercase tracking-wider text-muted hover:text-fg transition-colors">
             <Plus size={11} />Ny leverantör
           </button>

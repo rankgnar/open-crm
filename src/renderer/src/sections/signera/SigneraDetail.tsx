@@ -117,7 +117,7 @@ export function SigneraDetail({ row, onBack, onArchived, onUpdated }: Props) {
               className="inline-flex items-center gap-1.5 px-3 py-2.5 text-[10px] font-semibold uppercase tracking-wider text-muted hover:text-fg transition-colors disabled:opacity-40"
               title="Uppdatera"
             >
-              <RefreshCw size={11} className={refreshing ? 'animate-spin' : ''} />Uppdatera
+              <RefreshCw size={11} className={refreshing ? 'animate-spin' : ''} />
             </button>
           )}
           {signed && !archived && (

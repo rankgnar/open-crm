@@ -602,7 +602,7 @@ export function ForslagDetail({ forslag: forslagProp, statusar, allProjekt, onBa
           ) : (
             <>
               <button onClick={loadAll} className="inline-flex items-center gap-1.5 px-3 py-2.5 text-[10px] font-semibold uppercase tracking-wider text-muted hover:text-fg transition-colors">
-                <RefreshCw size={11} />Uppdatera
+                <RefreshCw size={11} />
               </button>
               <button onClick={handleExportPdf} disabled={exportingPdf} className="inline-flex items-center gap-1.5 px-3 py-2.5 text-[10px] font-semibold uppercase tracking-wider text-muted hover:text-fg transition-colors disabled:opacity-40">
                 <FileDown size={11} />{exportingPdf ? 'Genererar...' : 'PDF'}

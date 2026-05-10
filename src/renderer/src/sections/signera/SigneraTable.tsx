@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Plus, FileSignature, Trash2, RefreshCw } from 'lucide-react'
+import { Plus, FileSignature, Trash2, RefreshCw, ArrowUp, ArrowDown, ArrowUpDown } from 'lucide-react'
 import type { SigneraRow } from './types'
 import { lankStatus, type LankStatus } from '../signatur/types'
 
@@ -39,8 +39,29 @@ export function SigneraTable({ rader, onSelect, onNew, onDeleteMany, onRefresh, 
   const [confirmBulk, setConfirmBulk]   = useState(false)
   const [deletingBulk, setDeletingBulk] = useState(false)
   const [confirmRowId, setConfirmRowId] = useState<string | null>(null)
+  const [sortCol, setSortCol] = useState<string | null>(null)
+  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc')
+
+  function handleSort(col: string) {
+    if (sortCol === col) setSortDir((d) => d === 'asc' ? 'desc' : 'asc')
+    else { setSortCol(col); setSortDir('asc') }
+  }
 
   const allSelected = rader.length > 0 && rader.every((r) => selected.has(r.lank.id))
+
+  const sorted = sortCol ? [...rader].sort((a, b) => {
+    const vals: Record<string, string | null | undefined> = {
+      titel: a.dokument?.titel, projekt: a.projekt?.namn, kund: a.kund?.namn,
+      email: a.lank.kund_email, status: lankStatus(a.lank), skapad_at: a.lank.skapad_at,
+    }
+    const bvals: Record<string, string | null | undefined> = {
+      titel: b.dokument?.titel, projekt: b.projekt?.namn, kund: b.kund?.namn,
+      email: b.lank.kund_email, status: lankStatus(b.lank), skapad_at: b.lank.skapad_at,
+    }
+    const av = String(vals[sortCol] ?? ''), bv = String(bvals[sortCol] ?? '')
+    const cmp = av.localeCompare(bv, 'sv')
+    return sortDir === 'asc' ? cmp : -cmp
+  }) : rader
 
   function toggleSelect(e: React.MouseEvent, id: string) {
     e.stopPropagation()
@@ -81,7 +102,6 @@ export function SigneraTable({ rader, onSelect, onNew, onDeleteMany, onRefresh, 
             title="Uppdatera"
           >
             <RefreshCw size={12} className={refreshing ? 'animate-spin' : ''} />
-            Uppdatera
           </button>
           <button
             onClick={onNew}
@@ -131,17 +151,30 @@ export function SigneraTable({ rader, onSelect, onNew, onDeleteMany, onRefresh, 
                   <input type="checkbox" checked={allSelected} onChange={() => {}} onClick={toggleAll}
                     className="rounded border-border accent-emerald-400 cursor-pointer" />
                 </th>
-                <th className="text-left px-6 py-3 text-[10px] uppercase tracking-wider text-muted font-medium">Titel</th>
-                <th className="text-left px-2 py-3 text-[10px] uppercase tracking-wider text-muted font-medium">Projekt</th>
-                <th className="text-left px-2 py-3 text-[10px] uppercase tracking-wider text-muted font-medium">Kund</th>
-                <th className="text-left px-2 py-3 text-[10px] uppercase tracking-wider text-muted font-medium">Email</th>
-                <th className="text-left px-2 py-3 text-[10px] uppercase tracking-wider text-muted font-medium w-32">Status</th>
-                <th className="text-left px-6 py-3 text-[10px] uppercase tracking-wider text-muted font-medium w-32">Skickad</th>
+                {([
+                  ['titel', 'Titel', 'px-6', ''],
+                  ['projekt', 'Projekt', 'px-2', ''],
+                  ['kund', 'Kund', 'px-2', ''],
+                  ['email', 'Email', 'px-2', ''],
+                  ['status', 'Status', 'px-2', 'w-32'],
+                  ['skapad_at', 'Skickad', 'px-6', 'w-32'],
+                ] as [string, string, string, string][]).map(([col, label, px, w]) => (
+                  <th key={col} onClick={() => handleSort(col)}
+                    className={`text-left ${px} py-3 ${w} text-[10px] uppercase tracking-wider text-muted font-medium cursor-pointer select-none hover:text-fg transition-colors group/th`}>
+                    <div className="flex items-center gap-1">
+                      {label}
+                      {sortCol === col
+                        ? sortDir === 'asc' ? <ArrowUp size={10} className="text-fg shrink-0" /> : <ArrowDown size={10} className="text-fg shrink-0" />
+                        : <ArrowUpDown size={10} className="shrink-0 opacity-0 group-hover/th:opacity-40 transition-opacity" />
+                      }
+                    </div>
+                  </th>
+                ))}
                 <th className="w-10" />
               </tr>
             </thead>
             <tbody>
-              {rader.map((r) => {
+              {sorted.map((r) => {
                 const st = lankStatus(r.lank)
                 const isSelected = selected.has(r.lank.id)
                 const isConfirmRow = confirmRowId === r.lank.id

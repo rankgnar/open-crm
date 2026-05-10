@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react'
-import { Plus, Pencil, Trash2, Download, Search } from 'lucide-react'
+import { Plus, Pencil, Trash2, Download, Search, ArrowUp, ArrowDown, ArrowUpDown } from 'lucide-react'
 import { RefreshButton } from '@/components/RefreshButton'
 import type { Inventarie } from './types'
 
@@ -27,6 +27,13 @@ export function InventarierTable({ items, onNew, onEdit, onDelete, onDeleteMany 
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null)
   const [confirmBulk, setConfirmBulk] = useState(false)
   const [deleting, setDeleting] = useState(false)
+  const [sortCol, setSortCol] = useState<string | null>(null)
+  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc')
+
+  function handleSort(col: string) {
+    if (sortCol === col) setSortDir((d) => d === 'asc' ? 'desc' : 'asc')
+    else { setSortCol(col); setSortDir('asc') }
+  }
 
   const visible = useMemo(() => {
     if (!search.trim()) return items
@@ -40,6 +47,24 @@ export function InventarierTable({ items, onNew, onEdit, onDelete, onDeleteMany 
         i.serienr.toLowerCase().includes(q),
     )
   }, [items, search])
+
+  const sorted = sortCol ? [...visible].sort((a, b) => {
+    if (sortCol === 'lopnr' || sortCol === 'antal') {
+      const na = a[sortCol as 'lopnr' | 'antal'], nb = b[sortCol as 'lopnr' | 'antal']
+      return sortDir === 'asc' ? na - nb : nb - na
+    }
+    const vals: Record<string, string> = {
+      kategori: a.kategori, benamning: a.benamning, tillverkare_modell: a.tillverkare_modell,
+      serienr: a.serienr, skick: a.skick, placering: a.placering,
+    }
+    const bvals: Record<string, string> = {
+      kategori: b.kategori, benamning: b.benamning, tillverkare_modell: b.tillverkare_modell,
+      serienr: b.serienr, skick: b.skick, placering: b.placering,
+    }
+    const av = vals[sortCol] ?? '', bv = bvals[sortCol] ?? ''
+    const cmp = av.localeCompare(bv, 'sv')
+    return sortDir === 'asc' ? cmp : -cmp
+  }) : visible
 
   const allSelected = visible.length > 0 && visible.every((i) => selected.has(i.id))
 
@@ -138,7 +163,7 @@ export function InventarierTable({ items, onNew, onEdit, onDelete, onDeleteMany 
             <Download size={13} />
             Exportera CSV
           </button>
-          <RefreshButton />
+          <RefreshButton iconOnly />
           <button
             className="inline-flex items-center gap-1.5 px-3 py-2.5 text-[10px] font-semibold uppercase tracking-wider text-muted hover:text-fg transition-colors"
             onClick={onNew}
@@ -175,14 +200,27 @@ export function InventarierTable({ items, onNew, onEdit, onDelete, onDeleteMany 
                   className="cursor-pointer"
                 />
               </th>
-              <th className="px-3 py-2.5 text-left text-[10px] uppercase tracking-widest text-muted font-medium w-14">Löpnr</th>
-              <th className="px-3 py-2.5 text-left text-[10px] uppercase tracking-widest text-muted font-medium w-32">Kategori</th>
-              <th className="px-3 py-2.5 text-left text-[10px] uppercase tracking-widest text-muted font-medium">Namn</th>
-              <th className="px-3 py-2.5 text-left text-[10px] uppercase tracking-widest text-muted font-medium">Tillv./Modell</th>
-              <th className="px-3 py-2.5 text-left text-[10px] uppercase tracking-widest text-muted font-medium w-28">Serienr</th>
-              <th className="px-3 py-2.5 text-left text-[10px] uppercase tracking-widest text-muted font-medium w-14">Antal</th>
-              <th className="px-3 py-2.5 text-left text-[10px] uppercase tracking-widest text-muted font-medium w-20">Skick</th>
-              <th className="px-3 py-2.5 text-left text-[10px] uppercase tracking-widest text-muted font-medium">Placering</th>
+              {([
+                ['lopnr', 'Löpnr', 'w-14'],
+                ['kategori', 'Kategori', 'w-32'],
+                ['benamning', 'Namn', ''],
+                ['tillverkare_modell', 'Tillv./Modell', ''],
+                ['serienr', 'Serienr', 'w-28'],
+                ['antal', 'Antal', 'w-14'],
+                ['skick', 'Skick', 'w-20'],
+                ['placering', 'Placering', ''],
+              ] as [string, string, string][]).map(([col, label, w]) => (
+                <th key={col} onClick={() => handleSort(col)}
+                  className={`px-3 py-2.5 text-left text-[10px] uppercase tracking-widest text-muted font-medium ${w} cursor-pointer select-none hover:text-fg transition-colors group/th`}>
+                  <div className="flex items-center gap-1">
+                    {label}
+                    {sortCol === col
+                      ? sortDir === 'asc' ? <ArrowUp size={10} className="text-fg shrink-0" /> : <ArrowDown size={10} className="text-fg shrink-0" />
+                      : <ArrowUpDown size={10} className="shrink-0 opacity-0 group-hover/th:opacity-40 transition-opacity" />
+                    }
+                  </div>
+                </th>
+              ))}
               <th className="px-4 py-2.5 w-20" />
             </tr>
           </thead>
@@ -194,7 +232,7 @@ export function InventarierTable({ items, onNew, onEdit, onDelete, onDeleteMany 
                 </td>
               </tr>
             ) : (
-              visible.map((item) => (
+              sorted.map((item) => (
                 <tr
                   key={item.id}
                   className={`border-b border-border hover:bg-hover cursor-pointer ${selected.has(item.id) ? 'bg-hover' : ''}`}

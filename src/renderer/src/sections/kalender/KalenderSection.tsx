@@ -10,12 +10,18 @@ import type { Kalender, KalenderDokument, KalenderEvent, KalenderVy, NyttEventFo
 import { buildKalenderDagHtml } from '@/pdf/buildKalenderDagHtml'
 
 const DAGAR = ['Mån', 'Tis', 'Ons', 'Tor', 'Fre', 'Lör', 'Sön']
+const DAGAR_FULL = ['Måndag', 'Tisdag', 'Onsdag', 'Torsdag', 'Fredag', 'Lördag', 'Söndag']
 const MANADER = [
   'Januari', 'Februari', 'Mars', 'April', 'Maj', 'Juni',
   'Juli', 'Augusti', 'September', 'Oktober', 'November', 'December'
 ]
 
 const LOKAL_FARG = '#6366f1'
+
+const VY_LABELS: Record<KalenderVy, string> = {
+  '6manad': '6 månader', '3manad': '3 månader', manad: '1 månad',
+  '3vecka': '3 veckor', '2vecka': '2 veckor', vecka: '1 vecka', dag: '1 dag',
+}
 
 const PROJEKT_FARGER = [
   '#10b981', '#f59e0b', '#ef4444', '#8b5cf6',
@@ -177,6 +183,74 @@ function EventPill({
       {!event.hel_dag && <span className="opacity-70 mr-1">{formatTid(event.start)}</span>}
       {event.titel}
     </button>
+  )
+}
+
+// ─── MultiVeckaGrid ──────────────────────────────────────────────────────────
+
+function MultiVeckaGrid({
+  anchor, numVeckor, events, valtDag, onValjDag, onValjEvent, onDragStart, onDrop, selectedIds,
+}: {
+  anchor: Date; numVeckor: number; events: KalenderEvent[]
+  valtDag: Date | null; onValjDag: (d: Date) => void; onValjEvent: (e: KalenderEvent) => void
+  onDragStart?: (e: KalenderEvent) => void
+  onDrop: (dag: Date) => void
+  selectedIds: Set<string>
+}) {
+  const idag = new Date()
+  const days = useMemo(() => {
+    const monday = getWeekDays(anchor)[0]
+    return Array.from({ length: numVeckor * 7 }, (_, i) => {
+      const d = new Date(monday); d.setDate(monday.getDate() + i); return d
+    })
+  }, [anchor, numVeckor])
+
+  const veckor = useMemo(() => {
+    const rows: Date[][] = []
+    for (let i = 0; i < days.length; i += 7) rows.push(days.slice(i, i + 7))
+    return rows
+  }, [days])
+
+  return (
+    <div className="flex flex-col flex-1 overflow-auto">
+      <div className="flex border-b border-border sticky top-0 bg-bg z-10 shrink-0">
+        <div className="w-8 shrink-0 border-r border-border/40" />
+        <div className="flex-1 grid grid-cols-7">
+          {DAGAR.map(d => (
+            <div key={d} className="py-2 text-center text-[11px] uppercase tracking-widest text-muted">{d}</div>
+          ))}
+        </div>
+      </div>
+      {veckor.map((vecka, wi) => (
+        <div key={wi} className="flex border-b border-border flex-1 min-h-[80px]">
+          <div className="w-8 shrink-0 border-r border-border/40 flex items-start justify-center pt-1.5">
+            <span className="text-[10px] font-mono text-amber-400/70">{getVeckonummer(vecka[0])}</span>
+          </div>
+          <div className="flex-1 grid grid-cols-7">
+            {vecka.map((dag, di) => {
+              const erIdag = isSameDag(dag, idag)
+              const erVald = valtDag ? isSameDag(dag, valtDag) : false
+              const dagEvents = eventsPaDag(events, dag)
+              return (
+                <div
+                  key={di}
+                  onClick={() => onValjDag(dag)}
+                  onDragOver={e => e.preventDefault()}
+                  onDrop={() => onDrop(dag)}
+                  className={`border-r border-border/40 p-1 flex flex-col gap-0.5 cursor-pointer transition-colors min-h-[80px] ${erVald ? 'bg-hover' : 'hover:bg-hover/40'}`}
+                >
+                  <span className={`text-[11px] font-medium self-start ${erIdag ? 'text-emerald-400' : 'text-muted'}`}>{dag.getDate()}</span>
+                  {dagEvents.slice(0, 12).map(e => (
+                    <EventPill key={e.id} event={e} onClick={onValjEvent} onDragStart={onDragStart} selected={selectedIds.has(e.id)} />
+                  ))}
+                  {dagEvents.length > 12 && <span className="text-[10px] text-muted">+{dagEvents.length - 12}</span>}
+                </div>
+              )
+            })}
+          </div>
+        </div>
+      ))}
+    </div>
   )
 }
 
@@ -733,6 +807,329 @@ function VeckaGrid({
               </div>
             )
           })}
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// ─── DagGrid ─────────────────────────────────────────────────────────────────
+
+function DagGrid({
+  anchor, events, onValjEvent, onValjDag, onDragStart, onDrop, onResize, selectedIds,
+}: {
+  anchor: Date; events: KalenderEvent[]
+  onValjEvent: (e: KalenderEvent) => void; onValjDag: (d: Date, withTime?: boolean) => void
+  onDragStart?: (e: KalenderEvent) => void
+  onDrop: (dag: Date, withTime: boolean) => void
+  onResize?: (e: KalenderEvent, newSlut: Date) => void
+  selectedIds: Set<string>
+}) {
+  const idag = new Date()
+  const dag = useMemo(() => {
+    const d = new Date(anchor)
+    d.setHours(0, 0, 0, 0)
+    return d
+  }, [anchor])
+  const scrollRef = useRef<HTMLDivElement>(null)
+  const [nuTid, setNuTid] = useState(new Date())
+  const [scrollbarW, setScrollbarW] = useState(0)
+  const [dragOver, setDragOver] = useState(false)
+  const grabOffsetY = useRef(0)
+  const draggingEvent = useRef<KalenderEvent | null>(null)
+  const [dragPreview, setDragPreview] = useState<{ topPx: number; heightPx: number; farg: string } | null>(null)
+  const resizeRef = useRef<{ event: KalenderEvent; startY: number; initialHeightPx: number; currentHeightPx: number } | null>(null)
+  const [resizePreview, setResizePreview] = useState<{ id: string; heightPx: number } | null>(null)
+
+  function startResize(ev: React.MouseEvent, e: KalenderEvent) {
+    if (!onResize) return
+    ev.stopPropagation()
+    ev.preventDefault()
+    const start = new Date(e.start)
+    const slut = new Date(e.slut)
+    const initialHeightPx = Math.max((slut.getTime() - start.getTime()) / 3_600_000 * HOUR_HEIGHT, 22)
+    resizeRef.current = { event: e, startY: ev.clientY, initialHeightPx, currentHeightPx: initialHeightPx }
+    setResizePreview({ id: e.id, heightPx: initialHeightPx })
+
+    const onMove = (mev: MouseEvent) => {
+      if (!resizeRef.current) return
+      const dy = mev.clientY - resizeRef.current.startY
+      const snapStep = HOUR_HEIGHT / 4
+      const minHeight = snapStep
+      const newRaw = resizeRef.current.initialHeightPx + dy
+      const snapped = Math.max(minHeight, Math.round(newRaw / snapStep) * snapStep)
+      resizeRef.current.currentHeightPx = snapped
+      setResizePreview({ id: resizeRef.current.event.id, heightPx: snapped })
+    }
+    const onUp = () => {
+      if (resizeRef.current) {
+        const ev2 = resizeRef.current.event
+        const minutes = Math.round(resizeRef.current.currentHeightPx / HOUR_HEIGHT * 60 / 15) * 15
+        const newSlut = new Date(ev2.start)
+        newSlut.setMinutes(newSlut.getMinutes() + Math.max(15, minutes))
+        onResize(ev2, newSlut)
+      }
+      resizeRef.current = null
+      setResizePreview(null)
+      document.removeEventListener('mousemove', onMove)
+      document.removeEventListener('mouseup', onUp)
+    }
+    document.addEventListener('mousemove', onMove)
+    document.addEventListener('mouseup', onUp)
+  }
+
+  useEffect(() => {
+    if (scrollRef.current) {
+      const now = new Date()
+      scrollRef.current.scrollTop = Math.max(0, (now.getHours() - 1) * HOUR_HEIGHT)
+    }
+  }, [anchor])
+
+  useEffect(() => {
+    const timer = setInterval(() => setNuTid(new Date()), 60_000)
+    return () => clearInterval(timer)
+  }, [])
+
+  useEffect(() => {
+    function measure() {
+      if (scrollRef.current)
+        setScrollbarW(scrollRef.current.offsetWidth - scrollRef.current.clientWidth)
+    }
+    measure()
+    window.addEventListener('resize', measure)
+    return () => window.removeEventListener('resize', measure)
+  }, [])
+
+  const helDagEvents = useMemo(() =>
+    events.filter(e => {
+      const s = new Date(e.start); const sl = new Date(e.slut)
+      return isSameDag(s, dag) || (e.hel_dag && s <= dag && dag <= sl)
+    }).filter(e => e.hel_dag || !isSameDag(new Date(e.start), new Date(e.slut))),
+    [events, dag]
+  )
+  const tidEvents = useMemo(() =>
+    events.filter(e => !e.hel_dag && isSameDag(new Date(e.start), dag)),
+    [events, dag]
+  )
+
+  const overlapLayout = useMemo(() => assignOverlapLayout(tidEvents), [tidEvents])
+
+  function calcDropTime(ev: React.DragEvent<HTMLDivElement>): { hours: number; minutes: number } {
+    const rect = ev.currentTarget.getBoundingClientRect()
+    const relY = ev.clientY - rect.top - grabOffsetY.current
+    const clamped = Math.max(0, Math.min(relY, 24 * HOUR_HEIGHT - 1))
+    const totalMinutes = Math.round((clamped / HOUR_HEIGHT) * 60 / 15) * 15
+    const clampedMinutes = Math.min(totalMinutes, 23 * 60 + 45)
+    return { hours: Math.floor(clampedMinutes / 60), minutes: clampedMinutes % 60 }
+  }
+
+  function calcClickTime(ev: React.MouseEvent<HTMLDivElement>): { hours: number; minutes: number } {
+    const rect = ev.currentTarget.getBoundingClientRect()
+    const relY = ev.clientY - rect.top
+    const clamped = Math.max(0, Math.min(relY, 24 * HOUR_HEIGHT - 1))
+    const totalMinutes = Math.round((clamped / HOUR_HEIGHT) * 60 / 15) * 15
+    const clampedMinutes = Math.min(totalMinutes, 23 * 60 + 45)
+    return { hours: Math.floor(clampedMinutes / 60), minutes: clampedMinutes % 60 }
+  }
+
+  const erIdag = isSameDag(dag, idag)
+  const nuTop = (nuTid.getHours() + nuTid.getMinutes() / 60) * HOUR_HEIGHT
+  const dagIdx = (dag.getDay() + 6) % 7
+
+  return (
+    <div className="flex flex-col flex-1 min-h-0 overflow-hidden">
+      {/* Header */}
+      <div className="flex border-b border-border shrink-0 bg-sidebar" style={{ paddingRight: scrollbarW }}>
+        <div className="w-14 shrink-0 border-r border-border/40" />
+        <div className="flex-1 py-3 px-4 flex items-center gap-3">
+          <span className="text-[11px] uppercase tracking-widest text-muted">{DAGAR_FULL[dagIdx]}</span>
+          <span className={`text-sm w-7 h-7 flex items-center justify-center rounded-full font-semibold
+            ${erIdag ? 'bg-blue-500 text-white' : 'text-fg'}`}
+          >
+            {dag.getDate()}
+          </span>
+          {tidEvents.length > 0 && (
+            <span className="text-[10px] text-subtle ml-auto">{tidEvents.length} händelse{tidEvents.length !== 1 ? 'r' : ''}</span>
+          )}
+        </div>
+      </div>
+
+      {/* All-day row */}
+      {helDagEvents.length > 0 && (
+        <div className="flex border-b border-border shrink-0" style={{ paddingRight: scrollbarW }}>
+          <div className="w-14 shrink-0 border-r border-border/40 flex items-center justify-end pr-2">
+            <span className="text-[9px] uppercase tracking-widest text-subtle">Heldag</span>
+          </div>
+          <div className="flex-1 p-1 flex flex-col gap-0.5">
+            {helDagEvents.map(e => <EventPill key={e.id} event={e} onClick={onValjEvent} selected={selectedIds.has(e.id)} />)}
+          </div>
+        </div>
+      )}
+
+      {/* Time grid */}
+      <div ref={scrollRef} className="flex-1 overflow-y-auto overflow-x-hidden">
+        <div className="flex" style={{ height: `${24 * HOUR_HEIGHT}px` }}>
+
+          {/* Hour labels */}
+          <div className="w-14 shrink-0 border-r border-border/40 relative select-none">
+            {Array.from({ length: 24 }, (_, h) => (
+              <div
+                key={h}
+                className="absolute right-2 text-[10px] text-subtle leading-none"
+                style={{ top: `${h * HOUR_HEIGHT - 6}px` }}
+              >
+                {h > 0 ? `${String(h).padStart(2, '0')}:00` : ''}
+              </div>
+            ))}
+          </div>
+
+          {/* Single day column */}
+          <div
+            onClick={(ev) => {
+              const { hours, minutes } = calcClickTime(ev)
+              const d = new Date(dag)
+              d.setHours(hours, minutes, 0, 0)
+              onValjDag(d, true)
+            }}
+            onDragEnter={e => { e.preventDefault(); setDragOver(true) }}
+            onDragLeave={e => {
+              if (!e.currentTarget.contains(e.relatedTarget as Node)) {
+                setDragOver(false)
+                setDragPreview(null)
+              }
+            }}
+            onDragOver={ev => {
+              ev.preventDefault()
+              setDragOver(true)
+              if (!draggingEvent.current) return
+              const { hours, minutes } = calcDropTime(ev)
+              const durationMs = new Date(draggingEvent.current.slut).getTime() - new Date(draggingEvent.current.start).getTime()
+              setDragPreview({
+                topPx: (hours + minutes / 60) * HOUR_HEIGHT,
+                heightPx: Math.max(durationMs / 3_600_000 * HOUR_HEIGHT, 22),
+                farg: draggingEvent.current.farg,
+              })
+            }}
+            onDrop={ev => {
+              ev.preventDefault()
+              setDragOver(false)
+              setDragPreview(null)
+              if (draggingEvent.current) {
+                const { hours, minutes } = calcDropTime(ev)
+                const dropDate = new Date(dag)
+                dropDate.setHours(hours, minutes, 0, 0)
+                onDrop(dropDate, true)
+              } else {
+                onDrop(dag, false)
+              }
+              draggingEvent.current = null
+            }}
+            className="flex-1 relative cursor-pointer"
+            style={{
+              backgroundColor: dragOver
+                ? 'rgb(59 130 246 / 0.10)'
+                : erIdag
+                  ? 'rgb(59 130 246 / 0.04)'
+                  : undefined,
+              outline: dragOver ? '1px solid rgb(59 130 246 / 0.3)' : undefined,
+              outlineOffset: '-1px',
+            }}
+          >
+            {/* Hour lines */}
+            {Array.from({ length: 24 }, (_, h) => (
+              <div key={h} className="absolute inset-x-0 border-t border-border/30 pointer-events-none"
+                style={{ top: `${h * HOUR_HEIGHT}px` }} />
+            ))}
+            {/* Half-hour lines */}
+            {Array.from({ length: 24 }, (_, h) => (
+              <div key={`hh${h}`} className="absolute inset-x-0 border-t border-border/15 pointer-events-none"
+                style={{ top: `${h * HOUR_HEIGHT + HOUR_HEIGHT / 2}px` }} />
+            ))}
+
+            {/* Current time indicator */}
+            {erIdag && (
+              <div className="absolute inset-x-0 z-10 pointer-events-none flex items-center"
+                style={{ top: `${nuTop}px` }}>
+                <div className="w-2 h-2 rounded-full bg-red-400 shrink-0 -ml-1" />
+                <div className="flex-1 h-px bg-red-400" />
+              </div>
+            )}
+
+            {/* Drag preview ghost */}
+            {dragPreview && (
+              <div
+                className="absolute left-0.5 right-0.5 rounded pointer-events-none"
+                style={{
+                  top: `${dragPreview.topPx}px`,
+                  height: `${dragPreview.heightPx}px`,
+                  backgroundColor: `${dragPreview.farg}15`,
+                  border: `1px dashed ${dragPreview.farg}`,
+                }}
+              />
+            )}
+
+            {/* Events */}
+            {tidEvents.map(e => {
+              const start = new Date(e.start)
+              const slut = new Date(e.slut)
+              const top = (start.getHours() + start.getMinutes() / 60) * HOUR_HEIGHT
+              const durationH = (slut.getTime() - start.getTime()) / (1000 * 60 * 60)
+              const baseHeight = Math.max(durationH * HOUR_HEIGHT, 22)
+              const height = resizePreview?.id === e.id ? resizePreview.heightPx : baseHeight
+              const { left, width } = overlapLayout.get(e.id) ?? { left: 0, width: 1 }
+              const erVald = selectedIds.has(e.id)
+              const resizable = !!onResize
+              return (
+                <div
+                  key={e.id}
+                  className="absolute group"
+                  style={{
+                    top: `${top}px`,
+                    height: `${height}px`,
+                    left: `calc(${left * 100}% + 2px)`,
+                    width: `calc(${width * 100}% - 4px)`,
+                  }}
+                >
+                  <button
+                    draggable={!!onDragStart}
+                    onDragStart={ev => {
+                      if (!onDragStart) return
+                      ev.stopPropagation()
+                      ev.dataTransfer.effectAllowed = 'move'
+                      grabOffsetY.current = ev.nativeEvent.offsetY
+                      draggingEvent.current = e
+                      onDragStart(e)
+                    }}
+                    onDragEnd={() => {
+                      draggingEvent.current = null
+                      setDragPreview(null)
+                    }}
+                    onClick={ev => { ev.stopPropagation(); onValjEvent(e) }}
+                    className={`absolute inset-0 rounded px-1.5 py-0.5 text-left overflow-hidden hover:opacity-80 transition-opacity ${onDragStart ? 'cursor-grab active:cursor-grabbing' : 'cursor-pointer'} ${e.slutford ? 'line-through opacity-50' : ''}`}
+                    style={{
+                      backgroundColor: erVald ? `${e.farg}55` : `${e.farg}22`,
+                      color: e.farg,
+                      borderLeft: `2px solid ${e.farg}`,
+                      boxShadow: erVald ? `0 0 0 2px ${e.farg}` : undefined,
+                    }}
+                  >
+                    <span className="text-[11px] font-medium leading-tight block truncate">{e.titel}</span>
+                    {height > 36 && (
+                      <span className="text-[10px] opacity-70">{formatTid(e.start)} – {formatTid(e.slut)}</span>
+                    )}
+                  </button>
+                  {resizable && (
+                    <div
+                      onMouseDown={ev => startResize(ev, e)}
+                      onClick={ev => ev.stopPropagation()}
+                      className="absolute bottom-0 left-0 right-0 h-1.5 cursor-ns-resize opacity-0 group-hover:opacity-100 transition-opacity"
+                      style={{ backgroundColor: e.farg }}
+                    />
+                  )}
+                </div>
+              )
+            })}
+          </div>
         </div>
       </div>
     </div>
@@ -1607,7 +2004,9 @@ export function KalenderSection({ onNavigate }: { onNavigate?: (section: string)
   const [pdfDatum, setPdfDatum] = useState(() => toDateInput(new Date()))
   const [exporterar, setExporterar] = useState(false)
   const [kalendrarOppen, setKalendrarOppen] = useState(true)
+  const [vyDropdownOpen, setVyDropdownOpen] = useState(false)
   const pdfMenuRef = useRef<HTMLDivElement>(null)
+  const vyDropdownRef = useRef<HTMLDivElement>(null)
 
   const REVISOR_FARG = '#818cf8'
 
@@ -1682,6 +2081,17 @@ export function KalenderSection({ onNavigate }: { onNavigate?: (section: string)
     document.addEventListener('mousedown', onClick)
     return () => document.removeEventListener('mousedown', onClick)
   }, [pdfMenuOpen])
+
+  useEffect(() => {
+    if (!vyDropdownOpen) return
+    function onClick(e: MouseEvent) {
+      if (vyDropdownRef.current && !vyDropdownRef.current.contains(e.target as Node)) {
+        setVyDropdownOpen(false)
+      }
+    }
+    document.addEventListener('mousedown', onClick)
+    return () => document.removeEventListener('mousedown', onClick)
+  }, [vyDropdownOpen])
 
   async function handleExportPdf() {
     if (exporterar) return
@@ -1798,14 +2208,24 @@ export function KalenderSection({ onNavigate }: { onNavigate?: (section: string)
 
   function gaForegaende() {
     const d = new Date(anchor)
-    if (vy === 'manad') d.setMonth(d.getMonth() - 1)
+    if (vy === '6manad') d.setMonth(d.getMonth() - 6)
+    else if (vy === '3manad') d.setMonth(d.getMonth() - 3)
+    else if (vy === 'manad') d.setMonth(d.getMonth() - 1)
+    else if (vy === '3vecka') d.setDate(d.getDate() - 21)
+    else if (vy === '2vecka') d.setDate(d.getDate() - 14)
+    else if (vy === 'dag') d.setDate(d.getDate() - 1)
     else d.setDate(d.getDate() - 7)
     setAnchor(d)
   }
 
   function gaNasta() {
     const d = new Date(anchor)
-    if (vy === 'manad') d.setMonth(d.getMonth() + 1)
+    if (vy === '6manad') d.setMonth(d.getMonth() + 6)
+    else if (vy === '3manad') d.setMonth(d.getMonth() + 3)
+    else if (vy === 'manad') d.setMonth(d.getMonth() + 1)
+    else if (vy === '3vecka') d.setDate(d.getDate() + 21)
+    else if (vy === '2vecka') d.setDate(d.getDate() + 14)
+    else if (vy === 'dag') d.setDate(d.getDate() + 1)
     else d.setDate(d.getDate() + 7)
     setAnchor(d)
   }
@@ -2109,16 +2529,44 @@ export function KalenderSection({ onNavigate }: { onNavigate?: (section: string)
 
   const rubrik = vy === 'manad'
     ? `${MANADER[manad]} ${ar}`
-    : (() => {
-        const vecka = getWeekDays(anchor)
-        const forst = vecka[0]
-        const sist = vecka[6]
-        const vNum = getVeckonummer(forst)
-        const datumStr = forst.getMonth() === sist.getMonth()
-          ? `${forst.getDate()}–${sist.getDate()} ${MANADER[forst.getMonth()]} ${forst.getFullYear()}`
-          : `${forst.getDate()} ${MANADER[forst.getMonth()]} – ${sist.getDate()} ${MANADER[sist.getMonth()]} ${sist.getFullYear()}`
-        return `V.${vNum} · ${datumStr}`
-      })()
+    : vy === 'dag'
+      ? (() => {
+          const dagIdx = (anchor.getDay() + 6) % 7
+          return `${DAGAR_FULL[dagIdx]} ${anchor.getDate()} ${MANADER[anchor.getMonth()]} ${anchor.getFullYear()}`
+        })()
+      : vy === 'vecka'
+        ? (() => {
+            const vecka = getWeekDays(anchor)
+            const forst = vecka[0]
+            const sist = vecka[6]
+            const vNum = getVeckonummer(forst)
+            const datumStr = forst.getMonth() === sist.getMonth()
+              ? `${forst.getDate()}–${sist.getDate()} ${MANADER[forst.getMonth()]} ${forst.getFullYear()}`
+              : `${forst.getDate()} ${MANADER[forst.getMonth()]} – ${sist.getDate()} ${MANADER[sist.getMonth()]} ${sist.getFullYear()}`
+            return `V.${vNum} · ${datumStr}`
+          })()
+        : (vy === '2vecka' || vy === '3vecka')
+          ? (() => {
+              const monday = getWeekDays(anchor)[0]
+              const numDays = vy === '3vecka' ? 21 : 14
+              const sunday = new Date(monday); sunday.setDate(monday.getDate() + numDays - 1)
+              const v1 = getVeckonummer(monday)
+              const v2 = getVeckonummer(sunday)
+              const datumStr = monday.getMonth() === sunday.getMonth()
+                ? `${monday.getDate()}–${sunday.getDate()} ${MANADER[monday.getMonth()]} ${monday.getFullYear()}`
+                : `${monday.getDate()} ${MANADER[monday.getMonth()]} – ${sunday.getDate()} ${MANADER[sunday.getMonth()]} ${sunday.getFullYear()}`
+              return `V.${v1}–V.${v2} · ${datumStr}`
+            })()
+          : (() => {
+              // 3manad or 6manad
+              const numMonths = vy === '6manad' ? 6 : 3
+              const firstMonth = new Date(anchor.getFullYear(), anchor.getMonth(), 1)
+              const lastMonth = new Date(anchor.getFullYear(), anchor.getMonth() + numMonths - 1, 1)
+              if (firstMonth.getFullYear() === lastMonth.getFullYear()) {
+                return `${MANADER[firstMonth.getMonth()]} – ${MANADER[lastMonth.getMonth()]} ${firstMonth.getFullYear()}`
+              }
+              return `${MANADER[firstMonth.getMonth()]} ${firstMonth.getFullYear()} – ${MANADER[lastMonth.getMonth()]} ${lastMonth.getFullYear()}`
+            })()
 
   const valtProjektNamn = valtEvent?.projekt_id
     ? (alleProjekt.find(p => p.id === valtEvent.projekt_id)?.namn ?? null)
@@ -2128,71 +2576,69 @@ export function KalenderSection({ onNavigate }: { onNavigate?: (section: string)
     <div className="flex flex-col h-full">
       {/* Header */}
       <div className="flex items-center px-6 py-3 border-b border-border bg-sidebar shrink-0">
-        {selectionMode ? (
-          <>
-            <div className="flex-1 flex items-center gap-3">
-              <p className="text-[11px] uppercase tracking-widest text-muted">Kalender</p>
-              <span className="text-sm text-fg">{selectedIds.size} markerade</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <button
-                onClick={() => void handleTabortValda()}
-                disabled={selectedIds.size === 0 || tarBort}
-                className="inline-flex items-center gap-1.5 px-3 py-2.5 text-[10px] font-semibold uppercase tracking-wider text-muted hover:text-red-400 disabled:opacity-40 transition-colors"
-              >
-                <Trash2 size={11} />{tarBort ? 'Tar bort…' : 'Ta bort markerade'}
-              </button>
-              <button
-                onClick={avbrytValjLage}
-                className="inline-flex items-center gap-1.5 px-3 py-2.5 text-[10px] font-semibold uppercase tracking-wider text-muted hover:text-fg transition-colors"
-              >
-                Avbryt
-              </button>
-            </div>
-            <div className="flex-1" />
-          </>
-        ) : (
-        <>
-        <div className="flex-1 flex items-center">
+        <div className="flex-1 flex items-center gap-3">
           <p className="text-[11px] uppercase tracking-widest text-muted">Kalender</p>
+          {selectionMode && (
+            <span className="text-[11px] text-muted">{selectedIds.size} markerade</span>
+          )}
         </div>
-        <div className="flex items-center gap-2">
-          <button
-            onClick={gaForegaende}
-            aria-label="Föregående"
-            className="p-1.5 text-muted hover:text-fg transition-colors"
-          >
-            <ChevronLeft size={16} />
-          </button>
+        <div className="flex items-center gap-4">
+          <div className="flex items-center gap-1">
+            <button
+              onClick={gaForegaende}
+              aria-label="Föregående"
+              className="p-1.5 text-muted hover:text-fg hover:bg-hover rounded transition-colors"
+            >
+              <ChevronLeft size={15} />
+            </button>
+            <div className="min-w-[15rem] text-center select-none px-1 whitespace-nowrap">
+              {rubrik.includes(' · ') ? (
+                <>
+                  <span className="text-[10px] font-mono text-amber-400/70">{rubrik.split(' · ')[0]}</span>
+                  <span className="text-muted mx-1.5">·</span>
+                  <span className="text-[13px] font-semibold text-fg">{rubrik.split(' · ')[1]}</span>
+                </>
+              ) : (
+                <span className="text-[13px] font-semibold text-fg">{rubrik}</span>
+              )}
+            </div>
+            <button
+              onClick={gaNasta}
+              aria-label="Nästa"
+              className="p-1.5 text-muted hover:text-fg hover:bg-hover rounded transition-colors"
+            >
+              <ChevronRight size={15} />
+            </button>
+          </div>
+        </div>
+        <div className="flex-1 flex items-center justify-end gap-2">
           <button
             onClick={gaIdag}
-            className="inline-flex items-center px-3 py-2.5 text-[10px] font-semibold uppercase tracking-wider text-muted hover:text-fg transition-colors whitespace-nowrap"
+            className="inline-flex items-center gap-1.5 px-3 py-2.5 text-[10px] font-semibold uppercase tracking-wider text-muted hover:text-fg transition-colors whitespace-nowrap"
           >
             Idag
           </button>
-          <button
-            onClick={gaNasta}
-            aria-label="Nästa"
-            className="p-1.5 text-muted hover:text-fg transition-colors"
-          >
-            <ChevronRight size={16} />
-          </button>
-          <span className="text-sm font-medium text-fg ml-2 min-w-[12rem] text-center whitespace-nowrap">{rubrik}</span>
-        </div>
-        <div className="flex-1 flex items-center justify-end gap-2">
-          <div className="flex">
+          <div ref={vyDropdownRef} className="relative">
             <button
-              onClick={() => setVy('manad')}
-              className={`px-3 py-2.5 text-[10px] font-semibold uppercase tracking-wider transition-colors whitespace-nowrap ${vy === 'manad' ? 'text-fg border-b-2 border-emerald-400' : 'text-muted hover:text-fg'}`}
+              onClick={() => setVyDropdownOpen(o => !o)}
+              className="inline-flex items-center gap-1.5 px-3 py-2.5 text-[10px] font-semibold uppercase tracking-wider text-fg border-b-2 border-emerald-400 transition-colors whitespace-nowrap"
             >
-              Månad
+              {VY_LABELS[vy]}
+              <ChevronDown size={11} />
             </button>
-            <button
-              onClick={() => setVy('vecka')}
-              className={`px-3 py-2.5 text-[10px] font-semibold uppercase tracking-wider transition-colors whitespace-nowrap ${vy === 'vecka' ? 'text-fg border-b-2 border-emerald-400' : 'text-muted hover:text-fg'}`}
-            >
-              Vecka
-            </button>
+            {vyDropdownOpen && (
+              <div className="absolute right-0 top-full mt-1 z-20 w-36 bg-elevated border border-border rounded-lg shadow-lg py-1">
+                {(Object.entries(VY_LABELS) as [KalenderVy, string][]).map(([key, label]) => (
+                  <button
+                    key={key}
+                    onClick={() => { setVy(key); setVyDropdownOpen(false) }}
+                    className={`w-full text-left px-3 py-2 text-[11px] transition-colors ${vy === key ? 'text-fg bg-hover' : 'text-muted hover:text-fg hover:bg-hover'}`}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
           <div ref={pdfMenuRef} className="relative">
             <button
@@ -2229,23 +2675,31 @@ export function KalenderSection({ onNavigate }: { onNavigate?: (section: string)
               </div>
             )}
           </div>
-          <RefreshButton />
+          {selectionMode ? (
+            <button
+              onClick={() => void handleTabortValda()}
+              disabled={selectedIds.size === 0 || tarBort}
+              className="inline-flex items-center gap-1.5 px-3 py-2.5 text-[10px] font-semibold uppercase tracking-wider text-muted hover:text-red-400 disabled:opacity-40 transition-colors whitespace-nowrap"
+            >
+              <Trash2 size={11} />{tarBort ? 'Tar bort…' : 'Ta bort'}
+            </button>
+          ) : (
+            <button
+              onClick={() => handleNyttEvent()}
+              className="inline-flex items-center gap-1.5 px-3 py-2.5 text-[10px] font-semibold uppercase tracking-wider text-muted hover:text-fg transition-colors whitespace-nowrap"
+            >
+              <Plus size={11} />Ny task
+            </button>
+          )}
           <button
-            onClick={aktiveraValjLage}
+            onClick={selectionMode ? avbrytValjLage : aktiveraValjLage}
             title="Välj flera för att ta bort"
-            className="inline-flex items-center gap-1.5 px-3 py-2.5 text-[10px] font-semibold uppercase tracking-wider text-muted hover:text-fg transition-colors whitespace-nowrap"
+            className={`inline-flex items-center gap-1.5 px-3 py-2.5 text-[10px] font-semibold uppercase tracking-wider transition-colors whitespace-nowrap ${selectionMode ? 'text-emerald-400 bg-hover rounded' : 'text-muted hover:text-fg'}`}
           >
             <Check size={11} />Välj
           </button>
-          <button
-            onClick={() => handleNyttEvent()}
-            className="inline-flex items-center gap-1.5 px-3 py-2.5 text-[10px] font-semibold uppercase tracking-wider text-muted hover:text-fg transition-colors whitespace-nowrap"
-          >
-            <Plus size={11} />Ny task
-          </button>
+          <RefreshButton iconOnly />
         </div>
-        </>
-        )}
       </div>
 
       <div className="flex flex-1 min-h-0">
@@ -2360,7 +2814,45 @@ export function KalenderSection({ onNavigate }: { onNavigate?: (section: string)
 
         {/* Center: calendar grid */}
         <div className={`flex flex-col flex-1 min-h-0 min-w-0 ${panelOppen ? 'border-r border-border' : ''}`}>
-          {vy === 'manad' ? (
+          {(vy === '6manad' || vy === '3manad') ? (
+            <div className="flex flex-col flex-1 overflow-auto">
+              {Array.from({ length: vy === '6manad' ? 6 : 3 }, (_, i) => {
+                const d = new Date(anchor.getFullYear(), anchor.getMonth() + i, 1)
+                return (
+                  <div key={i}>
+                    <div className="px-6 py-2 border-b border-border bg-sidebar sticky top-0 z-10 shrink-0">
+                      <span className="text-[11px] uppercase tracking-widest text-muted">
+                        {MANADER[d.getMonth()]} {d.getFullYear()}
+                      </span>
+                    </div>
+                    <ManadGrid
+                      ar={d.getFullYear()}
+                      manad={d.getMonth()}
+                      events={synligaEvents}
+                      valtDag={valtDag}
+                      onValjDag={dag => { if (!selectionMode) { setValtDag(dag); setValtEvent(null); setSkapar(false) } }}
+                      onValjEvent={handleEventKlick}
+                      onDragStart={selectionMode ? undefined : handleDragStart}
+                      onDrop={dag => void handleDrop(dag)}
+                      selectedIds={selectedIds}
+                    />
+                  </div>
+                )
+              })}
+            </div>
+          ) : (vy === '2vecka' || vy === '3vecka') ? (
+            <MultiVeckaGrid
+              anchor={anchor}
+              numVeckor={vy === '3vecka' ? 3 : 2}
+              events={synligaEvents}
+              valtDag={valtDag}
+              onValjDag={dag => { if (!selectionMode) { setValtDag(dag); setValtEvent(null); setSkapar(false) } }}
+              onValjEvent={handleEventKlick}
+              onDragStart={selectionMode ? undefined : handleDragStart}
+              onDrop={dag => void handleDrop(dag)}
+              selectedIds={selectedIds}
+            />
+          ) : vy === 'manad' ? (
             <ManadGrid
               ar={ar}
               manad={manad}
@@ -2373,6 +2865,24 @@ export function KalenderSection({ onNavigate }: { onNavigate?: (section: string)
               onValjEvent={handleEventKlick}
               onDragStart={selectionMode ? undefined : handleDragStart}
               onDrop={dag => void handleDrop(dag)}
+              selectedIds={selectedIds}
+            />
+          ) : vy === 'dag' ? (
+            <DagGrid
+              anchor={anchor}
+              events={synligaEvents}
+              onValjEvent={handleEventKlick}
+              onValjDag={(dag, withTime) => {
+                if (selectionMode) return
+                if (withTime) {
+                  handleNyttEvent(dag, true)
+                } else {
+                  setValtDag(dag); setValtEvent(null); setSkapar(false)
+                }
+              }}
+              onDragStart={selectionMode ? undefined : handleDragStart}
+              onDrop={(dag, withTime) => void handleDrop(dag, withTime)}
+              onResize={selectionMode ? undefined : (ev, newSlut) => void handleResize(ev, newSlut)}
               selectedIds={selectedIds}
             />
           ) : (

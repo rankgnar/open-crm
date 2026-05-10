@@ -60,4 +60,4 @@ export interface KalenderDokument {
   skapad_at: string
 }
 
-export type KalenderVy = 'manad' | 'vecka'
+export type KalenderVy = 'manad' | 'vecka' | 'dag' | '2vecka' | '3vecka' | '3manad' | '6manad'

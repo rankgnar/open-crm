@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useAppConfig } from '@/context/AppConfig'
 import { ArrowLeft, Pencil, Trash2, Send, Check, X as XIcon, Eye, EyeOff, FileText } from 'lucide-react'
+import { RefreshButton } from '@/components/RefreshButton'
 import { WorkflowTriggerBar } from '@/components/WorkflowTriggerBar'
 import { ProjektForm } from './ProjektForm'
 import { DokumentPanel } from './DokumentPanel'
@@ -172,6 +173,7 @@ export function ProjektDetail({ projekt, kunder, statusar, anteckningar, snapsho
               <button onClick={() => setConfirmDelete(false)} className="inline-flex items-center gap-1.5 px-3 py-2.5 text-[10px] font-semibold uppercase tracking-wider text-muted hover:text-fg transition-colors">Avbryt</button>
             </div>
           )}
+          <RefreshButton iconOnly />
         </div>
       </div>
 

@@ -1,4 +1,4 @@
-import { Plus, FileDown, Loader2, Trash2 } from 'lucide-react'
+import { Plus, FileDown, Loader2, Trash2, ArrowUp, ArrowDown, ArrowUpDown } from 'lucide-react'
 import { RefreshButton } from '@/components/RefreshButton'
 import { useRef, useState } from 'react'
 import type { ForslagWithProjekt, ForslagStatusar, SignaturSummary } from './types'
@@ -110,8 +110,29 @@ export function ForslagTable({ forslag, statusar, signingEvents, onSelect, onNew
   const [selected, setSelected] = useState<Set<string>>(new Set())
   const [confirmBulk, setConfirmBulk] = useState(false)
   const [deletingBulk, setDeletingBulk] = useState(false)
+  const [sortCol, setSortCol] = useState<string | null>(null)
+  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc')
+
+  function handleSort(col: string) {
+    if (sortCol === col) setSortDir((d) => d === 'asc' ? 'desc' : 'asc')
+    else { setSortCol(col); setSortDir('asc') }
+  }
 
   const allSelected = forslag.length > 0 && forslag.every((f) => selected.has(f.id))
+
+  const sorted = sortCol ? [...forslag].sort((a, b) => {
+    const vals: Record<string, string | null> = {
+      forslag_nummer: a.forslag_nummer, kund: a.projekt.kunder.namn, projekt: a.projekt.namn,
+      status: a.status, giltig_till: a.giltig_till, skapad_at: a.skapad_at,
+    }
+    const bvals: Record<string, string | null> = {
+      forslag_nummer: b.forslag_nummer, kund: b.projekt.kunder.namn, projekt: b.projekt.namn,
+      status: b.status, giltig_till: b.giltig_till, skapad_at: b.skapad_at,
+    }
+    const av = String(vals[sortCol] ?? ''), bv = String(bvals[sortCol] ?? '')
+    const cmp = av.localeCompare(bv, 'sv')
+    return sortDir === 'asc' ? cmp : -cmp
+  }) : forslag
 
   function toggleSelect(e: React.MouseEvent, id: string) {
     e.stopPropagation()
@@ -152,7 +173,7 @@ export function ForslagTable({ forslag, statusar, signingEvents, onSelect, onNew
           </span>
         </div>
         <div className="flex items-center gap-2">
-          <RefreshButton />
+          <RefreshButton iconOnly />
           <button
             onClick={onNew}
             className="inline-flex items-center gap-1.5 px-3 py-2.5 text-[10px] font-semibold uppercase tracking-wider text-muted hover:text-fg transition-colors"
@@ -202,19 +223,54 @@ export function ForslagTable({ forslag, statusar, signingEvents, onSelect, onNew
                     className="rounded border-border accent-emerald-400 cursor-pointer"
                   />
                 </th>
-                <th className="px-2 py-2.5 text-[11px] font-medium uppercase tracking-wider text-muted">Nr</th>
-                <th className="px-4 py-2.5 text-[11px] font-medium uppercase tracking-wider text-muted">Kund</th>
-                <th className="px-4 py-2.5 text-[11px] font-medium uppercase tracking-wider text-muted">Projekt</th>
-                <th className="px-4 py-2.5 text-[11px] font-medium uppercase tracking-wider text-muted">Signering</th>
-                <th className="px-4 py-2.5 text-[11px] font-medium uppercase tracking-wider text-muted">Status</th>
-                <th className="px-4 py-2.5 text-[11px] font-medium uppercase tracking-wider text-muted">Giltig till</th>
-                <th className="px-4 py-2.5 text-[11px] font-medium uppercase tracking-wider text-muted">Moms</th>
-                <th className="px-4 py-2.5 text-[11px] font-medium uppercase tracking-wider text-muted">Skapad</th>
+                {([
+                  ['forslag_nummer', 'Nr', 'px-2'],
+                  ['kund', 'Kund', 'px-4'],
+                  ['projekt', 'Projekt', 'px-4'],
+                ] as [string, string, string][]).map(([col, label, px]) => (
+                  <th key={col} onClick={() => handleSort(col)}
+                    className={`${px} py-2.5 text-[11px] font-medium uppercase tracking-wider text-muted cursor-pointer select-none hover:text-fg transition-colors group/th`}>
+                    <div className="flex items-center gap-1">
+                      {label}
+                      {sortCol === col
+                        ? sortDir === 'asc' ? <ArrowUp size={10} className="text-fg shrink-0" /> : <ArrowDown size={10} className="text-fg shrink-0" />
+                        : <ArrowUpDown size={10} className="shrink-0 opacity-0 group-hover/th:opacity-40 transition-opacity" />
+                      }
+                    </div>
+                  </th>
+                ))}
+                <th className="px-4 py-2.5 text-[11px] font-medium uppercase tracking-wider text-muted select-none">Signering</th>
+                {([
+                  ['status', 'Status', 'px-4'],
+                  ['giltig_till', 'Giltig till', 'px-4'],
+                ] as [string, string, string][]).map(([col, label, px]) => (
+                  <th key={col} onClick={() => handleSort(col)}
+                    className={`${px} py-2.5 text-[11px] font-medium uppercase tracking-wider text-muted cursor-pointer select-none hover:text-fg transition-colors group/th`}>
+                    <div className="flex items-center gap-1">
+                      {label}
+                      {sortCol === col
+                        ? sortDir === 'asc' ? <ArrowUp size={10} className="text-fg shrink-0" /> : <ArrowDown size={10} className="text-fg shrink-0" />
+                        : <ArrowUpDown size={10} className="shrink-0 opacity-0 group-hover/th:opacity-40 transition-opacity" />
+                      }
+                    </div>
+                  </th>
+                ))}
+                <th className="px-4 py-2.5 text-[11px] font-medium uppercase tracking-wider text-muted select-none">Moms</th>
+                <th onClick={() => handleSort('skapad_at')}
+                  className="px-4 py-2.5 text-[11px] font-medium uppercase tracking-wider text-muted cursor-pointer select-none hover:text-fg transition-colors group/th">
+                  <div className="flex items-center gap-1">
+                    Skapad
+                    {sortCol === 'skapad_at'
+                      ? sortDir === 'asc' ? <ArrowUp size={10} className="text-fg shrink-0" /> : <ArrowDown size={10} className="text-fg shrink-0" />
+                      : <ArrowUpDown size={10} className="shrink-0 opacity-0 group-hover/th:opacity-40 transition-opacity" />
+                    }
+                  </div>
+                </th>
                 <th className="px-4 py-2.5 w-10"></th>
               </tr>
             </thead>
             <tbody>
-              {forslag.map((f) => {
+              {sorted.map((f) => {
                 const isAccepted = f.status === 'accepterat'
                 const isSelected = selected.has(f.id)
                 const baseBg = isSelected ? 'bg-elevated' : isAccepted ? 'bg-emerald-400/[0.06]' : ''

@@ -1,4 +1,4 @@
-import { Plus, Paperclip, Trash2 } from 'lucide-react'
+import { Plus, Paperclip, Trash2, ArrowUp, ArrowDown, ArrowUpDown } from 'lucide-react'
 import { RefreshButton } from '@/components/RefreshButton'
 import { useMemo, useState } from 'react'
 import type { KvittoListItem, KvittoStatus } from './types'
@@ -21,6 +21,13 @@ export function KvittoTable({ kvitton, onSelect, onNew, onDeleteMany }: Props) {
   const [selected, setSelected] = useState<Set<string>>(new Set())
   const [confirmBulk, setConfirmBulk] = useState(false)
   const [deletingBulk, setDeletingBulk] = useState(false)
+  const [sortCol, setSortCol] = useState<string | null>(null)
+  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc')
+
+  function handleSort(col: string) {
+    if (sortCol === col) setSortDir((d) => d === 'asc' ? 'desc' : 'asc')
+    else { setSortCol(col); setSortDir('asc') }
+  }
 
   const counts = useMemo(() => ({
     alla: kvitton.length,
@@ -29,6 +36,21 @@ export function KvittoTable({ kvitton, onSelect, onNew, onDeleteMany }: Props) {
   }), [kvitton])
 
   const visible = filter === 'alla' ? kvitton : kvitton.filter((k) => k.status === filter)
+  const sorted = sortCol ? [...visible].sort((a, b) => {
+    if (sortCol === 'belopp') {
+      const na = a.belopp ?? 0, nb = b.belopp ?? 0
+      return sortDir === 'asc' ? na - nb : nb - na
+    }
+    const vals: Record<string, string | null> = {
+      datum: a.datum, leverantor: a.leverantor, kategori: a.kategori, status: a.status,
+    }
+    const bvals: Record<string, string | null> = {
+      datum: b.datum, leverantor: b.leverantor, kategori: b.kategori, status: b.status,
+    }
+    const av = vals[sortCol] ?? '', bv = bvals[sortCol] ?? ''
+    const cmp = av.localeCompare(bv, 'sv')
+    return sortDir === 'asc' ? cmp : -cmp
+  }) : visible
   const allVisibleSelected = visible.length > 0 && visible.every((k) => selected.has(k.id))
 
   function kategoriLabel(value: string | null): string {
@@ -82,7 +104,7 @@ export function KvittoTable({ kvitton, onSelect, onNew, onDeleteMany }: Props) {
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <RefreshButton />
+          <RefreshButton iconOnly />
           <button
             onClick={onNew}
             className="inline-flex items-center gap-1.5 px-3 py-2.5 text-[10px] font-semibold uppercase tracking-wider text-muted hover:text-fg transition-colors"
@@ -148,17 +170,48 @@ export function KvittoTable({ kvitton, onSelect, onNew, onDeleteMany }: Props) {
                     className="rounded border-border accent-emerald-400 cursor-pointer"
                   />
                 </th>
-                <th className="text-left px-2 py-3 text-[10px] uppercase tracking-wider text-muted font-medium w-28">Datum</th>
-                <th className="text-left px-2 py-3 text-[10px] uppercase tracking-wider text-muted font-medium">Leverantör</th>
-                <th className="text-left px-2 py-3 text-[10px] uppercase tracking-wider text-muted font-medium w-40">Kategori</th>
-                <th className="text-left px-2 py-3 text-[10px] uppercase tracking-wider text-muted font-medium">Projekt</th>
-                <th className="text-right px-2 py-3 text-[10px] uppercase tracking-wider text-muted font-medium w-32">Belopp</th>
-                <th className="text-left px-2 py-3 text-[10px] uppercase tracking-wider text-muted font-medium w-32">Status</th>
+                {([
+                  ['datum', 'Datum', 'w-28'],
+                  ['leverantor', 'Leverantör', ''],
+                  ['kategori', 'Kategori', 'w-40'],
+                ] as [string, string, string][]).map(([col, label, w]) => (
+                  <th key={col} onClick={() => handleSort(col)}
+                    className={`text-left px-2 py-3 ${w} text-[10px] uppercase tracking-wider text-muted font-medium cursor-pointer select-none hover:text-fg transition-colors group/th`}>
+                    <div className="flex items-center gap-1">
+                      {label}
+                      {sortCol === col
+                        ? sortDir === 'asc' ? <ArrowUp size={10} className="text-fg shrink-0" /> : <ArrowDown size={10} className="text-fg shrink-0" />
+                        : <ArrowUpDown size={10} className="shrink-0 opacity-0 group-hover/th:opacity-40 transition-opacity" />
+                      }
+                    </div>
+                  </th>
+                ))}
+                <th className="text-left px-2 py-3 text-[10px] uppercase tracking-wider text-muted font-medium select-none">Projekt</th>
+                <th onClick={() => handleSort('belopp')}
+                  className="text-right px-2 py-3 w-32 text-[10px] uppercase tracking-wider text-muted font-medium cursor-pointer select-none hover:text-fg transition-colors group/th">
+                  <div className="flex items-center justify-end gap-1">
+                    Belopp
+                    {sortCol === 'belopp'
+                      ? sortDir === 'asc' ? <ArrowUp size={10} className="text-fg shrink-0" /> : <ArrowDown size={10} className="text-fg shrink-0" />
+                      : <ArrowUpDown size={10} className="shrink-0 opacity-0 group-hover/th:opacity-40 transition-opacity" />
+                    }
+                  </div>
+                </th>
+                <th onClick={() => handleSort('status')}
+                  className="text-left px-2 py-3 w-32 text-[10px] uppercase tracking-wider text-muted font-medium cursor-pointer select-none hover:text-fg transition-colors group/th">
+                  <div className="flex items-center gap-1">
+                    Status
+                    {sortCol === 'status'
+                      ? sortDir === 'asc' ? <ArrowUp size={10} className="text-fg shrink-0" /> : <ArrowDown size={10} className="text-fg shrink-0" />
+                      : <ArrowUpDown size={10} className="shrink-0 opacity-0 group-hover/th:opacity-40 transition-opacity" />
+                    }
+                  </div>
+                </th>
                 <th className="px-6 py-3 w-8" />
               </tr>
             </thead>
             <tbody>
-              {visible.map((k) => {
+              {sorted.map((k) => {
                 const incomplete = !k.leverantor || k.belopp == null
                 const isSelected = selected.has(k.id)
                 return (

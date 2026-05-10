@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { Plus, Trash2 } from 'lucide-react'
 import type { PersonalStatusar } from '@/sections/personal/types'
 import { FARG_DOT, FARG_TEXT } from '@/sections/personal/types'
+import { ConfigField } from './ConfigField'
 
 type Farg = PersonalStatusar['farg']
 
@@ -97,6 +98,15 @@ export function PersonalPanel() {
             </button>
           </div>
           {numError && <p className="text-xs text-red-400 mt-2">{numError}</p>}
+        </div>
+
+        <div className="px-8 py-6 border-b border-border">
+          <p className="text-[11px] uppercase tracking-widest text-muted mb-4">Arbetstid</p>
+          <div className="grid grid-cols-2 gap-x-6 gap-y-4">
+            <ConfigField label="Timmar per dag" field="timmar_per_dag" type="number" placeholder="8" />
+            <ConfigField label="Arbetsdagar per vecka" field="arbetsdagar_per_vecka" type="number" placeholder="5" />
+          </div>
+          <p className="mt-3 text-xs text-muted">5 = Mån–Fre &nbsp;·&nbsp; 6 = Mån–Lör &nbsp;·&nbsp; 7 = alla dagar</p>
         </div>
 
       </div>

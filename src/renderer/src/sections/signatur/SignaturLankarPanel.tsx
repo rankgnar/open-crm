@@ -172,7 +172,7 @@ export function SignaturLankarPanel({ dokument_typ, dokument_id, refreshKey }: P
         onClick={() => void reload()}
         className="self-end text-[11px] text-muted hover:text-fg flex items-center gap-1 px-4 py-2"
       >
-        <RefreshCw size={11} className={loading ? 'animate-spin' : ''} />Uppdatera
+        <RefreshCw size={11} className={loading ? 'animate-spin' : ''} />
       </button>
     </div>
   )

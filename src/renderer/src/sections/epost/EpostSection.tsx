@@ -1161,7 +1161,7 @@ export function EpostSection() {
             title="Uppdatera (F5)"
             className="inline-flex items-center gap-1.5 px-3 py-2.5 text-[10px] font-semibold uppercase tracking-wider text-muted hover:text-fg disabled:opacity-40 transition-colors"
           >
-            <RefreshCw size={11} className={laddar ? 'animate-spin' : ''} />Uppdatera
+            <RefreshCw size={11} className={laddar ? 'animate-spin' : ''} />
           </button>
           <button
             onClick={handleNytt}

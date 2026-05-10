@@ -85,7 +85,7 @@ export function ChatSection() {
             <p className="text-xs uppercase tracking-widest text-muted">Chat</p>
             <p className="text-sm font-semibold text-fg mt-0.5">Anställda</p>
           </div>
-          <RefreshButton />
+          <RefreshButton iconOnly />
         </div>
         <div className="flex-1 overflow-y-auto">
           {loading ? (
