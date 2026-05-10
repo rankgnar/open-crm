@@ -3,6 +3,7 @@ import { Search, ChevronLeft, ChevronRight, Trash2, AlertTriangle, X, Download, 
 import type { MaterialKatalog, Leverantor } from '../types'
 import { useAppConfig } from '@/context/AppConfig'
 import { parseCsv, type ParsedRow } from '../../../utils/csvParsers'
+import { SelectField } from '@/components/SelectField'
 
 const PAGE_SIZE = 500
 
@@ -298,14 +299,15 @@ export function MaterialKatalogView() {
             </button>
           )}
         </div>
-        <select className="input text-sm text-muted w-52 shrink-0" value={selectedLev} onChange={(e) => handleLevChange(e.target.value)}>
-          <option value="">Alla leverantörer ({totalCount.toLocaleString('sv-SE')})</option>
-          {leverantorer
-            .filter(l => !onlyWithKatalog || (counts[l.id] ?? 0) > 0)
-            .map((l) => (
-              <option key={l.id} value={l.id}>{l.namn} ({(counts[l.id] ?? 0).toLocaleString('sv-SE')})</option>
-            ))}
-        </select>
+        <SelectField
+          value={selectedLev}
+          onChange={handleLevChange}
+          placeholder={`Alla leverantörer (${totalCount.toLocaleString('sv-SE')})`}
+          className="w-52 shrink-0"
+          options={leverantorer
+            .filter((l) => !onlyWithKatalog || (counts[l.id] ?? 0) > 0)
+            .map((l) => ({ value: l.id, label: `${l.namn} (${(counts[l.id] ?? 0).toLocaleString('sv-SE')})` }))}
+        />
         <label className="flex items-center gap-1.5 cursor-pointer shrink-0">
           <input
             type="checkbox"
@@ -371,14 +373,13 @@ export function MaterialKatalogView() {
                 <span className="text-[11px] text-muted w-28 shrink-0">
                   {label}{required && <span className="text-red-400 ml-0.5">*</span>}
                 </span>
-                <select
+                <SelectField
                   value={mappings[key] ?? ''}
-                  onChange={(e) => setMappings(prev => ({ ...prev, [key]: e.target.value }))}
-                  className="input text-xs py-1 text-muted flex-1"
-                >
-                  <option value="">— Ignorera —</option>
-                  {csvHeaders.map(h => <option key={h} value={h}>{h}</option>)}
-                </select>
+                  onChange={(v) => setMappings((prev) => ({ ...prev, [key]: v }))}
+                  placeholder="— Ignorera —"
+                  className="flex-1"
+                  options={csvHeaders.map((h) => ({ value: h, label: h }))}
+                />
               </div>
             ))}
           </div>

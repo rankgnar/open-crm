@@ -3,6 +3,7 @@ import { Check, X, Plus, Trash2, ChevronDown, Bus, Car, Camera, Coffee, External
 import { Toggle } from '../../components/Toggle'
 import type { TidrapportGlobal, TidrapportBild, TidrapportTyp, TidrapportStatus } from './types'
 import { TIDRAPPORT_TYPER } from './types'
+import { SelectField } from '@/components/SelectField'
 
 function fmtTime(t: string | null): string { return t ? t.slice(0, 5) : '—' }
 function fmtDateTime(d: string): string { return new Date(d).toLocaleString('sv-SE', { dateStyle: 'short', timeStyle: 'short' }) }
@@ -383,21 +384,31 @@ export function TidrapporterView() {
       {showForm && (
         <div className="px-6 py-3 border-b border-border bg-elevated shrink-0">
           <div className="grid grid-cols-6 gap-2">
-            <select className="input text-xs text-muted col-span-2" value={fPersonal} onChange={(e) => setFPersonal(e.target.value)}>
-              <option value="">Välj anställd...</option>
-              {personal.map((p) => <option key={p.id} value={p.id}>{p.namn}</option>)}
-            </select>
-            <select className="input text-xs text-muted col-span-2" value={fProjekt} onChange={(e) => setFProjekt(e.target.value)}>
-              <option value="">Inget projekt</option>
-              {projekt.map((p) => <option key={p.id} value={p.id}>{p.projekt_nummer} – {p.namn}</option>)}
-            </select>
+            <SelectField
+              value={fPersonal}
+              onChange={setFPersonal}
+              placeholder="Välj anställd..."
+              searchable
+              className="col-span-2"
+              options={personal.map((p) => ({ value: p.id, label: p.namn }))}
+            />
+            <SelectField
+              value={fProjekt}
+              onChange={setFProjekt}
+              placeholder="Inget projekt"
+              searchable
+              className="col-span-2"
+              options={projekt.map((p) => ({ value: p.id, label: `${p.projekt_nummer} – ${p.namn}` }))}
+            />
             <input type="date" className="input text-xs" value={fDatum} onChange={(e) => setFDatum(e.target.value)} />
             <input type="number" min="0.5" step="0.5" className="input text-xs" placeholder="Timmar" value={fTimmar} onChange={(e) => setFTimmar(e.target.value)} />
           </div>
           <div className="grid grid-cols-6 gap-2 mt-2">
-            <select className="input text-xs text-muted" value={fTyp} onChange={(e) => setFTyp(e.target.value as TidrapportTyp)}>
-              {TIDRAPPORT_TYPER.map((t) => <option key={t.value} value={t.value}>{t.label}</option>)}
-            </select>
+            <SelectField
+              value={fTyp}
+              onChange={(v) => setFTyp(v as TidrapportTyp)}
+              options={TIDRAPPORT_TYPER.map((t) => ({ value: t.value, label: t.label }))}
+            />
             <input className="input text-xs col-span-4" placeholder="Beskrivning (valfritt)" value={fBeskrivning} onChange={(e) => setFBeskrivning(e.target.value)} />
             <button
               onClick={handleCreate}

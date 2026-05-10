@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { X } from 'lucide-react'
 import type { Kund, CreateKundInput, KundStatusar } from './types'
 import { useAppConfig } from '@/context/AppConfig'
+import { SelectField } from '@/components/SelectField'
 
 interface Props {
   initial?: Kund
@@ -164,9 +165,11 @@ export function KundForm({ initial, statusar, onSubmit, onCancel }: Props) {
                 <input value={kundnummer} onChange={(e) => setKundnummer(e.target.value)} placeholder={previewNummer ?? 'Auto-genererat'} className="input font-mono" />
               </div>
               <F label="Status">
-                <select value={status} onChange={(e) => setStatus(e.target.value)} className="input text-muted">
-                  {statusar.map((s) => <option key={s.id} value={s.namn}>{s.namn}</option>)}
-                </select>
+                <SelectField
+                  value={status}
+                  onChange={setStatus}
+                  options={statusar.map((s) => ({ value: s.namn, label: s.namn }))}
+                />
               </F>
             </div>
             <F label="Namn *">

@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { Trash2, RefreshCw, Database, ChevronDown, ChevronRight } from 'lucide-react'
+import { SelectField } from '@/components/SelectField'
 
 interface ProjektOption {
   id: string
@@ -166,16 +167,14 @@ export function ProjektKontextPanel() {
       {/* Project selector */}
       <div className="px-8 py-5 border-b border-border shrink-0">
         <label className="block text-[10px] uppercase tracking-widest text-subtle mb-2">Projekt</label>
-        <select
+        <SelectField
           value={selectedId}
-          onChange={(e) => setSelectedId(e.target.value)}
-          className="w-72 bg-bg border border-border rounded px-3 py-1.5 text-sm text-muted focus:outline-none focus:border-blue-400/60"
-        >
-          {projekt.length === 0 && <option value="">Inga projekt hittade</option>}
-          {projekt.map((p) => (
-            <option key={p.id} value={p.id}>{p.projekt_nummer} — {p.namn}</option>
-          ))}
-        </select>
+          onChange={setSelectedId}
+          placeholder={projekt.length === 0 ? 'Inga projekt hittade' : undefined}
+          searchable
+          className="w-72"
+          options={projekt.map((p) => ({ value: p.id, label: `${p.projekt_nummer} — ${p.namn}` }))}
+        />
       </div>
 
       {/* Entries */}

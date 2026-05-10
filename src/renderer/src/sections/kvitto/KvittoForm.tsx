@@ -3,6 +3,7 @@ import { ArrowLeft, Upload, FileText, Image as ImageIcon, X } from 'lucide-react
 import type { CreateKvittoInput, KvittoKategori } from './types'
 import { KVITTO_KATEGORIER } from './types'
 import type { ProjektWithKund, FileDialogResult } from '@/sections/projekt/types'
+import { SelectField } from '@/components/SelectField'
 
 interface Props {
   projekt: ProjektWithKund[]
@@ -179,16 +180,12 @@ export function KvittoForm({ projekt, onSubmit, onCancel }: Props) {
             </div>
             <div>
               <label className="block text-[11px] uppercase tracking-wider text-muted mb-1.5">Kategori</label>
-              <select
+              <SelectField
                 value={kategori}
-                onChange={(e) => setKategori(e.target.value as KvittoKategori | '')}
-                className="w-full bg-bg border border-border rounded px-3 py-1.5 text-sm text-fg focus:outline-none focus:border-fg"
-              >
-                <option value="">—</option>
-                {KVITTO_KATEGORIER.map((k) => (
-                  <option key={k.value} value={k.value}>{k.label}</option>
-                ))}
-              </select>
+                onChange={(v) => setKategori(v as KvittoKategori | '')}
+                placeholder="—"
+                options={KVITTO_KATEGORIER.map((k) => ({ value: k.value, label: k.label }))}
+              />
             </div>
             <div>
               <label className="block text-[11px] uppercase tracking-wider text-muted mb-1.5">Belopp (inkl. moms)</label>
@@ -214,18 +211,13 @@ export function KvittoForm({ projekt, onSubmit, onCancel }: Props) {
             </div>
             <div>
               <label className="block text-[11px] uppercase tracking-wider text-muted mb-1.5">Projekt</label>
-              <select
+              <SelectField
                 value={projektId}
-                onChange={(e) => setProjektId(e.target.value)}
-                className="w-full bg-bg border border-border rounded px-3 py-1.5 text-sm text-fg focus:outline-none focus:border-fg"
-              >
-                <option value="">— Allmän kostnad —</option>
-                {projekt.map((p) => (
-                  <option key={p.id} value={p.id}>
-                    {p.projekt_nummer} — {p.namn}
-                  </option>
-                ))}
-              </select>
+                onChange={setProjektId}
+                placeholder="— Allmän kostnad —"
+                searchable
+                options={projekt.map((p) => ({ value: p.id, label: `${p.projekt_nummer} — ${p.namn}` }))}
+              />
             </div>
             <div className="col-span-3">
               <label className="block text-[11px] uppercase tracking-wider text-muted mb-1.5">Beskrivning</label>

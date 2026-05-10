@@ -3,6 +3,7 @@ import { Search, UserPlus, Upload, ChevronUp, ChevronDown, ChevronsUpDown, Check
 import { RefreshButton } from '@/components/RefreshButton'
 import type { Personal, PersonalStatusar, CsvImportResult } from './types'
 import { FARG_DOT, FARG_TEXT } from './types'
+import { SelectField } from '@/components/SelectField'
 
 interface Props {
   personal: Personal[]
@@ -164,22 +165,21 @@ export function PersonalTable({ personal, statusar, onSelect, onNew, onStatusCha
           />
         </div>
 
-        <select
-          className="bg-elevated border border-border rounded-md px-2 py-1.5 text-sm text-muted w-36 focus:outline-none"
+        <SelectField
           value={statusFilter}
-          onChange={(e) => setStatusFilter(e.target.value)}
-        >
-          <option value="alla">Alla</option>
-          {statusar.map((s) => (
-            <option key={s.id} value={s.namn}>{s.namn}</option>
-          ))}
-        </select>
+          onChange={setStatusFilter}
+          className="w-36"
+          options={[
+            { value: 'alla', label: 'Alla' },
+            ...statusar.map((s) => ({ value: s.namn, label: s.namn })),
+          ]}
+        />
 
         <span className="text-xs text-subtle ml-auto">
           {filtered.length} / {personal.length}
         </span>
 
-        <RefreshButton />
+        <RefreshButton iconOnly />
 
         <button
           onClick={handleImport}

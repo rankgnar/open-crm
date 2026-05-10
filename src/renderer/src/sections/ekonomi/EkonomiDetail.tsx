@@ -5,6 +5,7 @@ import type { ProjektWithKund } from '@/sections/projekt/types'
 import type { ForslagWithProjekt, ForslagArbete, ForslagMaterial, ForslagUnderentreprenor } from '@/sections/forslag/types'
 import type { EkonomiUtfall, CreateUtfallInput, UtfallKategori } from './types'
 import { useAppConfig } from '@/context/AppConfig'
+import { SelectField } from '@/components/SelectField'
 
 interface Props {
   projekt: ProjektWithKund
@@ -280,12 +281,17 @@ export function EkonomiDetail({ projekt, utfall, onBack, onAddUtfall, onDeleteUt
             </div>
             <div className="flex flex-col gap-1">
               <label className="text-[10px] uppercase tracking-wider text-muted">Kategori</label>
-              <select className="input text-xs py-1.5 px-2 text-muted w-36" value={kategori} onChange={(e) => setKategori(e.target.value as UtfallKategori)}>
-                <option value="arbete">Arbete</option>
-                <option value="material">Material</option>
-                <option value="ue">Underentrepr.</option>
-                <option value="övrigt">Övrigt</option>
-              </select>
+              <SelectField
+                value={kategori}
+                onChange={(v) => setKategori(v as UtfallKategori)}
+                className="w-36"
+                options={[
+                  { value: 'arbete', label: 'Arbete' },
+                  { value: 'material', label: 'Material' },
+                  { value: 'ue', label: 'Underentrepr.' },
+                  { value: 'övrigt', label: 'Övrigt' },
+                ]}
+              />
             </div>
             <div className="flex flex-col gap-1 flex-1">
               <label className="text-[10px] uppercase tracking-wider text-muted">Beskrivning</label>

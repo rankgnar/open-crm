@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { Upload, Database } from 'lucide-react'
 import { useAppConfig } from '@/context/AppConfig'
-import { ConfigField } from './ConfigField'
+import { SelectField } from '@/components/SelectField'
 
 function SavedDot() {
   return <span className="size-1.5 rounded-full bg-emerald-400 shadow-[0_0_6px_rgba(52,211,153,0.7)] inline-block" />
@@ -56,8 +56,8 @@ function ValutaField() {
   const [saved, setSaved] = useState(false)
   if (!config) return null
 
-  async function handleChange(e: React.ChangeEvent<HTMLSelectElement>) {
-    await updateConfig({ valuta: e.target.value })
+  async function handleChange(v: string) {
+    await updateConfig({ valuta: v })
     setSaved(true)
     setTimeout(() => setSaved(false), 2000)
   }
@@ -68,13 +68,11 @@ function ValutaField() {
         Valuta
         {saved && <span className="size-1.5 rounded-full bg-emerald-400 shadow-[0_0_6px_rgba(52,211,153,0.7)] inline-block" />}
       </label>
-      <select
-        className="input text-muted"
+      <SelectField
         value={config.valuta ?? 'kr'}
         onChange={handleChange}
-      >
-        {VALUTOR.map((v) => <option key={v} value={v}>{v}</option>)}
-      </select>
+        options={VALUTOR.map((v) => ({ value: v, label: v }))}
+      />
     </div>
   )
 }
@@ -349,16 +347,6 @@ export function ForetagPanel() {
           </div>
         </div>
 
-      </div>
-
-      {/* Arbetstid */}
-      <div className="px-8 py-5 border-t border-border">
-        <p className="text-[11px] uppercase tracking-widest text-muted mb-4">Arbetstid</p>
-        <div className="grid grid-cols-4 gap-x-6 gap-y-4">
-          <ConfigField label="Timmar per dag" field="timmar_per_dag" type="number" placeholder="8" />
-          <ConfigField label="Arbetsdagar per vecka" field="arbetsdagar_per_vecka" type="number" placeholder="5" />
-        </div>
-        <p className="mt-3 text-xs text-muted">5 = Mån–Fre &nbsp;·&nbsp; 6 = Mån–Lör &nbsp;·&nbsp; 7 = alla dagar</p>
       </div>
 
     </div>

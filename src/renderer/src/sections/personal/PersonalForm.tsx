@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { ArrowLeft, X } from 'lucide-react'
 import type { Personal, CreatePersonalInput, UpdatePersonalInput, PersonalTyp, Loneform, PersonalStatusar } from './types'
+import { SelectField } from '@/components/SelectField'
 
 interface Props {
   initial?: Personal
@@ -180,27 +181,38 @@ export function PersonalForm({ initial, statusar, onSubmit, onCancel }: Props) {
                   />
                 </Field>
                 <Field label="Personaltyp">
-                  <select className="input text-muted w-48" value={personaltyp} onChange={(e) => setPersonaltyp(e.target.value as PersonalTyp | '')}>
-                    <option value="">—</option>
-                    <option value="TJM">Tjänsteman (TJM)</option>
-                    <option value="ARB">Arbetare (ARB)</option>
-                  </select>
+                  <SelectField
+                    value={personaltyp}
+                    onChange={(v) => setPersonaltyp(v as PersonalTyp | '')}
+                    placeholder="—"
+                    className="w-48"
+                    options={[
+                      { value: 'TJM', label: 'Tjänsteman (TJM)' },
+                      { value: 'ARB', label: 'Arbetare (ARB)' },
+                    ]}
+                  />
                 </Field>
                 <Field label="Anställningsform">
-                  <select className="input text-muted w-48" value={anstallningsform} onChange={(e) => setAnstallningsform(e.target.value)}>
-                    <option value="">—</option>
-                    <option value="TV">Tillsvidare (TV)</option>
-                    <option value="PRO">Provanställning (PRO)</option>
-                    <option value="VIK">Vikariat (VIK)</option>
-                    <option value="TID">Tidsbegränsad</option>
-                  </select>
+                  <SelectField
+                    value={anstallningsform}
+                    onChange={setAnstallningsform}
+                    placeholder="—"
+                    className="w-48"
+                    options={[
+                      { value: 'TV', label: 'Tillsvidare (TV)' },
+                      { value: 'PRO', label: 'Provanställning (PRO)' },
+                      { value: 'VIK', label: 'Vikariat (VIK)' },
+                      { value: 'TID', label: 'Tidsbegränsad' },
+                    ]}
+                  />
                 </Field>
                 <Field label="Status">
-                  <select className="input text-muted w-48" value={status} onChange={(e) => setStatus(e.target.value)}>
-                    {statusar.map((s) => (
-                      <option key={s.id} value={s.namn}>{s.namn}</option>
-                    ))}
-                  </select>
+                  <SelectField
+                    value={status}
+                    onChange={setStatus}
+                    className="w-48"
+                    options={statusar.map((s) => ({ value: s.namn, label: s.namn }))}
+                  />
                 </Field>
               </div>
             </div>
@@ -264,11 +276,16 @@ export function PersonalForm({ initial, statusar, onSubmit, onCancel }: Props) {
               <p className="text-[11px] uppercase tracking-widest text-muted mb-4">Lön</p>
               <div className="flex flex-col gap-3">
                 <Field label="Löneform">
-                  <select className="input text-muted w-48" value={loneform} onChange={(e) => setLoneform(e.target.value as Loneform | '')}>
-                    <option value="">—</option>
-                    <option value="MAN">Månadslon (MAN)</option>
-                    <option value="TIM">Timlön (TIM)</option>
-                  </select>
+                  <SelectField
+                    value={loneform}
+                    onChange={(v) => setLoneform(v as Loneform | '')}
+                    placeholder="—"
+                    className="w-48"
+                    options={[
+                      { value: 'MAN', label: 'Månadslon (MAN)' },
+                      { value: 'TIM', label: 'Timlön (TIM)' },
+                    ]}
+                  />
                 </Field>
                 {(loneform === 'MAN' || !loneform) && (
                   <Field label="Månadslon (kr)">

@@ -12,6 +12,7 @@ import type {
 import type { ProjektWithKund } from '../projekt/types'
 import { useRefreshHandler } from '@/context/RefreshContext'
 import { RefreshButton } from '@/components/RefreshButton'
+import { SelectField } from '@/components/SelectField'
 
 type UtfallKategori = 'arbete' | 'material' | 'ue' | 'övrigt'
 
@@ -614,32 +615,24 @@ function SkickaTillProjektModal({
                 <Loader2 size={12} className="animate-spin" /> Hämtar projekt...
               </div>
             ) : (
-              <select
+              <SelectField
                 value={projektId}
-                onChange={(e) => setProjektId(e.target.value)}
-                className="text-muted w-full px-3 py-2 text-sm bg-elevated border border-border rounded outline-none focus:border-fg/30"
-              >
-                <option value="">Välj projekt...</option>
-                {projekt.map((p) => (
-                  <option key={p.id} value={p.id}>
-                    {p.projekt_nummer} — {p.namn} ({p.kunder.namn})
-                  </option>
-                ))}
-              </select>
+                onChange={setProjektId}
+                placeholder="Välj projekt..."
+                searchable
+                options={projekt.map((p) => ({ value: p.id, label: `${p.projekt_nummer} — ${p.namn} (${p.kunder.namn})` }))}
+              />
             )}
           </div>
 
           <div>
             <label className="text-[11px] uppercase tracking-widest text-muted block mb-2">Kategori</label>
-            <select
+            <SelectField
               value={kategori}
-              onChange={(e) => setKategori(e.target.value as UtfallKategori)}
-              className="text-muted w-48 px-3 py-2 text-sm bg-elevated border border-border rounded outline-none focus:border-fg/30"
-            >
-              {KATEGORI_OPTIONS.map((k) => (
-                <option key={k.value} value={k.value}>{k.label}</option>
-              ))}
-            </select>
+              onChange={(v) => setKategori(v as UtfallKategori)}
+              className="w-48"
+              options={KATEGORI_OPTIONS.map((k) => ({ value: k.value, label: k.label }))}
+            />
           </div>
 
           <p className="text-[11px] text-muted">
@@ -1273,7 +1266,7 @@ export function FortnoxSection() {
             <CheckCircle2 size={12} /> Ansluten
           </span>
         </div>
-        <RefreshButton />
+        <RefreshButton iconOnly />
       </div>
 
       <div className="flex items-center gap-1 px-6 border-b border-border bg-sidebar shrink-0">

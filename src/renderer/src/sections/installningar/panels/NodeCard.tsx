@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from 'react'
 import { Database, Sparkles, CheckCircle2, ChevronUp, ChevronDown, Pencil, X, Save, Plus } from 'lucide-react'
 import type { WorkflowNode, WorkflowNodeType, WorkflowNodeCategory, AiAssistent } from '../types'
 import type { EpostMall, EpostAlias } from '../../epost/types'
+import { SelectField } from '@/components/SelectField'
 
 // ── Node metadata ──────────────────────────────────────────────────────────
 
@@ -69,16 +70,12 @@ function AiGenerateConfig({
     <div className="flex flex-col gap-3">
       <div>
         <label className="block text-[10px] uppercase tracking-widest text-muted mb-1">AI-assistent</label>
-        <select
+        <SelectField
           value={(config.assistent_id as string) ?? ''}
-          onChange={(e) => onChange({ assistent_id: e.target.value })}
-          className="w-full bg-bg border border-border rounded px-2 py-1.5 text-xs text-muted focus:outline-none focus:border-blue-400/60"
-        >
-          <option value="">Välj assistent...</option>
-          {asistenter.map((a) => (
-            <option key={a.id} value={a.id}>{a.namn}</option>
-          ))}
-        </select>
+          onChange={(v) => onChange({ assistent_id: v })}
+          placeholder="Välj assistent..."
+          options={asistenter.map((a) => ({ value: a.id, label: a.namn }))}
+        />
       </div>
       <div>
         <label className="block text-[10px] uppercase tracking-widest text-muted mb-1">Prompt-mall</label>
@@ -127,16 +124,12 @@ function AiAnalysisConfig({
     <div className="flex flex-col gap-3">
       <div>
         <label className="block text-[10px] uppercase tracking-widest text-muted mb-1">AI-assistent</label>
-        <select
+        <SelectField
           value={(config.assistent_id as string) ?? ''}
-          onChange={(e) => onChange({ assistent_id: e.target.value })}
-          className="w-full bg-bg border border-border rounded px-2 py-1.5 text-xs text-muted focus:outline-none focus:border-blue-400/60"
-        >
-          <option value="">Välj assistent...</option>
-          {asistenter.map((a) => (
-            <option key={a.id} value={a.id}>{a.namn}</option>
-          ))}
-        </select>
+          onChange={(v) => onChange({ assistent_id: v })}
+          placeholder="Välj assistent..."
+          options={asistenter.map((a) => ({ value: a.id, label: a.namn }))}
+        />
       </div>
       <div>
         <label className="block text-[10px] uppercase tracking-widest text-muted mb-1">Instruktion</label>
@@ -273,40 +266,32 @@ function EpostConfig({
     <div className="flex flex-col gap-3">
       <div>
         <label className="block text-[10px] uppercase tracking-widest text-muted mb-1">E-postmall</label>
-        <select
+        <SelectField
           value={(config.mall_id as string) ?? ''}
-          onChange={(e) => onChange({ mall_id: e.target.value })}
-          className="w-full bg-bg border border-border rounded px-2 py-1.5 text-xs text-muted focus:outline-none focus:border-blue-400/60"
-        >
-          <option value="">Välj mall...</option>
-          {aktivaMallar.map((m) => (
-            <option key={m.id} value={m.id}>{m.namn}</option>
-          ))}
-        </select>
+          onChange={(v) => onChange({ mall_id: v })}
+          placeholder="Välj mall..."
+          options={aktivaMallar.map((m) => ({ value: m.id, label: m.namn }))}
+        />
       </div>
       <div>
         <label className="block text-[10px] uppercase tracking-widest text-muted mb-1">Alias (valfritt — annars mallens eller standard)</label>
-        <select
+        <SelectField
           value={(config.alias_id as string) ?? ''}
-          onChange={(e) => onChange({ alias_id: e.target.value })}
-          className="w-full bg-bg border border-border rounded px-2 py-1.5 text-xs text-muted focus:outline-none focus:border-blue-400/60"
-        >
-          <option value="">— mallen eller standard —</option>
-          {aktivaAlias.map((a) => (
-            <option key={a.id} value={a.id}>{a.etikett || a.fran_adress}</option>
-          ))}
-        </select>
+          onChange={(v) => onChange({ alias_id: v })}
+          placeholder="— mallen eller standard —"
+          options={aktivaAlias.map((a) => ({ value: a.id, label: a.etikett || a.fran_adress }))}
+        />
       </div>
       <div>
         <label className="block text-[10px] uppercase tracking-widest text-muted mb-1">Mottagare</label>
-        <select
+        <SelectField
           value={tillSource}
-          onChange={(e) => onChange({ till_source: e.target.value })}
-          className="w-full bg-bg border border-border rounded px-2 py-1.5 text-xs text-muted focus:outline-none focus:border-blue-400/60"
-        >
-          <option value="kund_email">Projektets kund (kund_email)</option>
-          <option value="manual">Manuell adress</option>
-        </select>
+          onChange={(v) => onChange({ till_source: v })}
+          options={[
+            { value: 'kund_email', label: 'Projektets kund (kund_email)' },
+            { value: 'manual', label: 'Manuell adress' },
+          ]}
+        />
       </div>
       {tillSource === 'manual' && (
         <div>
@@ -514,16 +499,12 @@ export function NodeCard({ node, index, total, asistenter, mallar, alias, onUpda
           {(node.type === 'action:match-material-katalog' || node.type === 'action:search-web-price') && (
             <div>
               <label className="block text-[10px] uppercase tracking-widest text-muted mb-1">AI-assistent för fallback (valfritt)</label>
-              <select
+              <SelectField
                 value={(editConfig.assistent_id as string) ?? ''}
-                onChange={(e) => handleConfigChange({ assistent_id: e.target.value })}
-                className="w-full bg-bg border border-border rounded px-2 py-1.5 text-xs text-muted focus:outline-none focus:border-blue-400/60"
-              >
-                <option value="">Ingen AI-fallback</option>
-                {asistenter.map((a) => (
-                  <option key={a.id} value={a.id}>{a.namn}</option>
-                ))}
-              </select>
+                onChange={(v) => handleConfigChange({ assistent_id: v })}
+                placeholder="Ingen AI-fallback"
+                options={asistenter.map((a) => ({ value: a.id, label: a.namn }))}
+              />
               <p className="text-[10px] text-subtle mt-1">
                 {node.type === 'action:match-material-katalog'
                   ? 'Om katalogmatchning misslyckas ber AI välja eller estimera pris.'

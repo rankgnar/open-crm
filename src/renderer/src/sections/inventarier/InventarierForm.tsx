@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { ArrowLeft } from 'lucide-react'
 import type { Inventarie, CreateInventarieInput, UpdateInventarieInput } from './types'
 import { SKICK_OPTIONS, KATEGORI_OPTIONS, PLACERING_OPTIONS } from './types'
+import { SelectField } from '@/components/SelectField'
 
 interface Props {
   item: Inventarie | null
@@ -64,16 +65,12 @@ export function InventarierForm({ item, onSubmit, onCancel }: Props) {
           <div className="grid grid-cols-2 gap-x-6 gap-y-4">
             <div>
               <label className="block text-[11px] uppercase tracking-widest text-muted mb-1.5">Kategori</label>
-              <select
-                className="w-full rounded-lg border border-border bg-elevated px-3 py-2 text-sm text-fg outline-none focus:border-emerald-400 transition-colors"
+              <SelectField
                 value={form.kategori}
-                onChange={(e) => setField('kategori', e.target.value)}
-              >
-                <option value="">— Välj kategori —</option>
-                {KATEGORI_OPTIONS.map((k) => (
-                  <option key={k} value={k}>{k}</option>
-                ))}
-              </select>
+                onChange={(v) => setField('kategori', v)}
+                placeholder="— Välj kategori —"
+                options={KATEGORI_OPTIONS.map((k) => ({ value: k, label: k }))}
+              />
             </div>
             <div>
               <label className="block text-[11px] uppercase tracking-widest text-muted mb-1.5">Namn *</label>
@@ -115,28 +112,20 @@ export function InventarierForm({ item, onSubmit, onCancel }: Props) {
             </div>
             <div>
               <label className="block text-[11px] uppercase tracking-widest text-muted mb-1.5">Skick</label>
-              <select
-                className="w-full rounded-lg border border-border bg-elevated px-3 py-2 text-sm text-fg outline-none focus:border-emerald-400 transition-colors"
+              <SelectField
                 value={form.skick}
-                onChange={(e) => setField('skick', e.target.value)}
-              >
-                {SKICK_OPTIONS.map((s) => (
-                  <option key={s} value={s}>{s}</option>
-                ))}
-              </select>
+                onChange={(v) => setField('skick', v)}
+                options={SKICK_OPTIONS.map((s) => ({ value: s, label: s }))}
+              />
             </div>
             <div className="col-span-2">
               <label className="block text-[11px] uppercase tracking-widest text-muted mb-1.5">Placering</label>
-              <select
-                className="w-full rounded-lg border border-border bg-elevated px-3 py-2 text-sm text-fg outline-none focus:border-emerald-400 transition-colors"
+              <SelectField
                 value={form.placering}
-                onChange={(e) => setField('placering', e.target.value)}
-              >
-                <option value="">— Välj placering —</option>
-                {PLACERING_OPTIONS.map((p) => (
-                  <option key={p} value={p}>{p}</option>
-                ))}
-              </select>
+                onChange={(v) => setField('placering', v)}
+                placeholder="— Välj placering —"
+                options={PLACERING_OPTIONS.map((p) => ({ value: p, label: p }))}
+              />
             </div>
           </div>
 

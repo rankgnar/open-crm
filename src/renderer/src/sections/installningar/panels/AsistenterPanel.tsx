@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { Plus, Sparkles, Star, Trash2 } from 'lucide-react'
 import type { AiAssistent, AiProvider, AiProviderSlug, AiUppgift } from '../types'
+import { SelectField } from '@/components/SelectField'
 
 const UPPGIFTER: { value: AiUppgift; label: string }[] = [
   { value: 'forslag', label: 'Förslag' },
@@ -129,25 +130,19 @@ function AssistentDetail({
           </div>
           <div className="flex flex-col gap-1.5">
             <label className="text-[11px] uppercase tracking-wider text-muted">Proveedor</label>
-            <select
-              className="input text-sm text-muted"
+            <SelectField
               value={assistent.provider_id}
-              onChange={(e) => handleProviderChange(e.target.value)}
-            >
-              {providers.map((p) => (
-                <option key={p.id} value={p.id}>{p.display_name}</option>
-              ))}
-            </select>
+              onChange={handleProviderChange}
+              options={providers.map((p) => ({ value: p.id, label: p.display_name }))}
+            />
           </div>
           <div className="flex flex-col gap-1.5">
             <label className="text-[11px] uppercase tracking-wider text-muted">Modell</label>
-            <select
-              className="input text-sm text-muted"
+            <SelectField
               value={assistent.model_id}
-              onChange={(e) => update({ model_id: e.target.value })}
-            >
-              {models.map((m) => <option key={m} value={m}>{m}</option>)}
-            </select>
+              onChange={(v) => update({ model_id: v })}
+              options={models.map((m) => ({ value: m, label: m }))}
+            />
           </div>
         </div>
       </div>

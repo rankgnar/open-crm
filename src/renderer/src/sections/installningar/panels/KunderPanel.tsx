@@ -6,6 +6,7 @@ import type { KundStatusar } from '@/sections/kunder/types'
 import { FARG_DOT, FARG_TEXT } from '@/sections/kunder/types'
 import { KunderImportSection } from './KunderImportSection'
 import { KlientportalSection } from './KlientportalSection'
+import { SelectField } from '@/components/SelectField'
 
 type Farg = KundStatusar['farg']
 
@@ -82,8 +83,8 @@ export function KunderPanel() {
     } finally { setNumSaving(false) }
   }
 
-  async function handleDefaultStatus(e: React.ChangeEvent<HTMLSelectElement>) {
-    await updateConfig({ kund_std_status: e.target.value } as never)
+  async function handleDefaultStatus(v: string) {
+    await updateConfig({ kund_std_status: v } as never)
     setSavedConfig(true)
     setTimeout(() => setSavedConfig(false), 2000)
   }
@@ -104,11 +105,11 @@ export function KunderPanel() {
                 Standardstatus
                 {savedConfig && <span className="size-1.5 rounded-full bg-emerald-400 shadow-[0_0_6px_rgba(52,211,153,0.7)] inline-block ml-1.5" />}
               </label>
-              <select className="input text-muted" value={config?.kund_std_status ?? ''} onChange={handleDefaultStatus}>
-                {statusar.map((s) => (
-                  <option key={s.id} value={s.namn}>{s.namn}</option>
-                ))}
-              </select>
+              <SelectField
+                value={config?.kund_std_status ?? ''}
+                onChange={handleDefaultStatus}
+                options={statusar.map((s) => ({ value: s.namn, label: s.namn }))}
+              />
             </div>
           </div>
         </div>

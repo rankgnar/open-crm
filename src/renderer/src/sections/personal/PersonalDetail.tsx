@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { ArrowLeft, Pencil, Trash2, File, FileText, Image, ExternalLink, Plus, Upload, Mail, KeyRound } from 'lucide-react'
+import { SelectField } from '@/components/SelectField'
 import { PersonalForm } from './PersonalForm'
 import type {
   Personal, CreatePersonalInput, UpdatePersonalInput, PersonalAnteckning, PersonalDokument,
@@ -392,20 +393,18 @@ export function PersonalDetail({
               )}
             </div>
             {addingProjekt && availableProjekt.length > 0 && (
-              <select
-                className="input text-sm text-muted mb-3"
-                defaultValue=""
-                onChange={async (e) => {
-                  if (!e.target.value) return
-                  await onAssignProjekt(e.target.value)
+              <SelectField
+                value=""
+                onChange={async (v) => {
+                  if (!v) return
+                  await onAssignProjekt(v)
                   setAddingProjekt(false)
                 }}
-              >
-                <option value="">Välj projekt...</option>
-                {availableProjekt.map((p) => (
-                  <option key={p.id} value={p.id}>{p.projekt_nummer} – {p.namn}</option>
-                ))}
-              </select>
+                placeholder="Välj projekt..."
+                searchable
+                className="mb-3"
+                options={availableProjekt.map((p) => ({ value: p.id, label: `${p.projekt_nummer} – ${p.namn}` }))}
+              />
             )}
             {assignedProjekt.length === 0 ? (
               <p className="text-xs text-subtle">Inga tilldelade projekt</p>
@@ -605,9 +604,11 @@ export function PersonalDetail({
                 {/* Add form */}
                 <div className="border-t border-border p-4 shrink-0 flex flex-col gap-2">
                   <div className="grid grid-cols-3 gap-2">
-                    <select className="input text-sm text-muted" value={lpTyp} onChange={(e) => setLpTyp(e.target.value as LonepostTyp)}>
-                      {LONEPOST_TYPER.map((t) => <option key={t.value} value={t.value}>{t.label}</option>)}
-                    </select>
+                    <SelectField
+                      value={lpTyp}
+                      onChange={(v) => setLpTyp(v as LonepostTyp)}
+                      options={LONEPOST_TYPER.map((t) => ({ value: t.value, label: t.label }))}
+                    />
                     <input type="number" min="0" step="100" className="input text-sm" placeholder="Belopp (kr)" value={lpBelopp} onChange={(e) => setLpBelopp(e.target.value)} />
                     <input type="month" className="input text-sm" value={lpManad} onChange={(e) => setLpManad(e.target.value)} />
                   </div>

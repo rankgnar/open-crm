@@ -5,6 +5,7 @@ import type { ProjektWithKund } from '@/sections/projekt/types'
 import type { Kund } from '@/sections/kunder/types'
 import { useAppConfig } from '@/context/AppConfig'
 import { MaterialAutocompleteInput } from './MaterialAutocompleteInput'
+import { SelectField } from '@/components/SelectField'
 
 interface Props {
   projekt: ProjektWithKund[]
@@ -133,18 +134,13 @@ export function OrderForm({ projekt, onSubmit, onCancel }: Props) {
           <div className="grid grid-cols-3 gap-x-8 gap-y-5">
             <div className="flex flex-col gap-1.5">
               <label className="text-xs text-muted">Projekt</label>
-              <select
-                className="input text-muted"
+              <SelectField
                 value={projekt_id}
-                onChange={(e) => setProjektId(e.target.value)}
-              >
-                <option value="">Välj projekt...</option>
-                {projekt.map((p) => (
-                  <option key={p.id} value={p.id}>
-                    {p.projekt_nummer} — {p.namn} ({p.kunder.namn})
-                  </option>
-                ))}
-              </select>
+                onChange={setProjektId}
+                placeholder="Välj projekt..."
+                searchable
+                options={projekt.map((p) => ({ value: p.id, label: `${p.projekt_nummer} — ${p.namn} (${p.kunder.namn})` }))}
+              />
             </div>
             <div className="flex flex-col gap-1.5">
               <label className="text-xs text-muted">Kund</label>
@@ -168,33 +164,23 @@ export function OrderForm({ projekt, onSubmit, onCancel }: Props) {
             </div>
             <div className="flex flex-col gap-1.5">
               <label className="text-xs text-muted">Fas {projekt_id && fasTree.length === 0 && !loadingFaser && <span className="text-subtle">(inga fas i projektet)</span>}</label>
-              <select
-                className="input text-muted"
+              <SelectField
                 value={fas_id}
-                onChange={(e) => { setFasId(e.target.value); setSubfasId('') }}
+                onChange={(v) => { setFasId(v); setSubfasId('') }}
+                placeholder={loadingFaser ? 'Laddar...' : 'Ingen fas'}
                 disabled={!projekt_id || loadingFaser || fasTree.length === 0}
-              >
-                <option value="">{loadingFaser ? 'Laddar...' : 'Ingen fas'}</option>
-                {fasTree.map((f) => (
-                  <option key={f.id} value={f.id}>
-                    {flerForslag ? `[${f.forslag_nummer}] ${f.namn}` : f.namn}
-                  </option>
-                ))}
-              </select>
+                options={fasTree.map((f) => ({ value: f.id, label: flerForslag ? `[${f.forslag_nummer}] ${f.namn}` : f.namn }))}
+              />
             </div>
             <div className="flex flex-col gap-1.5">
               <label className="text-xs text-muted">Subfas (valfri)</label>
-              <select
-                className="input text-muted"
+              <SelectField
                 value={subfas_id}
-                onChange={(e) => setSubfasId(e.target.value)}
+                onChange={setSubfasId}
+                placeholder={!fas_id ? 'Välj fas först' : (valdFas?.subfaser.length === 0 ? 'Inga subfaser' : 'Ingen subfas')}
                 disabled={!fas_id || !valdFas || valdFas.subfaser.length === 0}
-              >
-                <option value="">{!fas_id ? 'Välj fas först' : valdFas?.subfaser.length === 0 ? 'Inga subfaser' : 'Ingen subfas'}</option>
-                {valdFas?.subfaser.map((s) => (
-                  <option key={s.id} value={s.id}>{s.namn}</option>
-                ))}
-              </select>
+                options={(valdFas?.subfaser ?? []).map((s) => ({ value: s.id, label: s.namn }))}
+              />
             </div>
             <div />
             <div className="flex flex-col gap-1.5 col-span-3">

@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { Check, X, Plus, Trash2, ArrowUp, ArrowDown, ArrowUpDown } from 'lucide-react'
 import type { LedighetGlobal, LedighetStatus, LedighetTyp } from './types'
 import { LEDIGHET_TYPER } from './types'
+import { SelectField } from '@/components/SelectField'
 
 function dagar(r: LedighetGlobal): number {
   return Math.ceil((new Date(r.slutdatum).getTime() - new Date(r.startdatum).getTime()) / 86400000) + 1
@@ -218,13 +219,19 @@ export function LedighetView() {
       {showForm && (
         <div className="px-6 py-3 border-b border-border bg-elevated shrink-0">
           <div className="grid grid-cols-6 gap-2">
-            <select className="input text-xs text-muted col-span-2" value={fPersonal} onChange={(e) => setFPersonal(e.target.value)}>
-              <option value="">Välj anställd...</option>
-              {personal.map((p) => <option key={p.id} value={p.id}>{p.namn}</option>)}
-            </select>
-            <select className="input text-xs text-muted" value={fTyp} onChange={(e) => setFTyp(e.target.value as LedighetTyp)}>
-              {LEDIGHET_TYPER.map((t) => <option key={t.value} value={t.value}>{t.label}</option>)}
-            </select>
+            <SelectField
+              value={fPersonal}
+              onChange={setFPersonal}
+              placeholder="Välj anställd..."
+              searchable
+              className="col-span-2"
+              options={personal.map((p) => ({ value: p.id, label: p.namn }))}
+            />
+            <SelectField
+              value={fTyp}
+              onChange={(v) => setFTyp(v as LedighetTyp)}
+              options={LEDIGHET_TYPER.map((t) => ({ value: t.value, label: t.label }))}
+            />
             <input type="date" className="input text-xs" value={fStart} onChange={(e) => setFStart(e.target.value)} placeholder="Från" />
             <input type="date" className="input text-xs" value={fSlut} onChange={(e) => setFSlut(e.target.value)} placeholder="Till" />
             <button

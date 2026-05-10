@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useAppConfig } from '@/context/AppConfig'
 import type { AppInstallningar } from '../types'
+import { SelectField } from '@/components/SelectField'
 
 function SavedDot() {
   return <span className="size-1.5 rounded-full bg-emerald-400 shadow-[0_0_6px_rgba(52,211,153,0.7)] inline-block ml-1.5" />
@@ -149,8 +150,8 @@ export function ConfigSelect({ label, field, options }: ConfigSelectProps) {
 
   if (!config) return null
 
-  async function handleChange(e: React.ChangeEvent<HTMLSelectElement>) {
-    await updateConfig({ [field]: e.target.value } as never)
+  async function handleChange(v: string) {
+    await updateConfig({ [field]: v } as never)
     setSaved(true)
     setTimeout(() => setSaved(false), 2000)
   }
@@ -161,13 +162,11 @@ export function ConfigSelect({ label, field, options }: ConfigSelectProps) {
         {label}
         {saved && <span className="size-1.5 rounded-full bg-emerald-400 shadow-[0_0_6px_rgba(52,211,153,0.7)] inline-block ml-1.5" />}
       </label>
-      <select
-        className="input text-muted"
+      <SelectField
         value={String((config as unknown as Record<string, unknown>)[field as string] ?? '')}
         onChange={handleChange}
-      >
-        {options.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
-      </select>
+        options={options}
+      />
     </div>
   )
 }

@@ -3,6 +3,7 @@ import { X } from 'lucide-react'
 import type { ProjektWithKund, CreateProjektInput, ProjektStatusar, ProjektPrioritet } from './types'
 import type { Kund } from '@/sections/kunder/types'
 import { useAppConfig } from '@/context/AppConfig'
+import { SelectField } from '@/components/SelectField'
 
 interface Props {
   kunder: Kund[]
@@ -120,9 +121,11 @@ export function ProjektForm({ kunder, statusar, initial, onSubmit, onCancel }: P
               </div>
               <div className="flex flex-col gap-1.5">
                 <label className="text-[11px] uppercase tracking-wider text-muted">Status</label>
-                <select className="input text-muted" value={status} onChange={(e) => setStatus(e.target.value)}>
-                  {statusar.map((s) => <option key={s.id} value={s.namn}>{s.namn}</option>)}
-                </select>
+                <SelectField
+                  value={status}
+                  onChange={setStatus}
+                  options={statusar.map((s) => ({ value: s.namn, label: s.namn }))}
+                />
               </div>
             </div>
             <div className="flex flex-col gap-1.5">
@@ -178,10 +181,13 @@ export function ProjektForm({ kunder, statusar, initial, onSubmit, onCancel }: P
             <p className="text-[11px] uppercase tracking-widest text-muted">Kund &amp; tid</p>
             <div className="flex flex-col gap-1.5">
               <label className="text-[11px] uppercase tracking-wider text-muted">Kund *</label>
-              <select className="input text-muted" required value={kundId} onChange={(e) => setKundId(e.target.value)}>
-                <option value="">Välj kund...</option>
-                {kunder.map((k) => <option key={k.id} value={k.id}>{k.kundnummer} — {k.namn}</option>)}
-              </select>
+              <SelectField
+                value={kundId}
+                onChange={setKundId}
+                placeholder="Välj kund..."
+                searchable
+                options={kunder.map((k) => ({ value: k.id, label: `${k.kundnummer} — ${k.namn}` }))}
+              />
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div className="flex flex-col gap-1.5">

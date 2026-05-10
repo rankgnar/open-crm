@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { Plus, Trash2, Check, X, ToggleLeft, ToggleRight } from 'lucide-react'
 import type { EpostMall, EpostAlias } from '@/sections/epost/types'
 import { EmailBody } from '@/components/EmailBody'
+import { SelectField } from '@/components/SelectField'
 
 const KATEGORIER = ['Förslag', 'Order', 'ÄTA', 'Dokument', 'Offert', 'Faktura', 'Uppföljning', 'Allmänt']
 
@@ -203,13 +204,11 @@ export function EpostMallarPanel() {
 
             <div className="flex flex-col gap-1.5">
               <label className="text-[11px] uppercase tracking-widest text-muted">Kategori</label>
-              <select
+              <SelectField
                 value={form.kategori}
-                onChange={e => setForm(f => ({ ...f, kategori: e.target.value }))}
-                className="bg-elevated border border-border rounded-lg px-3 py-2 text-sm text-muted outline-none focus:border-fg/30"
-              >
-                {KATEGORIER.map(k => <option key={k} value={k}>{k}</option>)}
-              </select>
+                onChange={(v) => setForm((f) => ({ ...f, kategori: v }))}
+                options={KATEGORIER.map((k) => ({ value: k, label: k }))}
+              />
             </div>
 
             <div className="flex flex-col gap-1.5 col-span-2">
@@ -230,16 +229,13 @@ export function EpostMallarPanel() {
 
             <div className="flex flex-col gap-1.5 col-span-2">
               <label className="text-[11px] uppercase tracking-widest text-muted">Standardalias</label>
-              <select
+              <SelectField
                 value={form.alias_id ?? ''}
-                onChange={e => setForm(f => ({ ...f, alias_id: e.target.value || null }))}
-                className="bg-elevated border border-border rounded-lg px-3 py-2 text-sm text-muted w-48 outline-none focus:border-fg/30"
-              >
-                <option value="">— Använd standardalias —</option>
-                {aliasar.map(a => (
-                  <option key={a.id} value={a.id}>{a.etikett || a.fran_adress}</option>
-                ))}
-              </select>
+                onChange={(v) => setForm((f) => ({ ...f, alias_id: v || null }))}
+                placeholder="— Använd standardalias —"
+                className="w-48"
+                options={aliasar.map((a) => ({ value: a.id, label: a.etikett || a.fran_adress }))}
+              />
             </div>
 
             <div className="flex flex-col gap-1.5 col-span-2">

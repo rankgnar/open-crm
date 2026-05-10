@@ -3,6 +3,7 @@ import { Play, Trash2, MoreHorizontal, ToggleLeft, ToggleRight, Loader2, GitBran
 import { NodeCard, NodeConnector, AddNodeButton, NODE_META } from './NodeCard'
 import type { Workflow, WorkflowNode, WorkflowNodeType, AiAssistent } from '../types'
 import type { EpostMall, EpostAlias } from '../../epost/types'
+import { SelectField } from '@/components/SelectField'
 
 interface ProjektOption {
   id: string
@@ -271,33 +272,25 @@ export function WorkflowEditor({ workflow, onUpdate, onDelete, onRun }: Props) {
               {needsProjektId && (
                 <div>
                   <label className="block text-[10px] uppercase tracking-widest text-subtle mb-1">Projekt</label>
-                  <select
-                    autoFocus
+                  <SelectField
                     value={runProjektId}
-                    onChange={(e) => setRunProjektId(e.target.value)}
-                    className="w-full bg-bg border border-border rounded px-2 py-1.5 text-xs text-muted focus:outline-none focus:border-blue-400/60"
-                  >
-                    {projektOptions.length === 0 && <option value="">Inga projekt hittades</option>}
-                    {projektOptions.map((p) => (
-                      <option key={p.id} value={p.id}>{p.projekt_nummer} — {p.namn}</option>
-                    ))}
-                  </select>
+                    onChange={setRunProjektId}
+                    placeholder={projektOptions.length === 0 ? 'Inga projekt hittades' : undefined}
+                    searchable
+                    options={projektOptions.map((p) => ({ value: p.id, label: `${p.projekt_nummer} — ${p.namn}` }))}
+                  />
                 </div>
               )}
 
               {hasAiNode && (
                 <div>
                   <label className="block text-[10px] uppercase tracking-widest text-subtle mb-1">AI-assistent</label>
-                  <select
+                  <SelectField
                     value={runAsistentId}
-                    onChange={(e) => setRunAsistentId(e.target.value)}
-                    className="w-full bg-bg border border-border rounded px-2 py-1.5 text-xs text-muted focus:outline-none focus:border-blue-400/60"
-                  >
-                    <option value="">Välj assistent...</option>
-                    {asistenter.map((a) => (
-                      <option key={a.id} value={a.id}>{a.namn}</option>
-                    ))}
-                  </select>
+                    onChange={setRunAsistentId}
+                    placeholder="Välj assistent..."
+                    options={asistenter.map((a) => ({ value: a.id, label: a.namn }))}
+                  />
                 </div>
               )}
             </>

@@ -4,6 +4,7 @@ import type { FaktureringSnapshot } from './types'
 import type { ForslagWithProjekt } from '@/sections/forslag/types'
 import type { Kund } from '@/sections/kunder/types'
 import { useAppConfig } from '@/context/AppConfig'
+import { SelectField } from '@/components/SelectField'
 
 interface Etapp {
   pct: number
@@ -134,30 +135,23 @@ export function FaktureringWizard({ onDone, onCancel }: Props) {
               <div className="flex flex-col gap-4">
                 <div className="flex flex-col gap-1.5">
                   <label className="text-xs text-muted">Kund</label>
-                  <select
-                    className="input text-muted"
+                  <SelectField
                     value={selectedKundId}
-                    onChange={(e) => { setSelectedKundId(e.target.value); setSelectedForslagId('') }}
-                  >
-                    <option value="">Alla kunder</option>
-                    {kunder.map((k) => <option key={k.id} value={k.id}>{k.namn}</option>)}
-                  </select>
+                    onChange={(v) => { setSelectedKundId(v); setSelectedForslagId('') }}
+                    placeholder="Alla kunder"
+                    options={kunder.map((k) => ({ value: k.id, label: k.namn }))}
+                  />
                 </div>
 
                 <div className="flex flex-col gap-1.5">
                   <label className="text-xs text-muted">Förslag / Offert</label>
-                  <select
-                    className="input text-muted"
+                  <SelectField
                     value={selectedForslagId}
-                    onChange={(e) => setSelectedForslagId(e.target.value)}
-                  >
-                    <option value="">Välj förslag...</option>
-                    {filteredForslag.map((f) => (
-                      <option key={f.id} value={f.id}>
-                        {f.forslag_nummer} — {f.titel} ({f.projekt?.kunder?.namn ?? '—'})
-                      </option>
-                    ))}
-                  </select>
+                    onChange={setSelectedForslagId}
+                    placeholder="Välj förslag..."
+                    searchable
+                    options={filteredForslag.map((f) => ({ value: f.id, label: `${f.forslag_nummer} — ${f.titel} (${f.projekt?.kunder?.namn ?? '—'})` }))}
+                  />
                 </div>
               </div>
             </div>

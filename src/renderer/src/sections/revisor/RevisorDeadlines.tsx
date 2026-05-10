@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Plus, Calendar, FileText, Upload, BookOpen, Circle, Trash2, Check, type LucideIcon } from 'lucide-react'
 import type { RevisorDeadline, CreateDeadlineInput, DeadlineTyp, DeadlineStatus } from './types'
+import { SelectField } from '@/components/SelectField'
 
 interface Props {
   deadlines: RevisorDeadline[]
@@ -95,15 +96,12 @@ export function RevisorDeadlines({ deadlines, onCreate, onToggle, onDelete }: Pr
               value={datum}
               onChange={(e) => setDatum(e.target.value)}
             />
-            <select
-              className="input text-xs text-muted w-40"
+            <SelectField
               value={typ}
-              onChange={(e) => setTyp(e.target.value as DeadlineTyp)}
-            >
-              {(Object.keys(TYP_LABEL) as DeadlineTyp[]).map((t) => (
-                <option key={t} value={t}>{TYP_LABEL[t]}</option>
-              ))}
-            </select>
+              onChange={(v) => setTyp(v as DeadlineTyp)}
+              className="w-40"
+              options={(Object.keys(TYP_LABEL) as DeadlineTyp[]).map((t) => ({ value: t, label: TYP_LABEL[t] }))}
+            />
           </div>
           <div className="flex gap-2">
             <button

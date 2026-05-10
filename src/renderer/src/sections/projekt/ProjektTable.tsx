@@ -114,6 +114,69 @@ const ANT_FARG_DOT: Record<string, string> = {
   muted:   'bg-muted',
 }
 
+function StatusSelect({ value, onChange, statusar }: { value: string; onChange: (v: string) => void; statusar: ProjektStatusar[] }) {
+  const [open, setOpen] = useState(false)
+  const ref = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    if (!open) return
+    const handler = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false)
+    }
+    document.addEventListener('mousedown', handler)
+    return () => document.removeEventListener('mousedown', handler)
+  }, [open])
+
+  const selected = statusar.find(s => s.namn === value)
+
+  return (
+    <div ref={ref} className="relative w-48 shrink-0">
+      <button
+        type="button"
+        onClick={() => setOpen(v => !v)}
+        className="w-full flex items-center justify-between gap-2 bg-elevated border border-border rounded-lg px-3 py-2 text-sm outline-none hover:border-fg/30 transition-colors"
+      >
+        <span className={`truncate flex items-center gap-2 ${selected ? 'text-fg' : 'text-subtle'}`}>
+          {selected ? (
+            <>
+              <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${FARG_DOT[selected.farg]}`} />
+              <span>{selected.namn}</span>
+            </>
+          ) : 'Alla statusar'}
+        </span>
+        <ChevronDown size={12} className="text-muted shrink-0" />
+      </button>
+
+      {open && (
+        <div className="absolute left-0 right-0 top-full mt-1 z-50 bg-elevated border border-border rounded-lg shadow-xl flex flex-col overflow-hidden">
+          <div className="max-h-64 overflow-auto py-1">
+            {value && (
+              <button
+                type="button"
+                onClick={() => { onChange(''); setOpen(false) }}
+                className="w-full text-left px-3 py-2 text-xs text-subtle hover:bg-hover transition-colors"
+              >
+                — Alla statusar —
+              </button>
+            )}
+            {statusar.map(s => (
+              <button
+                key={s.id}
+                type="button"
+                onClick={() => { onChange(s.namn); setOpen(false) }}
+                className={`w-full flex items-center gap-2 text-left px-3 py-2 text-xs hover:bg-hover transition-colors ${s.namn === value ? 'text-fg font-medium bg-hover/50' : 'text-muted'}`}
+              >
+                <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${FARG_DOT[s.farg]}`} />
+                <span className="truncate">{s.namn}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
 export function ProjektTable({ projekt, statusar, fragSummary, lastAnteckning, onSelect, onNew, onStatusChange, onStatusChangeMany, onDeleteMany, onPriorityChange, onPriorityChangeMany }: Props) {
   const [query, setQuery] = useState('')
   const [statusFilter, setStatusFilter] = useState('')
@@ -230,16 +293,13 @@ export function ProjektTable({ projekt, statusar, fragSummary, lastAnteckning, o
             </button>
           )}
         </div>
-        <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} className="input text-sm text-muted w-48 shrink-0">
-          <option value="">Alla statusar</option>
-          {statusar.map((s) => <option key={s.id} value={s.namn}>{s.namn}</option>)}
-        </select>
+        <StatusSelect value={statusFilter} onChange={setStatusFilter} statusar={statusar} />
         <div className="ml-auto flex items-center gap-2 shrink-0">
           <WorkflowTriggerInline
             seccion="projekt"
             context={selected.size === 1 ? { projekt_id: [...selected][0] } : {}}
           />
-          <RefreshButton />
+          <RefreshButton iconOnly />
           <button onClick={onNew} className="inline-flex items-center gap-1.5 px-3 py-2.5 text-[10px] font-semibold uppercase tracking-wider text-muted hover:text-fg transition-colors">
             <Plus size={11} />Nytt projekt
           </button>

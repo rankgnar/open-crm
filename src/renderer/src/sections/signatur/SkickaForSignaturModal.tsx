@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { X, Loader2 } from 'lucide-react'
 import type { DokumentTyp, EpostMall, SignaturLank } from './types'
+import { SelectField } from '@/components/SelectField'
 
 export interface BifogaOption {
   id:       string
@@ -144,29 +145,21 @@ export function SkickaForSignaturModal({ dokument_typ, dokument_id, initialEmail
           <div className="grid grid-cols-2 gap-4">
             <div className="flex flex-col gap-1.5">
               <label className="text-[11px] uppercase tracking-wider text-muted">Giltighet</label>
-              <select
-                className="input text-muted w-full"
+              <SelectField
                 value={String(days)}
-                onChange={(e) => setDays(parseInt(e.target.value, 10))}
-              >
-                {EXPIRY_OPTIONS.map(o => (
-                  <option key={o.days} value={o.days}>{o.label}</option>
-                ))}
-              </select>
+                onChange={(v) => setDays(parseInt(v, 10))}
+                options={EXPIRY_OPTIONS.map((o) => ({ value: String(o.days), label: o.label }))}
+              />
             </div>
 
             <div className="flex flex-col gap-1.5">
               <label className="text-[11px] uppercase tracking-wider text-muted">E-post-mall</label>
-              <select
-                className="input text-muted w-full"
+              <SelectField
                 value={mallId ?? ''}
-                onChange={(e) => setMallId(e.target.value || null)}
-              >
-                {mallar.length === 0 && <option value="">— ingen tillgänglig —</option>}
-                {mallar.map(m => (
-                  <option key={m.id} value={m.id}>{m.namn}</option>
-                ))}
-              </select>
+                onChange={(v) => setMallId(v || null)}
+                placeholder={mallar.length === 0 ? '— ingen tillgänglig —' : undefined}
+                options={mallar.map((m) => ({ value: m.id, label: m.namn }))}
+              />
             </div>
           </div>
 

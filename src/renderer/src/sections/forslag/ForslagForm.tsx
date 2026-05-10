@@ -4,6 +4,7 @@ import type { ForslagWithProjekt, CreateForslagInput, ForslagStatusar } from './
 import type { ProjektWithKund } from '@/sections/projekt/types'
 import type { FasMall } from '@/sections/installningar/types'
 import { useAppConfig } from '@/context/AppConfig'
+import { SelectField } from '@/components/SelectField'
 
 interface Props {
   projekt: ProjektWithKund[]
@@ -88,9 +89,11 @@ export function ForslagForm({ projekt, statusar, initial, onSubmit, onCancel }: 
             </div>
             <div className="flex flex-col gap-1.5">
               <label className="text-[11px] uppercase tracking-wider text-muted">Status</label>
-              <select className="input text-muted" value={status} onChange={(e) => setStatus(e.target.value)}>
-                {statusar.map((s) => <option key={s.id} value={s.namn}>{s.namn}</option>)}
-              </select>
+              <SelectField
+                value={status}
+                onChange={setStatus}
+                options={statusar.map((s) => ({ value: s.namn, label: s.namn }))}
+              />
             </div>
           </div>
 
@@ -108,25 +111,24 @@ export function ForslagForm({ projekt, statusar, initial, onSubmit, onCancel }: 
         <div className="flex-1 px-8 py-5 flex flex-col gap-4">
           <div className="flex flex-col gap-1.5">
             <label className="text-[11px] uppercase tracking-wider text-muted">Projekt *</label>
-            <select className="input text-muted" required value={projektId} onChange={(e) => setProjektId(e.target.value)}>
-              <option value="">Välj projekt...</option>
-              {projekt.map((p) => (
-                <option key={p.id} value={p.id}>
-                  {p.projekt_nummer} — {p.namn} ({p.kunder.namn})
-                </option>
-              ))}
-            </select>
+            <SelectField
+              value={projektId}
+              onChange={setProjektId}
+              placeholder="Välj projekt..."
+              searchable
+              options={projekt.map((p) => ({ value: p.id, label: `${p.projekt_nummer} — ${p.namn} (${p.kunder.namn})` }))}
+            />
           </div>
 
           {!isEdit && mallar.length > 0 && (
             <div className="flex flex-col gap-1.5">
               <label className="text-[11px] uppercase tracking-wider text-muted">Projekttyp</label>
-              <select className="input text-muted" value={mallId} onChange={(e) => setMallId(e.target.value)}>
-                <option value="">Ingen mall (tom)</option>
-                {mallar.map((m) => (
-                  <option key={m.id} value={m.id}>{m.namn}</option>
-                ))}
-              </select>
+              <SelectField
+                value={mallId}
+                onChange={setMallId}
+                placeholder="Ingen mall (tom)"
+                options={mallar.map((m) => ({ value: m.id, label: m.namn }))}
+              />
               {mallId && (
                 <p className="text-[11px] text-subtle">Faser och subfaser skapas automatiskt från mallen.</p>
               )}

@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from 'react'
 import { Plus, Search, X, Trash2, ArrowUp, ArrowDown, ArrowUpDown, ChevronDown } from 'lucide-react'
 import type { Kund, KundStatusar, KundProjektCounts, KundForslagCounts } from './types'
 import { RefreshButton } from '@/components/RefreshButton'
+import { SelectField } from '@/components/SelectField'
 
 const FORSLAG_FARG: Record<string, string> = {
   'Accepterat':     'bg-emerald-400',
@@ -266,11 +267,14 @@ export function KunderTable({ kunder, statusar, projektCounts, forslagCounts, on
             </button>
           )}
         </div>
-        <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} className="input text-sm text-muted w-48 shrink-0">
-          <option value="">Alla statusar</option>
-          {statusar.map((s) => <option key={s.id} value={s.namn}>{s.namn}</option>)}
-        </select>
-        <RefreshButton className="ml-auto" />
+        <SelectField
+          value={statusFilter}
+          onChange={setStatusFilter}
+          placeholder="Alla statusar"
+          options={statusar.map((s) => ({ value: s.namn, label: s.namn }))}
+          className="w-48 shrink-0"
+        />
+        <RefreshButton className="ml-auto" iconOnly />
         <button onClick={onNew} className="inline-flex items-center gap-1.5 px-3 py-2.5 text-[10px] font-semibold uppercase tracking-wider text-muted hover:text-fg transition-colors">
           <Plus size={11} />Ny kund
         </button>

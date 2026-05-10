@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from 'react'
 import { Plus, CheckCircle2, XCircle, Loader2, Clock, X, Check } from 'lucide-react'
 import type { Workflow, WorkflowRunStatus } from '../types'
+import { SelectField } from '@/components/SelectField'
 
 interface Props {
   workflows: Workflow[]
@@ -78,15 +79,12 @@ export function WorkflowList({ workflows, selectedId, onSelect, onCreate, loadin
               className="w-full bg-bg border border-border rounded px-2.5 py-1.5 text-xs text-fg focus:outline-none focus:border-blue-400/60 placeholder:text-subtle"
             />
             <div className="flex items-center gap-1.5">
-              <select
+              <SelectField
                 value={kategori}
-                onChange={e => setKategori(e.target.value)}
-                className="flex-1 bg-bg border border-border rounded px-2 py-1.5 text-xs text-muted focus:outline-none focus:border-blue-400/60"
-              >
-                {KATEGORI_ORDER.map(k => (
-                  <option key={k} value={k}>{KATEGORI_LABELS[k]}</option>
-                ))}
-              </select>
+                onChange={setKategori}
+                className="flex-1"
+                options={KATEGORI_ORDER.map((k) => ({ value: k, label: KATEGORI_LABELS[k] }))}
+              />
               <button
                 onClick={handleSubmit}
                 disabled={!namn.trim() || saving}
