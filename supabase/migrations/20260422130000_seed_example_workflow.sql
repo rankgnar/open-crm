@@ -1,0 +1,1 @@
+-- Workflow seeds removed. New templates added as separate migrations.

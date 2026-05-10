@@ -1,0 +1,1 @@
+ALTER TABLE projekt_dokument ADD COLUMN IF NOT EXISTS carpeta TEXT DEFAULT NULL;

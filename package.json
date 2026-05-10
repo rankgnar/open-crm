@@ -1,0 +1,125 @@
+{
+  "name": "open-crm",
+  "version": "1.0.0",
+  "description": "OpenCRM — desktop CRM for service & construction businesses",
+  "main": "./out/main/index.js",
+  "homepage": "./",
+  "scripts": {
+    "format": "prettier --write .",
+    "lint": "eslint . --ext .js,.jsx,.cjs,.mjs,.ts,.tsx,.cts,.mts --fix",
+    "typecheck:node": "tsc --noEmit -p tsconfig.node.json --composite false",
+    "typecheck:web": "tsc --noEmit -p tsconfig.web.json --composite false",
+    "typecheck": "npm run typecheck:node && npm run typecheck:web",
+    "start": "electron-vite preview",
+    "dev": "electron-vite dev -- --no-sandbox",
+    "build": "npm run typecheck && electron-vite build",
+    "postinstall": "electron-builder install-app-deps",
+    "build:unpack": "npm run build && electron-builder --dir",
+    "build:win": "npm run build && electron-builder --win",
+    "build:mac": "electron-vite build && electron-builder --mac",
+    "build:linux": "electron-vite build && electron-builder --linux"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.90.0",
+    "@electron-toolkit/preload": "^3.0.0",
+    "@electron-toolkit/utils": "^3.0.0",
+    "@google/genai": "^1.50.1",
+    "@supabase/supabase-js": "^2.103.3",
+    "dotenv": "^17.4.2",
+    "electron-updater": "^6.8.3",
+    "lucide-react": "^1.8.0",
+    "openai": "^6.34.0",
+    "pdf-lib": "^1.17.1",
+    "pdfjs-dist": "^5.7.284",
+    "sharp": "^0.34.5"
+  },
+  "devDependencies": {
+    "@electron-toolkit/eslint-config-prettier": "^2.0.0",
+    "@electron-toolkit/eslint-config-ts": "^2.0.0",
+    "@electron-toolkit/tsconfig": "^1.0.1",
+    "@tailwindcss/vite": "^4.2.2",
+    "@types/node": "^20.14.8",
+    "@types/react": "^18.3.3",
+    "@types/react-dom": "^18.3.0",
+    "@vitejs/plugin-react": "^4.3.1",
+    "electron": "^33.0.0",
+    "electron-builder": "^25.1.8",
+    "electron-vite": "^2.3.0",
+    "eslint": "^9.6.0",
+    "prettier": "^3.3.2",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "tailwindcss": "^4.2.2",
+    "typescript": "^5.5.2",
+    "vite": "^5.3.3"
+  },
+  "build": {
+    "appId": "com.opencrm.app",
+    "productName": "OpenCRM",
+    "directories": {
+      "buildResources": "resources"
+    },
+    "files": [
+      "!**/.vscode/*",
+      "!src/*",
+      "!electron.vite.config.{js,ts,mjs,cjs}",
+      "!{.eslintignore,.eslintrc.cjs,.prettierignore,.prettierrc.yaml,dev-app-update.yml,CHANGELOG.md,README.md}",
+      "!{.env,.env.*,.npmrc,pnpm-lock.yaml}",
+      "!{CLAUDE.md,MEMORY.md,AGENTS.md,COPILOT.md}",
+      "!pending/**",
+      "!supabase/**",
+      "!data_example/**",
+      "!docs/**",
+      "!.github/**",
+      "!.git/**",
+      "!.husky/**",
+      "!.claude/**",
+      "!{tsconfig.json,tsconfig.node.json,tsconfig.web.json,*.tsbuildinfo}",
+      "!dist/**"
+    ],
+    "asarUnpack": [
+      "node_modules/@img/**",
+      "node_modules/sharp/**"
+    ],
+    "win": {
+      "executableName": "open-crm"
+    },
+    "nsis": {
+      "artifactName": "${name}-${version}-setup.${ext}",
+      "shortcutName": "${productName}",
+      "uninstallDisplayName": "${productName}",
+      "createDesktopShortcut": "always"
+    },
+    "mac": {
+      "entitlementsInherit": "build/entitlements.mac.plist",
+      "extendInfo": {
+        "NSCameraUsageDescription": "Application requests access to the device's camera.",
+        "NSMicrophoneUsageDescription": "Application requests access to the device's microphone.",
+        "NSDocumentsFolderUsageDescription": "Application requests access to the user's Documents folder.",
+        "NSDownloadsFolderUsageDescription": "Application requests access to the user's Downloads folder."
+      },
+      "notarize": false
+    },
+    "dmg": {
+      "artifactName": "${name}-${version}.${ext}"
+    },
+    "linux": {
+      "target": [
+        "AppImage",
+        "deb"
+      ],
+      "icon": "resources/icons",
+      "maintainer": "electronjs.org",
+      "category": "Utility"
+    },
+    "appImage": {
+      "artifactName": "${name}-${version}.${ext}"
+    },
+    "npmRebuild": false,
+    "publish": {
+      "provider": "github",
+      "owner": "rankgnar",
+      "repo": "open-crm"
+    }
+  }
+}

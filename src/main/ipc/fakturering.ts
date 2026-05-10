@@ -1,0 +1,142 @@
+import { ipcMain } from 'electron'
+import { supabase } from '../supabase'
+
+const CHANNELS = [
+  'db:fakturering:list',
+  'db:fakturering:list-by-projekt',
+  'db:fakturering:get',
+  'db:fakturering:generate',
+  'db:fakturering:delete',
+] as const
+
+interface EtappInput {
+  pct: number
+  beskrivning: string
+  forfall_date?: string
+}
+
+interface SnapshotEtapp {
+  pct: number
+  beskrivning: string
+  forfall_date?: string | null
+  netto: number
+  rot: number
+  moms: number
+  att_betala: number
+}
+
+export function registerFaktureringHandlers(): void {
+  for (const ch of CHANNELS) ipcMain.removeHandler(ch)
+
+  ipcMain.handle('db:fakturering:list', async () => {
+    const { data, error } = await supabase
+      .from('fakturering_snapshots')
+      .select('*')
+      .order('skapad_at', { ascending: false })
+    if (error) throw new Error(error.message)
+    return data
+  })
+
+  ipcMain.handle('db:fakturering:list-by-projekt', async (_, projekt_id: string) => {
+    const { data, error } = await supabase
+      .from('fakturering_snapshots')
+      .select('*')
+      .eq('projekt_id', projekt_id)
+      .order('skapad_at', { ascending: false })
+    if (error) throw new Error(error.message)
+    return data
+  })
+
+  ipcMain.handle('db:fakturering:get', async (_, id: string) => {
+    const { data, error } = await supabase
+      .from('fakturering_snapshots')
+      .select('*')
+      .eq('id', id)
+      .single()
+    if (error) throw new Error(error.message)
+    return data
+  })
+
+  ipcMain.handle('db:fakturering:delete', async (_, id: string) => {
+    const { error } = await supabase.from('fakturering_snapshots').delete().eq('id', id)
+    if (error) throw new Error(error.message)
+  })
+
+  ipcMain.handle('db:fakturering:generate', async (_, forslag_id: string, etapper: EtappInput[]) => {
+    const { data: forslag, error: fErr } = await supabase.from('forslag').select('*').eq('id', forslag_id).single()
+    if (fErr) throw new Error(fErr.message)
+
+    const { data: projekt, error: pErr } = await supabase
+      .from('projekt')
+      .select('*')
+      .eq('id', forslag.projekt_id)
+      .single()
+    if (pErr) throw new Error(pErr.message)
+
+    const { data: faser } = await supabase.from('forslag_faser').select('id').eq('forslag_id', forslag_id)
+    const fasIds = (faser ?? []).map((f: { id: string }) => f.id)
+    const subfasIds: string[] = []
+    if (fasIds.length) {
+      const { data: subfaser } = await supabase.from('forslag_subfaser').select('id').in('fas_id', fasIds)
+      subfasIds.push(...(subfaser ?? []).map((s: { id: string }) => s.id))
+    }
+
+    const [{ data: arbete }, { data: material }, { data: ue }] = await Promise.all([
+      subfasIds.length ? supabase.from('forslag_arbetskostnad').select('antal_timmar,timpris').in('subfas_id', subfasIds) : Promise.resolve({ data: [] }),
+      subfasIds.length ? supabase.from('forslag_materialkostnad').select('antal,a_pris').in('subfas_id', subfasIds) : Promise.resolve({ data: [] }),
+      subfasIds.length ? supabase.from('forslag_underentreprenorer').select('kostnad').in('subfas_id', subfasIds) : Promise.resolve({ data: [] }),
+    ])
+
+    const totalArbete = (arbete ?? []).reduce((s: number, r: { antal_timmar: number; timpris: number }) => s + r.antal_timmar * r.timpris, 0)
+    const rotEligible = projekt.rot_avdrag ? totalArbete : 0
+    const totalMaterial = (material ?? []).reduce((s: number, r: { antal: number; a_pris: number }) => s + r.antal * r.a_pris, 0)
+    const totalUE = (ue ?? []).reduce((s: number, r: { kostnad: number }) => s + r.kostnad, 0)
+    const totalNetto = totalArbete + totalMaterial + totalUE
+    const moms = forslag.moms_procent ?? 25
+
+    const snapshotEtapper: SnapshotEtapp[] = etapper.map((etapp) => {
+      const pct = etapp.pct / 100
+      const etappNetto = Math.round(totalNetto * pct * 100) / 100
+      const etappRot = Math.round(rotEligible * pct * 0.30 * 100) / 100
+      const etappMoms = Math.round((etappNetto - etappRot) * (moms / 100) * 100) / 100
+      const etappAtt = Math.round((etappNetto - etappRot + etappMoms) * 100) / 100
+      return {
+        pct: etapp.pct,
+        beskrivning: etapp.beskrivning,
+        forfall_date: etapp.forfall_date ?? null,
+        netto: etappNetto,
+        rot: etappRot,
+        moms: etappMoms,
+        att_betala: etappAtt,
+      }
+    })
+
+    const rotAvdragTotalt = Math.round(rotEligible * 0.30 * 100) / 100
+    const momsTotalt = Math.round((totalNetto - rotAvdragTotalt) * (moms / 100) * 100) / 100
+    const attBetalaTotalt = Math.round((totalNetto - rotAvdragTotalt + momsTotalt) * 100) / 100
+
+    const { data: snapshot, error: sErr } = await supabase
+      .from('fakturering_snapshots')
+      .upsert({
+        projekt_id: forslag.projekt_id,
+        forslag_id,
+        forslag_nummer: forslag.forslag_nummer,
+        forslag_titel: forslag.titel,
+        total_arbete: Math.round(totalArbete * 100) / 100,
+        total_material: Math.round(totalMaterial * 100) / 100,
+        total_ue: Math.round(totalUE * 100) / 100,
+        total_netto: Math.round(totalNetto * 100) / 100,
+        rot_eligible: Math.round(rotEligible * 100) / 100,
+        rot_avdrag: rotAvdragTotalt,
+        moms_totalt: momsTotalt,
+        att_betala_totalt: attBetalaTotalt,
+        etapper: snapshotEtapper,
+        skapad_at: new Date().toISOString(),
+      }, { onConflict: 'forslag_id' })
+      .select('*')
+      .single()
+    if (sErr) throw new Error(sErr.message)
+
+    return snapshot
+  })
+}

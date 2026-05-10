@@ -1,0 +1,4 @@
+ALTER TABLE personal
+  ADD COLUMN IF NOT EXISTS clearingnummer TEXT,
+  ADD COLUMN IF NOT EXISTS kontonummer TEXT,
+  ADD COLUMN IF NOT EXISTS bank TEXT;

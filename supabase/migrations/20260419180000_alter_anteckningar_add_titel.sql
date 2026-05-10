@@ -1,0 +1,2 @@
+ALTER TABLE projekt_anteckningar
+  ADD COLUMN IF NOT EXISTS titel TEXT NOT NULL DEFAULT '';

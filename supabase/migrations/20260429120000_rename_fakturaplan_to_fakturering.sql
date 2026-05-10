@@ -1,0 +1,3 @@
+ALTER TABLE fakturaplan_snapshots RENAME TO fakturering_snapshots;
+
+ALTER INDEX fakturaplan_snapshots_forslag_id_key RENAME TO fakturering_snapshots_forslag_id_key;

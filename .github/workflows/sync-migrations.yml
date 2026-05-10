@@ -1,0 +1,38 @@
+name: Sync migrations to open-crm-setup
+
+on:
+  push:
+    branches: [master]
+    paths:
+      - 'supabase/migrations/**'
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout open-crm
+        uses: actions/checkout@v4
+
+      - name: Checkout open-crm-setup
+        uses: actions/checkout@v4
+        with:
+          repository: rankgnar/open-crm-setup
+          path: open-crm-setup
+          token: ${{ secrets.SETUP_REPO_TOKEN }}
+
+      - name: Copy migrations
+        run: |
+          cp supabase/migrations/*.sql open-crm-setup/migrations/
+
+      - name: Commit and push if changed
+        working-directory: open-crm-setup
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add migrations/
+          if git diff --staged --quiet; then
+            echo "No migration changes to sync."
+          else
+            git commit -m "sync: migrations from open-crm@${{ github.sha }}"
+            git push
+          fi
