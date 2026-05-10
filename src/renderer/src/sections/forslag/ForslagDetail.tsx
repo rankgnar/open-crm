@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
-import { ArrowLeft, ArrowUp, ArrowDown, Pencil, Trash2, Plus, X as XIcon, Check, ChevronRight, ChevronDown, FileDown, Send, Mail, RefreshCw, FolderOpen } from 'lucide-react'
+import { ArrowLeft, ArrowUp, ArrowDown, Pencil, Trash2, Plus, X as XIcon, Check, ChevronRight, ChevronDown, FileDown, Send, Mail, RefreshCw, FolderOpen, ChevronsUpDown } from 'lucide-react'
 import { WorkflowTriggerBar } from '@/components/WorkflowTriggerBar'
 import { SkickaForSignaturModal } from '@/sections/signatur/SkickaForSignaturModal'
 import { SkickaUppdateradVersionModal } from '@/sections/signatur/SkickaUppdateradVersionModal'
@@ -738,6 +738,22 @@ export function ForslagDetail({ forslag: forslagProp, statusar, allProjekt, onBa
             <p className="text-[10px] uppercase tracking-widest text-muted font-medium">
               {faser.length} faser · {Object.values(subfaserByFas).flat().length} subfaser · {allArbete.length + allMaterial.length + allUE.length} rader
             </p>
+            <button
+              onClick={() => {
+                const allSubfasIds = Object.values(subfaserByFas).flat().map((sf) => sf.id)
+                const allOpen = collapsedFaser.size === 0 && allSubfasIds.every((id) => selectedSubfasIds.has(id))
+                if (allOpen) {
+                  setCollapsedFaser(new Set(faser.map((f) => f.id)))
+                  setSelectedSubfasIds(new Set())
+                } else {
+                  setCollapsedFaser(new Set())
+                  setSelectedSubfasIds(new Set(allSubfasIds))
+                }
+              }}
+              className="flex items-center gap-1 text-[10px] text-subtle hover:text-fg transition-colors"
+            >
+              <ChevronsUpDown size={11} />
+            </button>
           </div>
 
           {/* Faser */}
