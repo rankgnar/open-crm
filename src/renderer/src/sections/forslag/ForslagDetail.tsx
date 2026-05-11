@@ -4,6 +4,7 @@ import { WorkflowTriggerBar } from '@/components/WorkflowTriggerBar'
 import { SkickaForSignaturModal } from '@/sections/signatur/SkickaForSignaturModal'
 import { SkickaUppdateradVersionModal } from '@/sections/signatur/SkickaUppdateradVersionModal'
 import { VilkorReminderModal } from './VilkorReminderModal'
+import { TidplanReminderModal } from './TidplanReminderModal'
 import { SignaturLankarPanel } from '@/sections/signatur/SignaturLankarPanel'
 import { SignaturTimeline } from '@/sections/signatur/SignaturTimeline'
 import { SignaturGodkannandeBlock } from '@/sections/signatur/SignaturGodkannandeBlock'
@@ -48,9 +49,11 @@ interface Props {
   onEdit: (data: CreateForslagInput) => Promise<void>
   onDelete: () => Promise<void>
   onNavigateProjekt?: () => void
+  onNavigateTidplan?: () => void
+  openTidplanReminder?: boolean
 }
 
-export function ForslagDetail({ forslag: forslagProp, statusar, allProjekt, onBack, onEdit, onDelete, onNavigateProjekt }: Props) {
+export function ForslagDetail({ forslag: forslagProp, statusar, allProjekt, onBack, onEdit, onDelete, onNavigateProjekt, onNavigateTidplan, openTidplanReminder }: Props) {
   // Local mirror so server-side status bumps (utkast → skickat → accepterat)
   // reflect in the UI without parent refetch.
   const [forslag, setForslag] = useState(forslagProp)
@@ -66,6 +69,7 @@ export function ForslagDetail({ forslag: forslagProp, statusar, allProjekt, onBa
   const [exportingPdf, setExportingPdf] = useState(false)
   const [showSendModal, setShowSendModal] = useState(false)
   const [showVilkorReminder, setShowVilkorReminder] = useState(false)
+  const [showTidplanReminder, setShowTidplanReminder] = useState(false)
   const [linksRefresh, setLinksRefresh] = useState(0)
   const [latestLink, setLatestLink] = useState<SignaturLank | null>(null)
   const [sendingRevised, setSendingRevised] = useState(false)
@@ -100,6 +104,10 @@ export function ForslagDetail({ forslag: forslagProp, statusar, allProjekt, onBa
   const [pdfExportTitel, setPdfExportTitel] = useState<string>('')
   const [pdfExportBifogaTidplan, setPdfExportBifogaTidplan] = useState<boolean>(false)
   const [signaturTitelOptions, setSignaturTitelOptions] = useState<{ titel1: string; titel2?: string } | null>(null)
+
+  useEffect(() => {
+    if (openTidplanReminder) setShowTidplanReminder(true)
+  }, [openTidplanReminder])
 
   // Faser
   const [faser, setFaser] = useState<ForslagFas[]>([])
@@ -1310,8 +1318,23 @@ export function ForslagDetail({ forslag: forslagProp, statusar, allProjekt, onBa
             )
           }}
           onClose={() => setShowVilkorReminder(false)}
-          onConfirm={async () => {
+          onConfirm={() => {
             setShowVilkorReminder(false)
+            setShowTidplanReminder(true)
+          }}
+        />
+      )}
+
+      {showTidplanReminder && (
+        <TidplanReminderModal
+          faser={faser}
+          onClose={() => setShowTidplanReminder(false)}
+          onNavigateTidplan={() => {
+            setShowTidplanReminder(false)
+            onNavigateTidplan?.()
+          }}
+          onConfirm={async () => {
+            setShowTidplanReminder(false)
             const mall = await window.api.invoke('db:pdf-mall:get', 'forslag') as PdfMall | null
             const titel1 = mall?.portada_titel || 'FÖRSLAG'
             const titel2 = mall?.portada_titel_2?.trim() ?? ''

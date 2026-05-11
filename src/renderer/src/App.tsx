@@ -51,10 +51,14 @@ export default function App() {
   const [needsSetup, setNeedsSetup] = useState(false)
   const [forslagProjektId, setForslagProjektId] = useState<string | undefined>(undefined)
   const [projektFromForslagId, setProjektFromForslagId] = useState<string | undefined>(undefined)
+  const [tidplanReturnForslagId, setTidplanReturnForslagId] = useState<string | undefined>(undefined)
+  const [openTidplanReminderForForslagId, setOpenTidplanReminderForForslagId] = useState<string | undefined>(undefined)
 
   useEffect(() => {
     if (activeSection !== 'forslag') setForslagProjektId(undefined)
     if (activeSection !== 'projekt') setProjektFromForslagId(undefined)
+    if (activeSection !== 'tidplan') setTidplanReturnForslagId(undefined)
+    if (activeSection !== 'forslag') setOpenTidplanReminderForForslagId(undefined)
   }, [activeSection])
 
   const checkSetup = useCallback(async () => {
@@ -142,9 +146,19 @@ export default function App() {
         <ForslagSection
           initialProjektId={forslagProjektId}
           onNavigateProjekt={(projektId) => { setProjektFromForslagId(projektId); handleNavigate('projekt') }}
+          initialForslagId={openTidplanReminderForForslagId}
+          openTidplanReminderOnLoad={!!openTidplanReminderForForslagId}
+          onNavigateTidplan={(forslagId) => { setTidplanReturnForslagId(forslagId); handleNavigate('tidplan') }}
         />
       )}
-      {activeSection === 'tidplan' && <TidplanSection />}
+      {activeSection === 'tidplan' && (
+        <TidplanSection
+          onNavigateBack={tidplanReturnForslagId ? () => {
+            setOpenTidplanReminderForForslagId(tidplanReturnForslagId)
+            handleNavigate('forslag')
+          } : undefined}
+        />
+      )}
       {activeSection === 'ekonomi' && <EkonomiSection />}
       {activeSection === 'fakturering' && <FaktureringSection />}
       {activeSection === 'kvitto' && <KvittoSection />}

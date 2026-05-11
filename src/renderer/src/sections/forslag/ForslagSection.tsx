@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { useRefreshHandler } from '@/context/RefreshContext'
 import { ForslagTable } from './ForslagTable'
 import { ForslagForm } from './ForslagForm'
@@ -17,9 +17,12 @@ type View = 'list' | 'create' | 'detail'
 interface Props {
   initialProjektId?: string
   onNavigateProjekt?: (projektId: string) => void
+  initialForslagId?: string
+  openTidplanReminderOnLoad?: boolean
+  onNavigateTidplan?: (forslagId: string) => void
 }
 
-export function ForslagSection({ initialProjektId, onNavigateProjekt }: Props = {}) {
+export function ForslagSection({ initialProjektId, onNavigateProjekt, initialForslagId, openTidplanReminderOnLoad, onNavigateTidplan }: Props = {}) {
   const { config } = useAppConfig()
   const ROT_CAP_SINGLE = config?.rot_avdrag_tak_enkel ?? 50000
   const ROT_CAP_DOUBLE = config?.rot_avdrag_tak_dubbel ?? 100000
@@ -53,6 +56,17 @@ export function ForslagSection({ initialProjektId, onNavigateProjekt }: Props = 
 
   useEffect(() => { loadData() }, [loadData])
   useRefreshHandler(loadData)
+
+  const initialForslagConsumed = useRef(false)
+  useEffect(() => {
+    if (!initialForslagId || initialForslagConsumed.current || forslag.length === 0) return
+    const target = forslag.find((f) => f.id === initialForslagId)
+    if (target) {
+      initialForslagConsumed.current = true
+      setSelectedForslag(target)
+      setView('detail')
+    }
+  }, [initialForslagId, forslag])
 
   async function handleCreate(data: CreateForslagInput, mallId?: string) {
     const created = await window.api.invoke('db:forslag:create', data) as ForslagWithProjekt
@@ -249,6 +263,8 @@ export function ForslagSection({ initialProjektId, onNavigateProjekt }: Props = 
         onEdit={handleEdit}
         onDelete={handleDelete}
         onNavigateProjekt={onNavigateProjekt ? () => onNavigateProjekt(selectedForslag.projekt_id) : undefined}
+        onNavigateTidplan={onNavigateTidplan ? () => onNavigateTidplan(selectedForslag.id) : undefined}
+        openTidplanReminder={openTidplanReminderOnLoad && selectedForslag?.id === initialForslagId}
       />
     )
   }

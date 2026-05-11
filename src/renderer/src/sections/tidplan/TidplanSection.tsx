@@ -1,5 +1,5 @@
 import { Fragment, useState, useEffect, useRef, useCallback, useMemo } from 'react'
-import { CalendarCheck, CalendarDays, CalendarX, ChevronDown, ChevronLeft, ChevronRight, ChevronsDown, ChevronsUp, RefreshCw, FileDown, Trash2 } from 'lucide-react'
+import { ArrowLeft, CalendarCheck, CalendarDays, CalendarX, ChevronDown, ChevronLeft, ChevronRight, ChevronsDown, ChevronsUp, RefreshCw, FileDown, Trash2 } from 'lucide-react'
 import type { ForslagWithProjekt, ForslagFas, ForslagSubfas, ForslagArbete } from '@/sections/forslag/types'
 import type { AppInstallningar, PdfMall } from '@/sections/installningar/types'
 import { useAppConfig } from '@/context/AppConfig'
@@ -442,7 +442,7 @@ function GanttChart({ faser, subfaserByFas, arbetenBySubfas, expandedFaser, onTo
   )
 }
 
-export function TidplanSection() {
+export function TidplanSection({ onNavigateBack }: { onNavigateBack?: () => void } = {}) {
   const { config } = useAppConfig()
   const [forslag, setForslag] = useState<ForslagWithProjekt[]>([])
   const [selected, setSelected] = useState<ForslagWithProjekt | null>(null)
@@ -702,6 +702,18 @@ export function TidplanSection() {
         <p className="text-[11px] uppercase tracking-widest text-muted">Tidplan</p>
         <RefreshButton iconOnly />
       </div>
+
+      {onNavigateBack && (
+        <div className="flex items-center gap-2 px-4 py-2 bg-amber-400/10 border-b border-amber-400/30 shrink-0">
+          <button
+            onClick={onNavigateBack}
+            className="flex items-center gap-1.5 text-amber-400 text-xs font-medium hover:opacity-80 transition-opacity"
+          >
+            <ArrowLeft size={12} />
+            Tillbaka — fortsätt skicka för signatur
+          </button>
+        </div>
+      )}
 
       <div className="flex flex-1 min-h-0">
         {/* Left panel — Förslag list (collapsible) */}
