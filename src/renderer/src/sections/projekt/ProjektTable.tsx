@@ -180,6 +180,7 @@ function StatusSelect({ value, onChange, statusar }: { value: string; onChange: 
 export function ProjektTable({ projekt, statusar, fragSummary, lastAnteckning, onSelect, onNew, onStatusChange, onStatusChangeMany, onDeleteMany, onPriorityChange, onPriorityChangeMany }: Props) {
   const [query, setQuery] = useState('')
   const [statusFilter, setStatusFilter] = useState('')
+  const [prioritetFilter, setPrioritetFilter] = useState<ProjektPrioritet | ''>('')
   const [selected, setSelected] = useState<Set<string>>(new Set())
   const [confirmBulk, setConfirmBulk] = useState(false)
   const [deletingBulk, setDeletingBulk] = useState(false)
@@ -204,7 +205,7 @@ export function ProjektTable({ projekt, statusar, fragSummary, lastAnteckning, o
     const q = query.toLowerCase()
     const matchesQuery = !q || [p.projekt_nummer, p.namn, p.kunder.namn, p.kunder.kundnummer, p.arbetsplats_stad]
       .some((v) => v?.toLowerCase().includes(q))
-    return matchesQuery && (!statusFilter || p.status === statusFilter)
+    return matchesQuery && (!statusFilter || p.status === statusFilter) && (!prioritetFilter || (p.prioritet ?? 'parked') === prioritetFilter)
   })
 
   const sorted = sortCol ? [...filtered].sort((a, b) => {
@@ -259,7 +260,7 @@ export function ProjektTable({ projekt, statusar, fragSummary, lastAnteckning, o
     setConfirmRowId(null)
   }
 
-  const isFiltering = query !== '' || statusFilter !== ''
+  const isFiltering = query !== '' || statusFilter !== '' || prioritetFilter !== ''
 
   const COLS: [string, string][] = [
     ['projekt_nummer', 'Nr'],
@@ -294,6 +295,7 @@ export function ProjektTable({ projekt, statusar, fragSummary, lastAnteckning, o
           )}
         </div>
         <StatusSelect value={statusFilter} onChange={setStatusFilter} statusar={statusar} />
+        <PrioritetSelect value={prioritetFilter} onChange={setPrioritetFilter} />
         <div className="ml-auto flex items-center gap-2 shrink-0">
           <WorkflowTriggerInline
             seccion="projekt"
@@ -430,6 +432,66 @@ export function ProjektTable({ projekt, statusar, fragSummary, lastAnteckning, o
               })}
             </tbody>
           </table>
+        </div>
+      )}
+    </div>
+  )
+}
+
+function PrioritetSelect({ value, onChange }: { value: ProjektPrioritet | ''; onChange: (v: ProjektPrioritet | '') => void }) {
+  const [open, setOpen] = useState(false)
+  const ref = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    if (!open) return
+    const handler = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false)
+    }
+    document.addEventListener('mousedown', handler)
+    return () => document.removeEventListener('mousedown', handler)
+  }, [open])
+
+  const selected = BULK_PRIORITY_OPTIONS.find(o => o.value === value)
+
+  return (
+    <div ref={ref} className="relative w-40 shrink-0">
+      <button
+        type="button"
+        onClick={() => setOpen(v => !v)}
+        className="w-full flex items-center justify-between gap-2 bg-elevated border border-border rounded-lg px-3 py-2 text-sm outline-none hover:border-fg/30 transition-colors"
+      >
+        <span className={`truncate flex items-center gap-2 ${selected ? 'text-fg' : 'text-subtle'}`}>
+          {selected
+            ? <span className={`text-sm ${selected.color}`}>{selected.label}</span>
+            : 'Alla prioriteter'
+          }
+        </span>
+        <ChevronDown size={12} className="text-muted shrink-0" />
+      </button>
+
+      {open && (
+        <div className="absolute left-0 right-0 top-full mt-1 z-50 bg-elevated border border-border rounded-lg shadow-xl flex flex-col overflow-hidden">
+          <div className="max-h-64 overflow-auto py-1">
+            {value && (
+              <button
+                type="button"
+                onClick={() => { onChange(''); setOpen(false) }}
+                className="w-full text-left px-3 py-2 text-xs text-subtle hover:bg-hover transition-colors"
+              >
+                — Alla prioriteter —
+              </button>
+            )}
+            {BULK_PRIORITY_OPTIONS.map(opt => (
+              <button
+                key={opt.value}
+                type="button"
+                onClick={() => { onChange(opt.value); setOpen(false) }}
+                className={`w-full flex items-center gap-2 text-left px-3 py-2 text-xs hover:bg-hover transition-colors ${opt.value === value ? 'font-medium bg-hover/50' : ''}`}
+              >
+                <span className={`font-medium ${opt.color}`}>{opt.label}</span>
+              </button>
+            ))}
+          </div>
         </div>
       )}
     </div>

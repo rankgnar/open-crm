@@ -124,6 +124,45 @@ export function KundDetail({ kund, statusar, onBack, onEdit, onDelete }: Props) 
           </span>
         </div>
         <div className="flex items-center gap-2">
+          {inviteFeedback ? (
+            <span className={`text-[10px] uppercase tracking-wider font-semibold ${inviteFeedback.kind === 'ok' ? 'text-emerald-400' : 'text-red-400'}`}>
+              {inviteFeedback.msg}
+            </span>
+          ) : kundUser?.accepted_at ? (
+            <span className="flex items-center gap-1.5 text-[10px] text-emerald-400 font-semibold uppercase tracking-wider">
+              <span className="size-1.5 rounded-full bg-emerald-400" />
+              Aktiv sedan {new Date(kundUser.accepted_at).toLocaleDateString('sv-SE')}
+            </span>
+          ) : kundUser ? (
+            <span className="flex items-center gap-1.5 text-[10px] text-amber-400 font-semibold uppercase tracking-wider">
+              <span className="size-1.5 rounded-full bg-amber-400" />
+              Inbjudan skickad · {new Date(kundUser.invited_at).toLocaleDateString('sv-SE')}
+            </span>
+          ) : (
+            <span className="flex items-center gap-1.5 text-[10px] text-red-400 font-semibold uppercase tracking-wider">
+              <span className="size-1.5 rounded-full bg-red-400" />
+              Ej tillgång
+            </span>
+          )}
+          {kundUser?.accepted_at ? (
+            <button
+              onClick={handlePasswordReset}
+              disabled={resetting || inviting || !kund.email?.trim()}
+              title={kund.email?.trim() ? undefined : 'Kunden saknar e-postadress'}
+              className="inline-flex items-center gap-1.5 px-3 py-2.5 text-[10px] font-semibold uppercase tracking-wider text-muted hover:text-fg transition-colors disabled:opacity-40"
+            >
+              <KeyRound size={11} />{resetting ? 'Skickar...' : 'Återställ lösenord'}
+            </button>
+          ) : (
+            <button
+              onClick={handleInvite}
+              disabled={inviting || resetting || !kund.email?.trim()}
+              title={kund.email?.trim() ? undefined : 'Kunden saknar e-postadress'}
+              className="inline-flex items-center gap-1.5 px-3 py-2.5 text-[10px] font-semibold uppercase tracking-wider text-muted hover:text-fg transition-colors disabled:opacity-40"
+            >
+              <Send size={11} />{inviting ? 'Skickar...' : kundUser ? 'Skicka påminnelse' : 'Bjud in'}
+            </button>
+          )}
           <button onClick={() => setEditing(true)} className="inline-flex items-center gap-1.5 px-3 py-2.5 text-[10px] font-semibold uppercase tracking-wider text-muted hover:text-fg transition-colors">
             <Pencil size={11} />Redigera
           </button>
@@ -168,52 +207,6 @@ export function KundDetail({ kund, statusar, onBack, onEdit, onDelete }: Props) 
           <DetailField label="Fax" value={kund.fax} />
         </DetailSection>
 
-        <div className="px-8 py-6 border-b border-border">
-          <div className="flex items-center justify-between">
-            <p className="text-[11px] uppercase tracking-widest text-muted">Klientportal</p>
-            <div className="flex items-center gap-3">
-              {kundUser?.accepted_at ? (
-                <span className="flex items-center gap-1.5 text-xs text-emerald-400">
-                  <span className="size-1.5 rounded-full bg-emerald-400" />
-                  Aktiv sedan {new Date(kundUser.accepted_at).toLocaleDateString('sv-SE')}
-                </span>
-              ) : kundUser ? (
-                <span className="flex items-center gap-1.5 text-xs text-amber-400">
-                  <span className="size-1.5 rounded-full bg-amber-400" />
-                  Inbjudan skickad · {new Date(kundUser.invited_at).toLocaleDateString('sv-SE')}
-                </span>
-              ) : (
-                <span className="text-xs text-subtle">Ej tillgång</span>
-              )}
-              {kundUser?.accepted_at ? (
-                <button
-                  onClick={handlePasswordReset}
-                  disabled={resetting || inviting || !kund.email?.trim()}
-                  className="flex items-center gap-1.5 rounded-lg border border-border bg-elevated px-3 py-1.5 text-xs text-fg hover:bg-hover transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
-                >
-                  <KeyRound size={12} />
-                  {resetting ? 'Skickar...' : 'Återställ lösenord'}
-                </button>
-              ) : (
-                <button
-                  onClick={handleInvite}
-                  disabled={inviting || resetting || !kund.email?.trim()}
-                  title={kund.email?.trim() ? undefined : 'Kunden saknar e-postadress'}
-                  className="flex items-center gap-1.5 rounded-lg border border-border bg-elevated px-3 py-1.5 text-xs text-fg hover:bg-hover transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
-                >
-                  <Send size={12} />
-                  {inviting ? 'Skickar...' : kundUser ? 'Skicka påminnelse' : 'Bjud in'}
-                </button>
-              )}
-            </div>
-          </div>
-          {inviteFeedback && (
-            <p className={`mt-3 text-xs ${inviteFeedback.kind === 'ok' ? 'text-emerald-400' : 'text-red-400'}`}>
-              {inviteFeedback.msg}
-            </p>
-          )}
-        </div>
-
         <DetailSection title="Fakturaadress">
           <DetailField label="Adress" value={kund.adress} />
           <DetailField label="Adress 2" value={kund.adress_2} />
@@ -223,7 +216,7 @@ export function KundDetail({ kund, statusar, onBack, onEdit, onDelete }: Props) 
           <DetailField label="Landskod" value={kund.landskod} />
         </DetailSection>
 
-        <DetailSection title="Fastighet & husarbete">
+        <DetailSection title="Fastighet & husarbete" cols={4}>
           <DetailField label="Fastighetsbeteckning / Lägenhetsnr" value={kund.fastighetsbeteckning} />
           <DetailField label="BRF:s org.nr" value={kund.brf_org_nummer} />
           <DetailField label="Namn för medsökande" value={kund.medsokande_namn} />
@@ -256,11 +249,11 @@ export function KundDetail({ kund, statusar, onBack, onEdit, onDelete }: Props) 
   )
 }
 
-function DetailSection({ title, children }: { title: string; children: React.ReactNode }) {
+function DetailSection({ title, children, cols = 3 }: { title: string; children: React.ReactNode; cols?: 3 | 4 }) {
   return (
     <div className="px-8 py-6 border-b border-border">
       <p className="text-[11px] uppercase tracking-widest text-muted mb-4">{title}</p>
-      <div className="grid grid-cols-3 gap-x-8 gap-y-5">
+      <div className={`grid gap-[1px] bg-border overflow-hidden rounded-sm ${cols === 4 ? 'grid-cols-4' : 'grid-cols-3'}`}>
         {children}
       </div>
     </div>
@@ -269,7 +262,7 @@ function DetailSection({ title, children }: { title: string; children: React.Rea
 
 function DetailField({ label, value }: { label: string; value: string | null | undefined }) {
   return (
-    <div className="flex flex-col gap-1">
+    <div className="flex flex-col gap-1.5 bg-elevated px-4 py-3">
       <span className="text-[11px] uppercase tracking-wider text-muted">{label}</span>
       <span className="text-sm text-fg">{value ?? '—'}</span>
     </div>

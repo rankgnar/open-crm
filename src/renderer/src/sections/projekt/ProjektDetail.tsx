@@ -203,11 +203,20 @@ export function ProjektDetail({ projekt, kunder, statusar, anteckningar, snapsho
           <DetailSection title="Kund">
             <DetailField label="Kundnummer" value={projekt.kunder.kundnummer} />
             <DetailField label="Kundnamn" value={projekt.kunder.namn} />
+            <DetailField label="ROT-avdrag" value={projekt.rot_avdrag ? `Ja — ${projekt.rot_procent}%${projekt.rot_inkludera_medsokande ? ' (inkl. medsökande)' : ''}` : 'Nej'} />
           </DetailSection>
+
+          {(projekt.arbetsplats_adress || projekt.arbetsplats_stad) && (
+            <DetailSection title="Arbetsplats">
+              <DetailField label="Adress" value={projekt.arbetsplats_adress} />
+              <DetailField label="Stad" value={projekt.arbetsplats_stad} />
+              <DetailField label="Postnummer" value={projekt.arbetsplats_postnummer} />
+            </DetailSection>
+          )}
 
           <DetailSection title="Projektinfo">
             <DetailField label="Status" value={projekt.status} />
-            <div className="flex flex-col gap-1">
+            <div className="flex flex-col gap-1.5 bg-elevated px-4 py-3">
               <span className="text-[11px] uppercase tracking-wider text-muted">Prioritet</span>
               <span className={`text-sm font-medium ${
                 projekt.prioritet === 'high'   ? 'text-red-400'
@@ -222,24 +231,27 @@ export function ProjektDetail({ projekt, kunder, statusar, anteckningar, snapsho
             <DetailField label="Startdatum" value={formatDate(projekt.startdatum)} />
             <DetailField label="Slutdatum" value={formatDate(projekt.slutdatum)} />
             <DetailField label="Betalningsvillkor" value={projekt.betalningsvillkor} />
-            <DetailField label="ROT-avdrag" value={projekt.rot_avdrag ? `Ja — ${projekt.rot_procent}%${projekt.rot_inkludera_medsokande ? ' (inkl. medsökande)' : ''}` : 'Nej'} />
-            {projekt.beskrivning && (<>
-              <div className="col-span-3 border-t border-border" />
-              <div className="col-span-3 flex flex-col gap-1">
-                <div className="flex items-center justify-between">
-                  <span className="text-[11px] uppercase tracking-wider text-muted">Beskrivning</span>
+          </DetailSection>
+
+          <div className="px-8 py-6 border-b border-border flex flex-col gap-5">
+            <div className="flex flex-col gap-1.5">
+              <div className="flex items-center justify-between">
+                <span className="text-[11px] uppercase tracking-wider text-muted">Beskrivning</span>
+                {projekt.beskrivning && (
                   <button onClick={() => setBeskrivningExpanded(v => !v)} className="p-1 text-subtle hover:text-fg transition-colors" title={beskrivningExpanded ? 'Dölj' : 'Visa'}>
                     {beskrivningExpanded ? <EyeOff size={13} /> : <Eye size={13} />}
                   </button>
-                </div>
-                {beskrivningExpanded
-                  ? <p className="text-sm text-muted whitespace-pre-wrap leading-relaxed">{projekt.beskrivning}</p>
-                  : <p className="text-sm text-muted">{projekt.beskrivning!.length > 80 ? projekt.beskrivning!.slice(0, 80) + '…' : projekt.beskrivning}</p>
-                }
+                )}
               </div>
-            </>)}
-            <div className="col-span-3 border-t border-border" />
-            <div className="col-span-3 flex flex-col gap-1">
+              {projekt.beskrivning
+                ? beskrivningExpanded
+                  ? <p className="text-sm text-muted whitespace-pre-wrap leading-relaxed">{projekt.beskrivning}</p>
+                  : <p className="text-sm text-muted">{projekt.beskrivning.length > 80 ? projekt.beskrivning.slice(0, 80) + '…' : projekt.beskrivning}</p>
+                : <p className="text-sm text-subtle italic">Ingen beskrivning angiven.</p>
+              }
+            </div>
+            <div className="border-t border-border" />
+            <div className="flex flex-col gap-1.5">
               <div className="flex items-center justify-between">
                 <span className="text-[11px] uppercase tracking-wider text-muted">Villkor</span>
                 {projekt.villkor && (
@@ -255,16 +267,7 @@ export function ProjektDetail({ projekt, kunder, statusar, anteckningar, snapsho
                 : <p className="text-sm text-subtle italic">Inga villkor angivna.</p>
               }
             </div>
-          </DetailSection>
-
-          {(projekt.arbetsplats_adress || projekt.arbetsplats_stad) && (
-            <DetailSection title="Arbetsplats">
-              <DetailField label="Adress" value={projekt.arbetsplats_adress} />
-              <DetailField label="Stad" value={projekt.arbetsplats_stad} />
-              <DetailField label="Postnummer" value={projekt.arbetsplats_postnummer} />
-            </DetailSection>
-          )}
-
+          </div>
 
           <div className="px-8 py-6 border-b border-border">
             <p className="text-[11px] uppercase tracking-widest text-muted mb-4">Fakturering</p>
@@ -621,14 +624,14 @@ function DetailSection({ title, children }: { title: string; children: React.Rea
   return (
     <div className="px-8 py-6 border-b border-border">
       <p className="text-[11px] uppercase tracking-widest text-muted mb-4">{title}</p>
-      <div className="grid grid-cols-3 gap-x-8 gap-y-5">{children}</div>
+      <div className="grid grid-cols-3 gap-[1px] bg-border overflow-hidden rounded-sm">{children}</div>
     </div>
   )
 }
 
 function DetailField({ label, value }: { label: string; value: string | null | undefined }) {
   return (
-    <div className="flex flex-col gap-1">
+    <div className="flex flex-col gap-1.5 bg-elevated px-4 py-3">
       <span className="text-[11px] uppercase tracking-wider text-muted">{label}</span>
       <span className="text-sm text-fg">{value ?? '—'}</span>
     </div>
