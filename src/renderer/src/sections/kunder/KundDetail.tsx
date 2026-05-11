@@ -224,20 +224,26 @@ export function KundDetail({ kund, statusar, onBack, onEdit, onDelete }: Props) 
           <DetailField label="Personnummer för medsökande" value={kund.medsokande_personnummer} />
         </DetailSection>
 
-        <div className="px-8 py-6 border-b border-border">
-          <p className="text-[11px] uppercase tracking-widest text-muted mb-4">Standardvillkor för extraarbeten (Order)</p>
-          {kund.order_std_villkor?.trim()
-            ? <p className="text-sm text-muted whitespace-pre-wrap leading-relaxed">{kund.order_std_villkor}</p>
-            : <p className="text-sm text-subtle italic">Inga standardvillkor angivna.</p>
-          }
+        <div className="px-8 py-6 border-b border-border flex flex-col gap-3">
+          <p className="text-[11px] uppercase tracking-widest text-muted">Standardvillkor för extraarbeten (Order)</p>
+          <div className="bg-elevated border border-border rounded-sm px-4 py-3 text-sm leading-relaxed min-h-[80px]">
+            {kund.order_std_villkor?.trim()
+              ? <p className="text-muted whitespace-pre-wrap">{kund.order_std_villkor}</p>
+              : <p className="text-subtle italic">Inga standardvillkor angivna.</p>
+            }
+          </div>
+          <p className="text-[11px] text-subtle">Snapshot — kopieras till varje ny order. Ändringar påverkar inte redan skapade orders.</p>
         </div>
 
-        <div className="px-8 py-6 border-b border-border">
-          <p className="text-[11px] uppercase tracking-widest text-muted mb-4">Standardvillkor för ÄTA</p>
-          {kund.ata_std_villkor?.trim()
-            ? <p className="text-sm text-muted whitespace-pre-wrap leading-relaxed">{kund.ata_std_villkor}</p>
-            : <p className="text-sm text-subtle italic">Inga ÄTA-villkor angivna.</p>
-          }
+        <div className="px-8 py-6 border-b border-border flex flex-col gap-3">
+          <p className="text-[11px] uppercase tracking-widest text-muted">Standardvillkor för ÄTA</p>
+          <div className="bg-elevated border border-border rounded-sm px-4 py-3 text-sm leading-relaxed min-h-[80px]">
+            {kund.ata_std_villkor?.trim()
+              ? <p className="text-muted whitespace-pre-wrap">{kund.ata_std_villkor}</p>
+              : <p className="text-subtle italic">Inga ÄTA-villkor angivna.</p>
+            }
+          </div>
+          <p className="text-[11px] text-subtle">Snapshot — kopieras till varje ny ÄTA. Ändringar påverkar inte redan skapade ÄTA-arbeten.</p>
         </div>
 
         <div className="px-8 py-4 mt-auto border-t border-border flex items-center gap-6">
