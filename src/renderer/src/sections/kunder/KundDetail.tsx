@@ -205,6 +205,7 @@ export function KundDetail({ kund, statusar, onBack, onEdit, onDelete }: Props) 
           <DetailField label="Telefon" value={kund.telefon} />
           <DetailField label="Telefon 2" value={kund.telefon_2} />
           <DetailField label="Fax" value={kund.fax} />
+          <DetailField label="Personnummer" value={kund.personnummer} />
         </DetailSection>
 
         <DetailSection title="Fakturaadress">
