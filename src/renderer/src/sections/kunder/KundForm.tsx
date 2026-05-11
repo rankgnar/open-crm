@@ -1,5 +1,4 @@
 import { useState, useEffect } from 'react'
-import { X } from 'lucide-react'
 import type { Kund, CreateKundInput, KundStatusar } from './types'
 import { useAppConfig } from '@/context/AppConfig'
 import { SelectField } from '@/components/SelectField'
@@ -42,6 +41,9 @@ function validatePostnummer(val: string): string {
   if (!val) return ''
   return /^\d{3} \d{2}$/.test(val) ? '' : 'Format: 123 45'
 }
+
+// Cell input base classes
+const CI = 'bg-transparent text-sm text-fg outline-none placeholder:text-subtle w-full'
 
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -136,252 +138,249 @@ export function KundForm({ initial, statusar, onSubmit, onCancel }: Props) {
   return (
     <form onSubmit={handleSubmit} className="flex flex-col h-full">
 
-      {/* Header */}
-      <div className="flex items-center justify-between px-8 py-4 border-b border-border shrink-0">
+      {/* Header — mirrors KundDetail header */}
+      <div className="flex items-center justify-between px-6 py-3 border-b border-border bg-sidebar shrink-0">
         <div className="flex items-center gap-3">
           <p className="text-[11px] uppercase tracking-widest text-muted">Kunder</p>
           <span className="text-subtle">/</span>
-          <h2 className="text-sm font-semibold text-fg">{isEdit ? 'Redigera kund' : 'Ny kund'}</h2>
+          <span className="text-sm font-medium text-fg">{isEdit ? 'Redigera kund' : 'Ny kund'}</span>
         </div>
-        <button type="button" onClick={onCancel} className="rounded-lg p-1.5 text-muted hover:text-fg hover:bg-hover transition-colors">
-          <X size={15} />
-        </button>
-      </div>
-
-      {/* Body */}
-      <div className="flex flex-1 min-h-0 divide-x divide-border overflow-auto">
-
-        {/* Columna izquierda */}
-        <div className="flex flex-col flex-1 divide-y divide-border">
-
-          <div className="px-8 py-6 flex flex-col gap-4">
-            <Label>Grunduppgifter</Label>
-            <div className="grid grid-cols-2 gap-3">
-              <div className="flex flex-col gap-1">
-                <label className="text-xs text-muted">
-                  Kundnummer
-                  {!isEdit && previewNummer && <span className="ml-2 font-normal text-subtle">→ {previewNummer}</span>}
-                </label>
-                <input value={kundnummer} onChange={(e) => setKundnummer(e.target.value)} placeholder={previewNummer ?? 'Auto-genererat'} className="input font-mono" />
-              </div>
-              <F label="Status">
-                <SelectField
-                  value={status}
-                  onChange={setStatus}
-                  options={statusar.map((s) => ({ value: s.namn, label: s.namn }))}
-                />
-              </F>
-            </div>
-            <F label="Namn *">
-              <input
-                value={namn}
-                onChange={(e) => setNamn(e.target.value.toUpperCase())}
-                required
-                autoFocus
-                placeholder="FÖRETAGSNAMN ELLER FULLSTÄNDIGT NAMN"
-                className="input uppercase"
-              />
-            </F>
-            <F label="Org-nummer">
-              <input
-                value={orgNummer}
-                onChange={(e) => { setOrgNummer(fmtOrgNummer(e.target.value)); setOrgNummerErr('') }}
-                onBlur={() => setOrgNummerErr(validateOrgNummer(orgNummer))}
-                placeholder="556000-0000"
-                maxLength={11}
-                className={`input font-mono ${orgNummerErr ? 'border-red-400/60' : ''}`}
-              />
-              {orgNummerErr && <span className="text-[11px] text-red-400">{orgNummerErr}</span>}
-            </F>
-            <F label="Personnummer">
-              <input
-                value={personnummer}
-                onChange={(e) => setPersonnummer(fmtPersonnummer(e.target.value))}
-                placeholder="YYMMDD-XXXX"
-                maxLength={13}
-                className="input font-mono"
-              />
-              <span className="text-[11px] text-subtle">Fylls i automatiskt vid signering om fältet är tomt.</span>
-            </F>
-            <F label="Login (intern anteckning för test)">
-              <input
-                value={loginAnteckning}
-                onChange={(e) => setLoginAnteckning(e.target.value)}
-                placeholder="t.ex. test123"
-                className="input"
-                autoComplete="off"
-              />
-            </F>
-          </div>
-
-          <div className="px-8 py-6 flex flex-col gap-4">
-            <Label>Kontaktuppgifter</Label>
-            <div className="grid grid-cols-2 gap-3">
-              <F label="E-post">
-                <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="kontakt@exempel.se" className="input" />
-              </F>
-              <F label="Webbadress">
-                <input value={webbadress} onChange={(e) => setWebbadress(e.target.value)} placeholder="www.exempel.se" className="input" />
-              </F>
-              <F label="Telefon">
-                <input value={telefon} onChange={(e) => setTelefon(e.target.value)} placeholder="070-000 00 00" className="input" />
-              </F>
-              <F label="Telefon 2">
-                <input value={telefon2} onChange={(e) => setTelefon2(e.target.value)} placeholder="070-000 00 00" className="input" />
-              </F>
-            </div>
-            <F label="Fax">
-              <input value={fax} onChange={(e) => setFax(e.target.value)} placeholder="08-000 00 00" className="input" />
-            </F>
-          </div>
-
-        </div>
-
-        {/* Columna derecha */}
-        <div className="flex flex-col flex-1 divide-y divide-border">
-
-          <div className="px-8 py-6 flex flex-col gap-4">
-            <Label>Fakturaadress</Label>
-            <F label="Fakturaadress">
-              <input value={adress} onChange={(e) => setAdress(e.target.value)} placeholder="Gatugatan 1" className="input" />
-            </F>
-            <F label="Fakturaadress 2">
-              <input value={adress2} onChange={(e) => setAdress2(e.target.value)} placeholder="c/o, våning, etc." className="input" />
-            </F>
-            <div className="grid grid-cols-2 gap-3">
-              <div className="flex flex-col gap-1">
-                <label className="text-xs text-muted">Postnr</label>
-                <input
-                  value={postnummer}
-                  onChange={(e) => { setPostnummer(fmtPostnummer(e.target.value)); setPostnummerErr('') }}
-                  onBlur={() => setPostnummerErr(validatePostnummer(postnummer))}
-                  placeholder="123 45"
-                  maxLength={6}
-                  className={`input font-mono ${postnummerErr ? 'border-red-400/60' : ''}`}
-                />
-                {postnummerErr && <span className="text-[11px] text-red-400">{postnummerErr}</span>}
-              </div>
-              <F label="Ort">
-                <input
-                  value={stad}
-                  onChange={(e) => setStad(e.target.value)}
-                  onBlur={(e) => setStad(capitalizeFirst(e.target.value))}
-                  placeholder="Stockholm"
-                  className="input"
-                />
-              </F>
-              <F label="Land">
-                <input value={land} onChange={(e) => setLand(e.target.value)} placeholder="Sverige" className="input" />
-              </F>
-              <F label="Landskod">
-                <input value={landskod} onChange={(e) => setLandskod(e.target.value.toUpperCase())} placeholder="SE" maxLength={2} className="input uppercase" />
-              </F>
-            </div>
-          </div>
-
-          <div className="px-8 py-6 flex flex-col gap-4">
-            <Label>Fastighet &amp; husarbete</Label>
-            <F label="Fastighetsbeteckning / Lägenhetsnr">
-              <input value={fastighetsbeteckning} onChange={(e) => setFastighetsbeteckning(e.target.value)} placeholder="Exempel 1:23" className="input" />
-            </F>
-            <F label="BRF:s org.nr">
-              <input
-                value={brfOrgNummer}
-                onChange={(e) => { setBrfOrgNummer(fmtOrgNummer(e.target.value)); setBrfOrgErr('') }}
-                onBlur={() => setBrfOrgErr(validateOrgNummer(brfOrgNummer))}
-                placeholder="769000-0000"
-                maxLength={11}
-                className={`input font-mono ${brfOrgErr ? 'border-red-400/60' : ''}`}
-              />
-              {brfOrgErr && <span className="text-[11px] text-red-400">{brfOrgErr}</span>}
-            </F>
-            <F label="Namn för medsökande (husarbete)">
-              <input
-                value={medsokandNamn}
-                onChange={(e) => setMedsokandNamn(e.target.value)}
-                onBlur={(e) => setMedsokandNamn(capitalizeFirst(e.target.value))}
-                placeholder="Fullständigt namn"
-                className="input"
-              />
-            </F>
-            <F label="Personnummer för medsökande (husarbete)">
-              <input
-                value={medsokandPersonnummer}
-                onChange={(e) => setMedsokandPersonnummer(fmtPersonnummer(e.target.value))}
-                placeholder="YYYYMMDD-XXXX"
-                maxLength={13}
-                className="input font-mono"
-              />
-            </F>
-          </div>
-
-          <div className="px-8 py-6 flex flex-col gap-4">
-            <Label>Standardvillkor för extraarbeten (Order)</Label>
-            <F label="Villkor som kopieras till nya orders för denna kund">
-              <textarea
-                value={orderStdVillkor}
-                onChange={(e) => setOrderStdVillkor(e.target.value)}
-                rows={6}
-                placeholder="t.ex. Order är gällande efter signering av kund. Arbetet faktureras separat från huvudprojekt. Betalning 30 dagar netto."
-                className="input resize-y leading-relaxed"
-              />
-            </F>
-            <p className="text-[11px] text-subtle">
-              Snapshot — det här texten kopieras till varje ny order. Ändringar här påverkar inte redan skapade orders.
+        <div className="flex items-center gap-2">
+          {error && (
+            <p className="text-red-400 text-[10px] font-semibold bg-red-400/10 border border-red-400/20 rounded-lg px-3 py-1.5 max-w-xs truncate">
+              {error}
             </p>
-          </div>
-
-          <div className="px-8 py-6 flex flex-col gap-4">
-            <Label>Standardvillkor för ÄTA (ändrings- och tilläggsarbeten)</Label>
-            <F label="Villkor som kopieras till nya ÄTA-arbeten för denna kund">
-              <textarea
-                value={ataStdVillkor}
-                onChange={(e) => setAtaStdVillkor(e.target.value)}
-                rows={6}
-                placeholder="t.ex. Detta arbete utgör ett tilläggsarbete och faktureras separat från huvudprojekt. Påbörjas efter kundens signering."
-                className="input resize-y leading-relaxed"
-              />
-            </F>
-            <p className="text-[11px] text-subtle">
-              Snapshot — kopieras till varje ny ÄTA. Ändringar här påverkar inte redan skapade ÄTA-arbeten.
-            </p>
-          </div>
-
-        </div>
-      </div>
-
-      {/* Footer */}
-      <div className="flex items-center justify-between px-8 py-4 border-t border-border shrink-0">
-        {error
-          ? <p className="text-red-400 text-xs bg-red-400/10 border border-red-400/20 rounded-lg px-3 py-1.5">{error}</p>
-          : <span />
-        }
-        <div className="flex items-center gap-4">
-          <button type="button" onClick={onCancel} className="text-sm text-muted hover:text-fg transition-colors">
+          )}
+          <button
+            type="button"
+            onClick={onCancel}
+            className="inline-flex items-center px-3 py-2.5 text-[10px] font-semibold uppercase tracking-wider text-muted hover:text-fg transition-colors"
+          >
             Avbryt
           </button>
           <button
             type="submit"
             disabled={submitting || !namn.trim()}
-            className="rounded-lg bg-fg text-bg px-5 py-2 text-sm font-medium hover:opacity-90 transition-opacity disabled:opacity-30 disabled:cursor-not-allowed"
+            className="inline-flex items-center px-3 py-2.5 text-[10px] font-semibold uppercase tracking-wider text-fg hover:opacity-70 transition-opacity disabled:opacity-30 disabled:cursor-not-allowed"
           >
             {submitting ? 'Sparar...' : isEdit ? 'Spara ändringar' : 'Skapa kund'}
           </button>
         </div>
       </div>
+
+      {/* Body — same scrollable structure as KundDetail */}
+      <div className="flex-1 overflow-auto flex flex-col">
+
+        {/* Title block — Namn + Status */}
+        <div className="px-8 py-6 border-b border-border flex items-start justify-between gap-6">
+          <div className="flex-1 min-w-0">
+            <p className="text-[11px] uppercase tracking-widest text-muted mb-0.5">
+              {isEdit ? initial?.kundnummer : (previewNummer ?? '—')}
+            </p>
+            <input
+              value={namn}
+              onChange={(e) => setNamn(e.target.value.toUpperCase())}
+              required
+              autoFocus
+              placeholder="FÖRETAGSNAMN ELLER FULLSTÄNDIGT NAMN"
+              className="text-xl font-semibold text-fg bg-transparent outline-none w-full placeholder:text-muted/30 uppercase"
+            />
+          </div>
+          <div className="shrink-0 w-44">
+            <p className="text-[11px] uppercase tracking-widest text-muted mb-1.5">Status</p>
+            <SelectField
+              value={status}
+              onChange={setStatus}
+              options={statusar.map((s) => ({ value: s.namn, label: s.namn }))}
+            />
+          </div>
+        </div>
+
+        {/* Grunduppgifter */}
+        <FS title="Grunduppgifter">
+          <FC label="Kundnummer">
+            <input
+              value={kundnummer}
+              onChange={(e) => setKundnummer(e.target.value)}
+              placeholder={previewNummer ?? 'Auto-genererat'}
+              className={`${CI} font-mono`}
+            />
+          </FC>
+          <FC label="Org-nummer" error={orgNummerErr}>
+            <input
+              value={orgNummer}
+              onChange={(e) => { setOrgNummer(fmtOrgNummer(e.target.value)); setOrgNummerErr('') }}
+              onBlur={() => setOrgNummerErr(validateOrgNummer(orgNummer))}
+              placeholder="556000-0000"
+              maxLength={11}
+              className={`${CI} font-mono ${orgNummerErr ? 'text-red-400' : ''}`}
+            />
+          </FC>
+          <FC label="Login (intern anteckning)">
+            <input
+              value={loginAnteckning}
+              onChange={(e) => setLoginAnteckning(e.target.value)}
+              placeholder="t.ex. test123"
+              className={CI}
+              autoComplete="off"
+            />
+          </FC>
+        </FS>
+
+        {/* Kontaktuppgifter */}
+        <FS title="Kontaktuppgifter">
+          <FC label="E-post">
+            <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="kontakt@exempel.se" className={CI} />
+          </FC>
+          <FC label="Webbadress">
+            <input value={webbadress} onChange={(e) => setWebbadress(e.target.value)} placeholder="www.exempel.se" className={CI} />
+          </FC>
+          <FC label="Telefon">
+            <input value={telefon} onChange={(e) => setTelefon(e.target.value)} placeholder="070-000 00 00" className={CI} />
+          </FC>
+          <FC label="Telefon 2">
+            <input value={telefon2} onChange={(e) => setTelefon2(e.target.value)} placeholder="070-000 00 00" className={CI} />
+          </FC>
+          <FC label="Fax">
+            <input value={fax} onChange={(e) => setFax(e.target.value)} placeholder="08-000 00 00" className={CI} />
+          </FC>
+          <FC label="Personnummer">
+            <input
+              value={personnummer}
+              onChange={(e) => setPersonnummer(fmtPersonnummer(e.target.value))}
+              placeholder="YYMMDD-XXXX"
+              maxLength={13}
+              className={`${CI} font-mono`}
+            />
+          </FC>
+        </FS>
+
+        {/* Fakturaadress */}
+        <FS title="Fakturaadress">
+          <FC label="Fakturaadress">
+            <input value={adress} onChange={(e) => setAdress(e.target.value)} placeholder="Gatugatan 1" className={CI} />
+          </FC>
+          <FC label="Fakturaadress 2">
+            <input value={adress2} onChange={(e) => setAdress2(e.target.value)} placeholder="c/o, våning, etc." className={CI} />
+          </FC>
+          <FC label="Postnummer" error={postnummerErr}>
+            <input
+              value={postnummer}
+              onChange={(e) => { setPostnummer(fmtPostnummer(e.target.value)); setPostnummerErr('') }}
+              onBlur={() => setPostnummerErr(validatePostnummer(postnummer))}
+              placeholder="123 45"
+              maxLength={6}
+              className={`${CI} font-mono ${postnummerErr ? 'text-red-400' : ''}`}
+            />
+          </FC>
+          <FC label="Ort">
+            <input
+              value={stad}
+              onChange={(e) => setStad(e.target.value)}
+              onBlur={(e) => setStad(capitalizeFirst(e.target.value))}
+              placeholder="Stockholm"
+              className={CI}
+            />
+          </FC>
+          <FC label="Land">
+            <input value={land} onChange={(e) => setLand(e.target.value)} placeholder="Sverige" className={CI} />
+          </FC>
+          <FC label="Landskod">
+            <input
+              value={landskod}
+              onChange={(e) => setLandskod(e.target.value.toUpperCase())}
+              placeholder="SE"
+              maxLength={2}
+              className={`${CI} uppercase`}
+            />
+          </FC>
+        </FS>
+
+        {/* Fastighet & husarbete */}
+        <FS title="Fastighet & husarbete" cols={4}>
+          <FC label="Fastighetsbeteckning / Lägenhetsnr">
+            <input value={fastighetsbeteckning} onChange={(e) => setFastighetsbeteckning(e.target.value)} placeholder="Exempel 1:23" className={CI} />
+          </FC>
+          <FC label="BRF:s org.nr" error={brfOrgErr}>
+            <input
+              value={brfOrgNummer}
+              onChange={(e) => { setBrfOrgNummer(fmtOrgNummer(e.target.value)); setBrfOrgErr('') }}
+              onBlur={() => setBrfOrgErr(validateOrgNummer(brfOrgNummer))}
+              placeholder="769000-0000"
+              maxLength={11}
+              className={`${CI} font-mono ${brfOrgErr ? 'text-red-400' : ''}`}
+            />
+          </FC>
+          <FC label="Medsökande namn">
+            <input
+              value={medsokandNamn}
+              onChange={(e) => setMedsokandNamn(e.target.value)}
+              onBlur={(e) => setMedsokandNamn(capitalizeFirst(e.target.value))}
+              placeholder="Fullständigt namn"
+              className={CI}
+            />
+          </FC>
+          <FC label="Medsökande personnummer">
+            <input
+              value={medsokandPersonnummer}
+              onChange={(e) => setMedsokandPersonnummer(fmtPersonnummer(e.target.value))}
+              placeholder="YYYYMMDD-XXXX"
+              maxLength={13}
+              className={`${CI} font-mono`}
+            />
+          </FC>
+        </FS>
+
+        {/* Standardvillkor Order */}
+        <div className="px-8 py-6 border-b border-border flex flex-col gap-3">
+          <p className="text-[11px] uppercase tracking-widest text-muted">Standardvillkor för extraarbeten (Order)</p>
+          <textarea
+            value={orderStdVillkor}
+            onChange={(e) => setOrderStdVillkor(e.target.value)}
+            rows={5}
+            placeholder="t.ex. Order är gällande efter signering av kund. Arbetet faktureras separat från huvudprojekt. Betalning 30 dagar netto."
+            className="bg-elevated border border-border rounded-sm px-4 py-3 text-sm text-muted outline-none resize-y leading-relaxed placeholder:text-subtle"
+          />
+          <p className="text-[11px] text-subtle">Snapshot — kopieras till varje ny order. Ändringar påverkar inte redan skapade orders.</p>
+        </div>
+
+        {/* Standardvillkor ÄTA */}
+        <div className="px-8 py-6 border-b border-border flex flex-col gap-3">
+          <p className="text-[11px] uppercase tracking-widest text-muted">Standardvillkor för ÄTA</p>
+          <textarea
+            value={ataStdVillkor}
+            onChange={(e) => setAtaStdVillkor(e.target.value)}
+            rows={5}
+            placeholder="t.ex. Detta arbete utgör ett tilläggsarbete och faktureras separat från huvudprojekt. Påbörjas efter kundens signering."
+            className="bg-elevated border border-border rounded-sm px-4 py-3 text-sm text-muted outline-none resize-y leading-relaxed placeholder:text-subtle"
+          />
+          <p className="text-[11px] text-subtle">Snapshot — kopieras till varje ny ÄTA. Ändringar påverkar inte redan skapade ÄTA-arbeten.</p>
+        </div>
+
+      </div>
     </form>
   )
 }
 
-function Label({ children, className }: { children: React.ReactNode; className?: string }) {
-  return <p className={`text-[11px] uppercase tracking-widest text-muted ${className ?? ''}`}>{children}</p>
+// ── Local layout helpers ──────────────────────────────────────────────────────
+
+function FS({ title, children, cols = 3 }: { title: string; children: React.ReactNode; cols?: 3 | 4 }) {
+  return (
+    <div className="px-8 py-6 border-b border-border">
+      <p className="text-[11px] uppercase tracking-widest text-muted mb-4">{title}</p>
+      <div className={`grid gap-[1px] bg-border overflow-hidden rounded-sm ${cols === 4 ? 'grid-cols-4' : 'grid-cols-3'}`}>
+        {children}
+      </div>
+    </div>
+  )
 }
 
-function F({ label, children }: { label: string; children: React.ReactNode }) {
+function FC({ label, children, error }: { label: string; children: React.ReactNode; error?: string }) {
   return (
-    <div className="flex flex-col gap-1">
-      <label className="text-xs text-muted">{label}</label>
+    <div className={`flex flex-col gap-1.5 bg-elevated px-4 py-3 ${error ? 'ring-1 ring-inset ring-red-400/40' : ''}`}>
+      <span className="text-[11px] uppercase tracking-wider text-muted">{label}</span>
       {children}
+      {error && <span className="text-[10px] text-red-400 mt-0.5">{error}</span>}
     </div>
   )
 }

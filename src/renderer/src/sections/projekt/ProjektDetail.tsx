@@ -233,38 +233,40 @@ export function ProjektDetail({ projekt, kunder, statusar, anteckningar, snapsho
             <DetailField label="Betalningsvillkor" value={projekt.betalningsvillkor} />
           </DetailSection>
 
-          <div className="px-8 py-6 border-b border-border flex flex-col gap-5">
-            <div className="flex flex-col gap-1.5">
-              <div className="flex items-center justify-between">
-                <span className="text-[11px] uppercase tracking-wider text-muted">Beskrivning</span>
-                {projekt.beskrivning && (
-                  <button onClick={() => setBeskrivningExpanded(v => !v)} className="p-1 text-subtle hover:text-fg transition-colors" title={beskrivningExpanded ? 'Dölj' : 'Visa'}>
-                    {beskrivningExpanded ? <EyeOff size={13} /> : <Eye size={13} />}
-                  </button>
-                )}
-              </div>
+          <div className="px-8 py-6 border-b border-border flex flex-col gap-3">
+            <div className="flex items-center justify-between">
+              <p className="text-[11px] uppercase tracking-widest text-muted">Beskrivning</p>
+              {projekt.beskrivning && (
+                <button onClick={() => setBeskrivningExpanded(v => !v)} className="p-1 text-subtle hover:text-fg transition-colors" title={beskrivningExpanded ? 'Dölj' : 'Visa'}>
+                  {beskrivningExpanded ? <EyeOff size={13} /> : <Eye size={13} />}
+                </button>
+              )}
+            </div>
+            <div className="bg-elevated border border-border rounded-sm px-4 py-3 text-sm leading-relaxed min-h-[60px]">
               {projekt.beskrivning
                 ? beskrivningExpanded
-                  ? <p className="text-sm text-muted whitespace-pre-wrap leading-relaxed">{projekt.beskrivning}</p>
-                  : <p className="text-sm text-muted">{projekt.beskrivning.length > 80 ? projekt.beskrivning.slice(0, 80) + '…' : projekt.beskrivning}</p>
-                : <p className="text-sm text-subtle italic">Ingen beskrivning angiven.</p>
+                  ? <p className="text-muted whitespace-pre-wrap">{projekt.beskrivning}</p>
+                  : <p className="text-muted">{projekt.beskrivning.length > 120 ? projekt.beskrivning.slice(0, 120) + '…' : projekt.beskrivning}</p>
+                : <p className="text-subtle italic">Ingen beskrivning angiven.</p>
               }
             </div>
-            <div className="border-t border-border" />
-            <div className="flex flex-col gap-1.5">
-              <div className="flex items-center justify-between">
-                <span className="text-[11px] uppercase tracking-wider text-muted">Villkor</span>
-                {projekt.villkor && (
-                  <button onClick={() => setVillkorExpanded(v => !v)} className="p-1 text-subtle hover:text-fg transition-colors" title={villkorExpanded ? 'Dölj' : 'Visa'}>
-                    {villkorExpanded ? <EyeOff size={13} /> : <Eye size={13} />}
-                  </button>
-                )}
-              </div>
+          </div>
+
+          <div className="px-8 py-6 border-b border-border flex flex-col gap-3">
+            <div className="flex items-center justify-between">
+              <p className="text-[11px] uppercase tracking-widest text-muted">Villkor</p>
+              {projekt.villkor && (
+                <button onClick={() => setVillkorExpanded(v => !v)} className="p-1 text-subtle hover:text-fg transition-colors" title={villkorExpanded ? 'Dölj' : 'Visa'}>
+                  {villkorExpanded ? <EyeOff size={13} /> : <Eye size={13} />}
+                </button>
+              )}
+            </div>
+            <div className="bg-elevated border border-border rounded-sm px-4 py-3 text-sm leading-relaxed min-h-[60px]">
               {projekt.villkor
                 ? villkorExpanded
-                  ? <p className="text-sm text-muted whitespace-pre-wrap leading-relaxed">{projekt.villkor}</p>
-                  : <p className="text-sm text-muted">{projekt.villkor.length > 80 ? projekt.villkor.slice(0, 80) + '…' : projekt.villkor}</p>
-                : <p className="text-sm text-subtle italic">Inga villkor angivna.</p>
+                  ? <p className="text-muted whitespace-pre-wrap">{projekt.villkor}</p>
+                  : <p className="text-muted">{projekt.villkor.length > 120 ? projekt.villkor.slice(0, 120) + '…' : projekt.villkor}</p>
+                : <p className="text-subtle italic">Inga villkor angivna.</p>
               }
             </div>
           </div>
