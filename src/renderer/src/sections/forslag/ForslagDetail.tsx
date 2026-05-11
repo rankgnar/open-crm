@@ -1301,6 +1301,14 @@ export function ForslagDetail({ forslag: forslagProp, statusar, allProjekt, onBa
       {showVilkorReminder && (
         <VilkorReminderModal
           villkor={forslag.projekt?.villkor ?? ''}
+          projektId={forslag.projekt_id}
+          onVillkorSave={async (newVillkor: string) => {
+            await window.api.invoke('db:projekt:update', forslag.projekt_id, { villkor: newVillkor })
+            setForslag((prev) => prev
+              ? { ...prev, projekt: { ...prev.projekt!, villkor: newVillkor } }
+              : prev
+            )
+          }}
           onClose={() => setShowVilkorReminder(false)}
           onConfirm={async () => {
             setShowVilkorReminder(false)
