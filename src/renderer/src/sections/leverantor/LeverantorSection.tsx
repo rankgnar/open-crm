@@ -71,6 +71,8 @@ export function LeverantorSection() {
   const [sortCol, setSortCol] = useState<keyof Leverantor | null>(null)
   const [sortDir, setSortDir] = useState<SortDir>('asc')
 
+  const tableRef = useRef<HTMLDivElement>(null)
+
   const [rows, setRows] = useState<ParsedRow[]>([])
   const [fileName, setFileName] = useState('')
   const [phase, setPhase] = useState<'idle' | 'preview' | 'importing' | 'done'>('idle')
@@ -119,9 +121,17 @@ export function LeverantorSection() {
   }
 
   async function handleAdd() {
-    const created = await window.api.invoke('db:leverantorer:create', { namn: 'Ny leverantör' }) as Leverantor
-    setLeverantorer((prev) => [...prev, created])
-    setExpanded(created.id)
+    try {
+      const created = await window.api.invoke('db:leverantorer:create', { namn: 'Ny leverantör' }) as Leverantor
+      setLeverantorer((prev) => [...prev, created])
+      setExpanded(created.id)
+      setTimeout(() => {
+        const row = tableRef.current?.querySelector(`[data-row="${created.id}"]`)
+        row?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+      }, 50)
+    } catch (err) {
+      console.error('Failed to create leverantör:', err)
+    }
   }
 
   async function handleUpdate(id: string, field: keyof Leverantor, value: string) {
@@ -351,7 +361,7 @@ export function LeverantorSection() {
           <p className="text-muted text-sm">Inga leverantörer matchar sökningen.</p>
         </div>
       ) : (
-        <div className="flex-1 overflow-auto">
+        <div className="flex-1 overflow-auto" ref={tableRef}>
           <table className="w-full text-sm">
             <thead className="sticky top-0 bg-sidebar z-10">
               <tr className="border-b border-border text-left">
@@ -383,7 +393,7 @@ export function LeverantorSection() {
                 const isConfirmRow = confirmRowId === l.id
                 return (
                   <>
-                    <tr key={l.id} onClick={() => setExpanded(isExpanded ? null : l.id)}
+                    <tr key={l.id} data-row={l.id} onClick={() => setExpanded(isExpanded ? null : l.id)}
                       className={`border-b border-border hover:bg-hover cursor-pointer transition-colors group ${isSelected ? 'bg-elevated' : ''} ${isExpanded ? 'bg-hover' : ''}`}
                     >
                       <td className="pl-4 pr-2 py-3" onClick={(e) => toggleSelect(e, l.id)}>
