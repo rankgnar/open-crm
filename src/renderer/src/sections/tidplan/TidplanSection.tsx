@@ -442,7 +442,7 @@ function GanttChart({ faser, subfaserByFas, arbetenBySubfas, expandedFaser, onTo
   )
 }
 
-export function TidplanSection({ onNavigateBack }: { onNavigateBack?: () => void } = {}) {
+export function TidplanSection({ onNavigateBack, initialForslagId }: { onNavigateBack?: () => void; initialForslagId?: string } = {}) {
   const { config } = useAppConfig()
   const [forslag, setForslag] = useState<ForslagWithProjekt[]>([])
   const [selected, setSelected] = useState<ForslagWithProjekt | null>(null)
@@ -470,6 +470,17 @@ export function TidplanSection({ onNavigateBack }: { onNavigateBack?: () => void
     if (selected) await selectForslag(selected)
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [reloadForslag, selected]))
+
+  const initialForslagConsumed = useRef(false)
+  useEffect(() => {
+    if (!initialForslagId || initialForslagConsumed.current || forslag.length === 0) return
+    const target = forslag.find((f) => f.id === initialForslagId)
+    if (target) {
+      initialForslagConsumed.current = true
+      void selectForslag(target)
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initialForslagId, forslag])
 
   async function selectForslag(f: ForslagWithProjekt) {
     setSelected(f)

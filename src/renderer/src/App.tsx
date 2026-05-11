@@ -153,6 +153,7 @@ export default function App() {
       )}
       {activeSection === 'tidplan' && (
         <TidplanSection
+          initialForslagId={tidplanReturnForslagId}
           onNavigateBack={tidplanReturnForslagId ? () => {
             setOpenTidplanReminderForForslagId(tidplanReturnForslagId)
             handleNavigate('forslag')
