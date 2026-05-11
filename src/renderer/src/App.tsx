@@ -157,6 +157,7 @@ export default function App() {
       {activeSection === 'tidplan' && (
         <TidplanSection
           initialForslagId={tidplanReturnForslagId}
+          navigateBackLabel={tidplanReturnMode === 'direct' ? 'Tillbaka till förslag' : 'Tillbaka — fortsätt skicka för signatur'}
           onNavigateBack={tidplanReturnForslagId ? () => {
             if (tidplanReturnMode === 'send') {
               setOpenTidplanReminderForForslagId(tidplanReturnForslagId)

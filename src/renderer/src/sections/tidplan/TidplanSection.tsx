@@ -442,7 +442,7 @@ function GanttChart({ faser, subfaserByFas, arbetenBySubfas, expandedFaser, onTo
   )
 }
 
-export function TidplanSection({ onNavigateBack, initialForslagId }: { onNavigateBack?: () => void; initialForslagId?: string } = {}) {
+export function TidplanSection({ onNavigateBack, navigateBackLabel, initialForslagId }: { onNavigateBack?: () => void; navigateBackLabel?: string; initialForslagId?: string } = {}) {
   const { config } = useAppConfig()
   const [forslag, setForslag] = useState<ForslagWithProjekt[]>([])
   const [selected, setSelected] = useState<ForslagWithProjekt | null>(null)
@@ -721,7 +721,7 @@ export function TidplanSection({ onNavigateBack, initialForslagId }: { onNavigat
             className="flex items-center gap-1.5 text-amber-400 text-xs font-medium hover:opacity-80 transition-opacity"
           >
             <ArrowLeft size={12} />
-            Tillbaka — fortsätt skicka för signatur
+            {navigateBackLabel ?? 'Tillbaka — fortsätt skicka för signatur'}
           </button>
         </div>
       )}
