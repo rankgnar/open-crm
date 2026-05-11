@@ -49,26 +49,26 @@ export interface Kund {
 export interface CreateKundInput {
   kundnummer?: string
   namn: string
-  email?: string
-  telefon?: string
-  telefon_2?: string
-  fax?: string
-  webbadress?: string
-  adress?: string
-  adress_2?: string
-  postnummer?: string
-  stad?: string
-  land?: string
-  landskod?: string
-  org_nummer?: string
-  personnummer?: string
-  fastighetsbeteckning?: string
-  brf_org_nummer?: string
-  medsokande_namn?: string
-  medsokande_personnummer?: string
+  email?: string | null
+  telefon?: string | null
+  telefon_2?: string | null
+  fax?: string | null
+  webbadress?: string | null
+  adress?: string | null
+  adress_2?: string | null
+  postnummer?: string | null
+  stad?: string | null
+  land?: string | null
+  landskod?: string | null
+  org_nummer?: string | null
+  personnummer?: string | null
+  fastighetsbeteckning?: string | null
+  brf_org_nummer?: string | null
+  medsokande_namn?: string | null
+  medsokande_personnummer?: string | null
   order_std_villkor?: string
   ata_std_villkor?: string
-  login_anteckning?: string
+  login_anteckning?: string | null
   status?: KundStatus
 }
 

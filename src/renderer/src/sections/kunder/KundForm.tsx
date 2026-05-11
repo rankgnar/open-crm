@@ -59,19 +59,19 @@ export function KundForm({ initial, statusar, onSubmit, onCancel }: Props) {
   const [webbadress, setWebbadress] = useState(initial?.webbadress ?? '')
   const [adress, setAdress] = useState(initial?.adress ?? '')
   const [adress2, setAdress2] = useState(initial?.adress_2 ?? '')
-  const [postnummer, setPostnummer] = useState(initial?.postnummer ?? '')
+  const [postnummer, setPostnummer] = useState(fmtPostnummer(initial?.postnummer ?? ''))
   const [postnummerErr, setPostnummerErr] = useState('')
   const [stad, setStad] = useState(initial?.stad ?? '')
   const [land, setLand] = useState(initial?.land ?? (isEdit ? 'Sverige' : (config?.kund_std_land ?? 'Sverige')))
   const [landskod, setLandskod] = useState(initial?.landskod ?? (isEdit ? 'SE' : (config?.kund_std_landskod ?? 'SE')))
-  const [orgNummer, setOrgNummer] = useState(initial?.org_nummer ?? '')
+  const [orgNummer, setOrgNummer] = useState(fmtOrgNummer(initial?.org_nummer ?? ''))
   const [orgNummerErr, setOrgNummerErr] = useState('')
-  const [personnummer, setPersonnummer] = useState(initial?.personnummer ?? '')
+  const [personnummer, setPersonnummer] = useState(fmtPersonnummer(initial?.personnummer ?? ''))
   const [fastighetsbeteckning, setFastighetsbeteckning] = useState(initial?.fastighetsbeteckning ?? '')
-  const [brfOrgNummer, setBrfOrgNummer] = useState(initial?.brf_org_nummer ?? '')
+  const [brfOrgNummer, setBrfOrgNummer] = useState(fmtOrgNummer(initial?.brf_org_nummer ?? ''))
   const [brfOrgErr, setBrfOrgErr] = useState('')
   const [medsokandNamn, setMedsokandNamn] = useState(initial?.medsokande_namn ?? '')
-  const [medsokandPersonnummer, setMedsokandPersonnummer] = useState(initial?.medsokande_personnummer ?? '')
+  const [medsokandPersonnummer, setMedsokandPersonnummer] = useState(fmtPersonnummer(initial?.medsokande_personnummer ?? ''))
   const [orderStdVillkor, setOrderStdVillkor] = useState(initial?.order_std_villkor ?? '')
   const [ataStdVillkor, setAtaStdVillkor] = useState(initial?.ata_std_villkor ?? '')
   const [loginAnteckning, setLoginAnteckning] = useState(initial?.login_anteckning ?? '')
@@ -105,26 +105,26 @@ export function KundForm({ initial, statusar, onSubmit, onCancel }: Props) {
       await onSubmit({
         kundnummer: kundnummer.trim() || undefined,
         namn: namn.trim(),
-        email: email.trim() || undefined,
-        telefon: telefon.trim() || undefined,
-        telefon_2: telefon2.trim() || undefined,
-        fax: fax.trim() || undefined,
-        webbadress: webbadress.trim() || undefined,
-        adress: adress.trim() || undefined,
-        adress_2: adress2.trim() || undefined,
-        postnummer: postnummer.trim() || undefined,
-        stad: stad.trim() || undefined,
-        land: land.trim() || undefined,
-        landskod: landskod.trim() || undefined,
-        org_nummer: orgNummer.trim() || undefined,
-        personnummer: personnummer.trim() || undefined,
-        fastighetsbeteckning: fastighetsbeteckning.trim() || undefined,
-        brf_org_nummer: brfOrgNummer.trim() || undefined,
-        medsokande_namn: medsokandNamn.trim() || undefined,
-        medsokande_personnummer: medsokandPersonnummer.trim() || undefined,
+        email: email.trim() || null,
+        telefon: telefon.trim() || null,
+        telefon_2: telefon2.trim() || null,
+        fax: fax.trim() || null,
+        webbadress: webbadress.trim() || null,
+        adress: adress.trim() || null,
+        adress_2: adress2.trim() || null,
+        postnummer: postnummer.trim() || null,
+        stad: stad.trim() || null,
+        land: land.trim() || null,
+        landskod: landskod.trim() || null,
+        org_nummer: orgNummer.trim() || null,
+        personnummer: personnummer.trim() || null,
+        fastighetsbeteckning: fastighetsbeteckning.trim() || null,
+        brf_org_nummer: brfOrgNummer.trim() || null,
+        medsokande_namn: medsokandNamn.trim() || null,
+        medsokande_personnummer: medsokandPersonnummer.trim() || null,
         order_std_villkor: orderStdVillkor,
         ata_std_villkor: ataStdVillkor,
-        login_anteckning: loginAnteckning.trim() || undefined,
+        login_anteckning: loginAnteckning.trim() || null,
         status
       })
     } catch (err) {

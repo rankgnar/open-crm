@@ -21,32 +21,33 @@ const CHANNELS = [
 interface CreateKundInput {
   kundnummer?: string
   namn: string
-  email?: string
-  telefon?: string
-  telefon_2?: string
-  fax?: string
-  webbadress?: string
-  adress?: string
-  adress_2?: string
-  postnummer?: string
-  stad?: string
-  land?: string
-  landskod?: string
-  org_nummer?: string
-  fastighetsbeteckning?: string
-  brf_org_nummer?: string
-  medsokande_namn?: string
-  medsokande_personnummer?: string
+  email?: string | null
+  telefon?: string | null
+  telefon_2?: string | null
+  fax?: string | null
+  webbadress?: string | null
+  adress?: string | null
+  adress_2?: string | null
+  postnummer?: string | null
+  stad?: string | null
+  land?: string | null
+  landskod?: string | null
+  org_nummer?: string | null
+  personnummer?: string | null
+  fastighetsbeteckning?: string | null
+  brf_org_nummer?: string | null
+  medsokande_namn?: string | null
+  medsokande_personnummer?: string | null
   order_std_villkor?: string
   ata_std_villkor?: string
-  login_anteckning?: string
-  status?: 'aktiv' | 'inaktiv' | 'potentiell'
+  login_anteckning?: string | null
+  status?: string
 }
 
 type UpdateKundInput = Partial<CreateKundInput>
 
-function normalizePhone(raw: string | undefined): string | undefined {
-  if (!raw?.trim()) return raw
+function normalizePhone(raw: string | null | undefined): string | null | undefined {
+  if (raw == null || !raw.trim()) return raw
   const s = raw.trim()
   let digits = s.replace(/[^\d]/g, '')
   if (s.startsWith('+46')) digits = '0' + digits.slice(2)
