@@ -52,13 +52,16 @@ export default function App() {
   const [forslagProjektId, setForslagProjektId] = useState<string | undefined>(undefined)
   const [projektFromForslagId, setProjektFromForslagId] = useState<string | undefined>(undefined)
   const [tidplanReturnForslagId, setTidplanReturnForslagId] = useState<string | undefined>(undefined)
+  const [tidplanReturnMode, setTidplanReturnMode] = useState<'send' | 'direct'>('send')
   const [openTidplanReminderForForslagId, setOpenTidplanReminderForForslagId] = useState<string | undefined>(undefined)
+  const [forslagDirectReturnId, setForslagDirectReturnId] = useState<string | undefined>(undefined)
 
   useEffect(() => {
     if (activeSection !== 'forslag') setForslagProjektId(undefined)
     if (activeSection !== 'projekt') setProjektFromForslagId(undefined)
     if (activeSection !== 'tidplan') setTidplanReturnForslagId(undefined)
     if (activeSection !== 'forslag') setOpenTidplanReminderForForslagId(undefined)
+    if (activeSection !== 'forslag') setForslagDirectReturnId(undefined)
   }, [activeSection])
 
   const checkSetup = useCallback(async () => {
@@ -146,16 +149,20 @@ export default function App() {
         <ForslagSection
           initialProjektId={forslagProjektId}
           onNavigateProjekt={(projektId) => { setProjektFromForslagId(projektId); handleNavigate('projekt') }}
-          initialForslagId={openTidplanReminderForForslagId}
+          initialForslagId={openTidplanReminderForForslagId ?? forslagDirectReturnId}
           openTidplanReminderOnLoad={!!openTidplanReminderForForslagId}
-          onNavigateTidplan={(forslagId) => { setTidplanReturnForslagId(forslagId); handleNavigate('tidplan') }}
+          onNavigateTidplan={(forslagId, mode) => { setTidplanReturnForslagId(forslagId); setTidplanReturnMode(mode); handleNavigate('tidplan') }}
         />
       )}
       {activeSection === 'tidplan' && (
         <TidplanSection
           initialForslagId={tidplanReturnForslagId}
           onNavigateBack={tidplanReturnForslagId ? () => {
-            setOpenTidplanReminderForForslagId(tidplanReturnForslagId)
+            if (tidplanReturnMode === 'send') {
+              setOpenTidplanReminderForForslagId(tidplanReturnForslagId)
+            } else {
+              setForslagDirectReturnId(tidplanReturnForslagId)
+            }
             handleNavigate('forslag')
           } : undefined}
         />

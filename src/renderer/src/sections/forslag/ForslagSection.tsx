@@ -19,7 +19,7 @@ interface Props {
   onNavigateProjekt?: (projektId: string) => void
   initialForslagId?: string
   openTidplanReminderOnLoad?: boolean
-  onNavigateTidplan?: (forslagId: string) => void
+  onNavigateTidplan?: (forslagId: string, mode: 'send' | 'direct') => void
 }
 
 export function ForslagSection({ initialProjektId, onNavigateProjekt, initialForslagId, openTidplanReminderOnLoad, onNavigateTidplan }: Props = {}) {
@@ -263,7 +263,7 @@ export function ForslagSection({ initialProjektId, onNavigateProjekt, initialFor
         onEdit={handleEdit}
         onDelete={handleDelete}
         onNavigateProjekt={onNavigateProjekt ? () => onNavigateProjekt(selectedForslag.projekt_id) : undefined}
-        onNavigateTidplan={onNavigateTidplan ? () => onNavigateTidplan(selectedForslag.id) : undefined}
+        onNavigateTidplan={onNavigateTidplan ? (mode) => onNavigateTidplan(selectedForslag.id, mode) : undefined}
         openTidplanReminder={openTidplanReminderOnLoad && selectedForslag?.id === initialForslagId}
       />
     )
