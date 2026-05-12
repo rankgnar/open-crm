@@ -10,11 +10,10 @@ import type { FaktureringSnapshot } from '@/sections/fakturering/types'
 type View = 'list' | 'create' | 'detail'
 
 interface Props {
-  onNavigateForslag?: (projektId: string) => void
   initialProjektId?: string
 }
 
-export function ProjektSection({ onNavigateForslag, initialProjektId }: Props = {}) {
+export function ProjektSection({ initialProjektId }: Props = {}) {
   const [projekt, setProjekt] = useState<ProjektWithKund[]>([])
   const [kunder, setKunder] = useState<Kund[]>([])
   const [fragSummary, setFragSummary] = useState<Record<string, string>>({})
@@ -349,7 +348,7 @@ export function ProjektSection({ onNavigateForslag, initialProjektId }: Props = 
         onMoveCarpeta={handleMoveCarpeta}
         onDeleteCarpeta={handleClearCarpeta}
         uploadProgress={uploadProgress}
-        onNavigateForslag={onNavigateForslag ? () => onNavigateForslag(selectedProjekt.id) : undefined}
+
         frageblanktter={frageblanktter}
         onGenerateFromText={handleGenerateFromText}
         onCreateBlankett={handleCreateBlankett}

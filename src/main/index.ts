@@ -84,6 +84,7 @@ function createWindow(): void {
 const sectionWindows = new Map<string, BrowserWindow>()
 
 const SECTION_ID_PATTERN = /^[a-z][a-z0-9_-]{0,40}$/
+const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 
 interface SavedBounds { x?: number; y?: number; width: number; height: number }
 
@@ -171,6 +172,68 @@ async function createSectionWindow(sectionId: string): Promise<void> {
   }
 }
 
+async function createForslagWindow(projektId: string): Promise<void> {
+  if (!UUID_PATTERN.test(projektId)) return
+
+  const key = `forslag_${projektId}`
+  const existing = sectionWindows.get(key)
+  if (existing && !existing.isDestroyed()) {
+    if (existing.isMinimized()) existing.restore()
+    existing.focus()
+    return
+  }
+
+  const saved = await readSectionBounds('forslag')
+  const win = new BrowserWindow({
+    width: saved?.width ?? 1200,
+    height: saved?.height ?? 800,
+    x: saved?.x,
+    y: saved?.y,
+    minWidth: 800,
+    minHeight: 600,
+    show: false,
+    backgroundColor: '#121212',
+    titleBarStyle: 'hiddenInset',
+    frame: process.platform === 'darwin',
+    trafficLightPosition: { x: 14, y: 14 },
+    autoHideMenuBar: true,
+    icon: process.platform === 'linux' ? appIcon : undefined,
+    webPreferences: {
+      preload: join(__dirname, '../preload/index.js'),
+      sandbox: false,
+      contextIsolation: true,
+      nodeIntegration: false
+    }
+  })
+
+  sectionWindows.set(key, win)
+
+  win.on('ready-to-show', () => win.show())
+  win.on('closed', () => {
+    if (sectionWindows.get(key) === win) sectionWindows.delete(key)
+  })
+
+  const persistBounds = (): void => {
+    if (win.isDestroyed()) return
+    const b = win.getBounds()
+    void writeSectionBounds('forslag', { x: b.x, y: b.y, width: b.width, height: b.height })
+  }
+  win.on('resize', persistBounds)
+  win.on('move', persistBounds)
+
+  win.webContents.setWindowOpenHandler((details) => {
+    shell.openExternal(details.url)
+    return { action: 'deny' }
+  })
+
+  const hash = `forslag?projekt_id=${projektId}`
+  if (is.dev && process.env['ELECTRON_RENDERER_URL']) {
+    void win.loadURL(`${process.env['ELECTRON_RENDERER_URL']}#/${hash}`)
+  } else {
+    void win.loadFile(join(__dirname, '../renderer/index.html'), { hash: `/${hash}` })
+  }
+}
+
 app.whenReady().then(() => {
   electronApp.setAppUserModelId('com.opencrm.desktop')
 
@@ -221,6 +284,7 @@ app.whenReady().then(() => {
   })
   ipcMain.handle('window:close', () => BrowserWindow.getFocusedWindow()?.close())
   ipcMain.handle('window:open-section', (_, sectionId: string) => createSectionWindow(sectionId))
+  ipcMain.handle('window:open-forslag', (_, projektId: string) => createForslagWindow(projektId))
   ipcMain.handle('shell:open-external', (_, url: string) => shell.openExternal(url))
   ipcMain.handle('app:install-update', () => autoUpdater.quitAndInstall())
 

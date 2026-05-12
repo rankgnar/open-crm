@@ -37,7 +37,7 @@ interface Props {
   onMoveCarpeta: (id: string, carpeta: string | null) => Promise<void>
   onDeleteCarpeta: (carpeta: string) => Promise<void>
   uploadProgress: { current: number; total: number } | null
-  onNavigateForslag?: () => void
+
   frageblanktter: Frageblankett[]
   onGenerateFromText: (txt: string) => Promise<FragaFalt[]>
   onCreateBlankett: (titel: string, questionsJson: FragaFalt[]) => Promise<Frageblankett>
@@ -57,7 +57,7 @@ type TimelineItem =
   | { kind: 'anteckning'; data: ProjektAnteckning }
   | { kind: 'aktivitet'; data: ProjektAktivitet }
 
-export function ProjektDetail({ projekt, kunder, statusar, anteckningar, snapshots, dokument, aktiviteter, onBack, onEdit, onChangeStatus, onDelete, onAddAnteckning, onUpdateAnteckning, onDeleteAnteckning, onChangeAnteckningFarg, onUploadDokument, onDeleteDokument, onOpenDokument, onToggleDokumentVisibility, onMoveCarpeta, onDeleteCarpeta, uploadProgress, onNavigateForslag, frageblanktter, onGenerateFromText, onCreateBlankett, onDeleteBlankett, onGetBlanktLink, onSaveBlanktAsDoc, onRefreshBlankett, onGetBlanktEpostDraft, onSendBlanktEpost }: Props) {
+export function ProjektDetail({ projekt, kunder, statusar, anteckningar, snapshots, dokument, aktiviteter, onBack, onEdit, onChangeStatus, onDelete, onAddAnteckning, onUpdateAnteckning, onDeleteAnteckning, onChangeAnteckningFarg, onUploadDokument, onDeleteDokument, onOpenDokument, onToggleDokumentVisibility, onMoveCarpeta, onDeleteCarpeta, uploadProgress, frageblanktter, onGenerateFromText, onCreateBlankett, onDeleteBlankett, onGetBlanktLink, onSaveBlanktAsDoc, onRefreshBlankett, onGetBlanktEpostDraft, onSendBlanktEpost }: Props) {
   const { formatCurrency } = useAppConfig()
   const [editing, setEditing] = useState(false)
   const [confirmDelete, setConfirmDelete] = useState(false)
@@ -189,15 +189,15 @@ export function ProjektDetail({ projekt, kunder, statusar, anteckningar, snapsho
           <WorkflowTriggerBar
             seccion="projekt"
             context={{ projekt_id: projekt.id }}
-            rightSlot={onNavigateForslag && (
+            rightSlot={
               <button
-                onClick={onNavigateForslag}
+                onClick={() => void window.api.invoke('window:open-forslag', projekt.id)}
                 className="flex items-center gap-1.5 px-2.5 py-1 bg-elevated border border-border rounded text-[11px] text-muted hover:text-fg hover:border-subtle transition-colors"
               >
                 <FileText size={10} className="shrink-0" />
                 Förslag
               </button>
-            )}
+            }
           />
 
           <DetailSection title="Kund">

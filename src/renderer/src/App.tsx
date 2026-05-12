@@ -32,8 +32,14 @@ type Section = 'workspace' | 'kunder' | 'projekt' | 'forslag' | 'signera' | 'tid
 const VALID_SECTIONS: Section[] = ['workspace', 'kunder', 'projekt', 'forslag', 'signera', 'tidplan', 'ekonomi', 'fakturering', 'kvitto', 'order', 'ata', 'fortnox', 'epost', 'kalender', 'revisor', 'personal', 'leverantor', 'chat', 'installningar', 'avancerat', 'inventarier', 'translator']
 
 function sectionFromHash(): Section {
-  const hash = window.location.hash.replace(/^#\/?/, '')
-  return VALID_SECTIONS.includes(hash as Section) ? (hash as Section) : 'workspace'
+  const raw = window.location.hash.replace(/^#\/?/, '').split('?')[0]
+  return VALID_SECTIONS.includes(raw as Section) ? (raw as Section) : 'workspace'
+}
+
+function popoutQueryParam(key: string): string | undefined {
+  const qIndex = window.location.hash.indexOf('?')
+  if (qIndex === -1) return undefined
+  return new URLSearchParams(window.location.hash.slice(qIndex + 1)).get(key) ?? undefined
 }
 
 // Popout windows are identified by a section hash (e.g. #/inventarier)
@@ -49,7 +55,6 @@ export default function App() {
   const [updateReady, setUpdateReady] = useState(false)
   const [setupChecked, setSetupChecked] = useState(false)
   const [needsSetup, setNeedsSetup] = useState(false)
-  const [forslagProjektId, setForslagProjektId] = useState<string | undefined>(undefined)
   const [projektFromForslagId, setProjektFromForslagId] = useState<string | undefined>(undefined)
   const [tidplanReturnForslagId, setTidplanReturnForslagId] = useState<string | undefined>(undefined)
   const [tidplanReturnMode, setTidplanReturnMode] = useState<'send' | 'direct'>('send')
@@ -57,7 +62,6 @@ export default function App() {
   const [forslagDirectReturnId, setForslagDirectReturnId] = useState<string | undefined>(undefined)
 
   useEffect(() => {
-    if (activeSection !== 'forslag') setForslagProjektId(undefined)
     if (activeSection !== 'projekt') setProjektFromForslagId(undefined)
     if (activeSection !== 'tidplan') setTidplanReturnForslagId(undefined)
     if (activeSection !== 'forslag') setOpenTidplanReminderForForslagId(undefined)
@@ -140,18 +144,15 @@ export default function App() {
       {activeSection === 'workspace' && <WorkspaceSection onNavigate={handleNavigate} />}
       {activeSection === 'kunder' && <KunderSection />}
       {activeSection === 'projekt' && (
-        <ProjektSection
-          onNavigateForslag={(projektId) => { setForslagProjektId(projektId); handleNavigate('forslag') }}
-          initialProjektId={projektFromForslagId}
-        />
+        <ProjektSection initialProjektId={projektFromForslagId} />
       )}
       {activeSection === 'forslag' && (
         <ForslagSection
-          initialProjektId={forslagProjektId}
-          onNavigateProjekt={(projektId) => { setProjektFromForslagId(projektId); handleNavigate('projekt') }}
-          initialForslagId={openTidplanReminderForForslagId ?? forslagDirectReturnId}
-          openTidplanReminderOnLoad={!!openTidplanReminderForForslagId}
-          onNavigateTidplan={(forslagId, mode) => { setTidplanReturnForslagId(forslagId); setTidplanReturnMode(mode); handleNavigate('tidplan') }}
+          initialProjektId={isPopout ? popoutQueryParam('projekt_id') : undefined}
+          onNavigateProjekt={!isPopout ? (projektId) => { setProjektFromForslagId(projektId); handleNavigate('projekt') } : undefined}
+          initialForslagId={!isPopout ? (openTidplanReminderForForslagId ?? forslagDirectReturnId) : undefined}
+          openTidplanReminderOnLoad={!isPopout && !!openTidplanReminderForForslagId}
+          onNavigateTidplan={!isPopout ? (forslagId, mode) => { setTidplanReturnForslagId(forslagId); setTidplanReturnMode(mode); handleNavigate('tidplan') } : undefined}
         />
       )}
       {activeSection === 'tidplan' && (
