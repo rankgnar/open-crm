@@ -2705,7 +2705,7 @@ export function KalenderSection({ onNavigate }: { onNavigate?: (section: string)
       <div className="flex flex-1 min-h-0">
         {/* Left: calendar toggles */}
         {kalendrarOppen ? (
-        <nav className="w-80 shrink-0 border-r border-border flex flex-col py-3 gap-3 overflow-y-auto relative">
+        <nav className="w-80 shrink-0 border-r border-border flex flex-col py-3 gap-3 overflow-y-auto relative bg-sidebar">
           <button
             onClick={() => setKalendrarOppen(false)}
             className="absolute top-2 right-2 p-1 rounded text-muted hover:text-fg hover:bg-hover transition-colors"
@@ -2801,7 +2801,7 @@ export function KalenderSection({ onNavigate }: { onNavigate?: (section: string)
           )}
         </nav>
         ) : (
-          <div className="w-10 shrink-0 border-r border-border flex flex-col items-center py-3">
+          <div className="w-10 shrink-0 border-r border-border flex flex-col items-center py-3 bg-sidebar">
             <button
               onClick={() => setKalendrarOppen(true)}
               className="p-1 rounded text-muted hover:text-fg hover:bg-hover transition-colors"

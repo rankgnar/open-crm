@@ -1,22 +1,30 @@
 import type { ForslagWithProjekt, ForslagFas } from '@/sections/forslag/types'
 import type { PdfMall, AppInstallningar } from '@/sections/installningar/types'
 
-function daysBetween(a: Date, b: Date): number {
-  return Math.round((b.getTime() - a.getTime()) / 86400000)
+// Swedish day abbreviations indexed by getDay() (0 = Sunday)
+const DAY_LABELS_BY_DOW = ['S', 'M', 'T', 'O', 'T', 'F', 'L']
+
+const LABEL_W = 160
+// A4 landscape ≈ 1122px at 96 DPI, minus 56px horizontal padding, minus LABEL_W
+const GANTT_AVAILABLE = 906
+
+function isoWeek(d: Date): number {
+  const utc = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()))
+  utc.setUTCDate(utc.getUTCDate() + 4 - (utc.getUTCDay() || 7))
+  const y1 = new Date(Date.UTC(utc.getUTCFullYear(), 0, 1))
+  return Math.ceil((((utc.getTime() - y1.getTime()) / 86400000) + 1) / 7)
 }
 
 function addDays(d: Date, n: number): Date {
   const r = new Date(d); r.setDate(r.getDate() + n); return r
 }
 
-function fmtDate(s: string): string {
-  return new Date(s).toLocaleDateString('sv-SE')
+function daysBetween(a: Date, b: Date): number {
+  return Math.round((b.getTime() - a.getTime()) / 86400000)
 }
 
-function durationLabel(start: string, end: string): string {
-  const days = daysBetween(new Date(start), new Date(end)) + 1
-  const w = Math.ceil(days / 7)
-  return `${w} ${w === 1 ? 'vecka' : 'veckor'}`
+function fmtDate(s: string): string {
+  return new Date(s).toLocaleDateString('sv-SE')
 }
 
 export function buildTidplanHtml(
@@ -43,57 +51,103 @@ export function buildTidplanHtml(
   // ── Gantt chart ────────────────────────────────────────────
   let ganttHtml = ''
   if (scheduledFaser.length > 0) {
-    const allMs = scheduledFaser.flatMap(f => [new Date(f.start_datum!).getTime(), new Date(f.slut_datum!).getTime()])
-    let minDate = addDays(new Date(Math.min(...allMs)), -7)
-    let maxDate = addDays(new Date(Math.max(...allMs)), 7)
+    const allMs = scheduledFaser.flatMap(f => [
+      new Date(f.start_datum!).getTime(),
+      new Date(f.slut_datum!).getTime(),
+    ])
+    let tStart = addDays(new Date(Math.min(...allMs)), -7)
+    let tEnd = addDays(new Date(Math.max(...allMs)), 7)
 
-    // Align to week boundaries
-    minDate.setDate(minDate.getDate() - ((minDate.getDay() + 6) % 7))
-    const edow = maxDate.getDay()
-    if (edow !== 0) maxDate.setDate(maxDate.getDate() + (7 - edow))
+    // Align to Monday/Sunday week boundaries
+    tStart.setDate(tStart.getDate() - ((tStart.getDay() + 6) % 7))
+    const edow = tEnd.getDay()
+    if (edow !== 0) tEnd.setDate(tEnd.getDate() + (7 - edow))
 
-    const totalDays = daysBetween(minDate, maxDate) + 1
+    const days: Date[] = []
+    const cur = new Date(tStart)
+    while (cur <= tEnd) { days.push(new Date(cur)); cur.setDate(cur.getDate() + 1) }
+    const totalDays = days.length
 
-    // Month header cells (proportional flex)
-    let monthCells = ''
-    let cur = new Date(minDate)
-    while (cur <= maxDate) {
-      const year = cur.getFullYear()
-      const month = cur.getMonth()
-      const lastOfMonth = new Date(year, month + 1, 0)
-      const endInRange = lastOfMonth < maxDate ? lastOfMonth : maxDate
-      const daysInRange = daysBetween(cur, endInRange) + 1
-      const label = cur.toLocaleDateString('sv-SE', { month: 'short', year: '2-digit' }).replace('.', '')
-      monthCells += `<div style="flex:${daysInRange};text-align:center;font-size:7px;color:#888;overflow:hidden;white-space:nowrap;border-right:0.5px solid #e8e8e8;padding:2px 2px;">${label}</div>`
-      cur = new Date(year, month + 1, 1)
+    const DAY_PX = GANTT_AVAILABLE / totalDays
+    const ganttW = GANTT_AVAILABLE
+
+    // Month groups
+    const monthGroups: { label: string; count: number }[] = []
+    for (const d of days) {
+      const label = d.toLocaleDateString('sv-SE', { month: 'long', year: 'numeric' })
+      if (!monthGroups.length || monthGroups[monthGroups.length - 1].label !== label) {
+        monthGroups.push({ label, count: 1 })
+      } else {
+        monthGroups[monthGroups.length - 1].count++
+      }
     }
 
-    // Phase rows
-    const LABEL_W = 160
-    const phaseRows = scheduledFaser.map((fas, i) => {
-      const startOff = daysBetween(minDate, new Date(fas.start_datum!))
-      const endOff = daysBetween(minDate, new Date(fas.slut_datum!))
-      const leftPct = (startOff / totalDays) * 100
-      const widthPct = ((endOff - startOff + 1) / totalDays) * 100
-      const bg = i % 2 === 0 ? '#fafafa' : '#fff'
-      const dur = durationLabel(fas.start_datum!, fas.slut_datum!)
+    // Week groups
+    const weekGroups: { weekNum: number; count: number }[] = []
+    for (const d of days) {
+      const wn = isoWeek(d)
+      if (!weekGroups.length || weekGroups[weekGroups.length - 1].weekNum !== wn) {
+        weekGroups.push({ weekNum: wn, count: 1 })
+      } else {
+        weekGroups[weekGroups.length - 1].count++
+      }
+    }
+
+    const monthCells = monthGroups.map(mg =>
+      `<div style="width:${mg.count * DAY_PX}px;flex-shrink:0;font-size:7px;color:#333;font-weight:600;overflow:hidden;white-space:nowrap;border-right:0.5px solid #e0e0e0;padding:2px 4px;text-transform:capitalize;">${mg.label}</div>`
+    ).join('')
+
+    const weekCells = weekGroups.map(wg =>
+      `<div style="width:${wg.count * DAY_PX}px;flex-shrink:0;font-size:7px;color:#888;text-align:center;border-right:0.5px solid #e8e8e8;padding:2px 0;">v${wg.weekNum}</div>`
+    ).join('')
+
+    const dayCells = days.map(d => {
+      const dow = d.getDay()
+      const isWeekend = dow === 0 || dow === 6
+      return `<div style="width:${DAY_PX}px;flex-shrink:0;font-size:6px;text-align:center;padding:1px 0;color:${isWeekend ? '#f87171' : '#bbb'};background:${isWeekend ? 'rgba(252,165,165,0.15)' : 'transparent'};">${DAY_LABELS_BY_DOW[dow]}</div>`
+    }).join('')
+
+    // Repeating weekend shade aligned to Monday start
+    const bgStripe = `repeating-linear-gradient(90deg, transparent 0px, transparent ${5 * DAY_PX}px, rgba(252,165,165,0.08) ${5 * DAY_PX}px, rgba(252,165,165,0.08) ${7 * DAY_PX}px)`
+
+    const phaseRows = faser.map((fas, i) => {
+      const rowBg = i % 2 === 0 ? '#fafafa' : '#fff'
+
+      if (!fas.start_datum || !fas.slut_datum) {
+        return `
+          <div style="display:flex;align-items:stretch;border-bottom:0.5px solid #f0f0f0;background:${rowBg};">
+            <div style="width:${LABEL_W}px;flex-shrink:0;font-size:8px;color:#222;padding:6px 8px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;">${fas.namn}</div>
+            <div style="width:${ganttW}px;height:26px;background:${bgStripe};background-size:${7 * DAY_PX}px 100%;"></div>
+          </div>`
+      }
+
+      const startOff = daysBetween(tStart, new Date(fas.start_datum))
+      const endOff = daysBetween(tStart, new Date(fas.slut_datum))
+      const leftPx = startOff * DAY_PX
+      const widthPx = Math.max((endOff - startOff + 1) * DAY_PX, 4)
       return `
-        <div style="display:flex;align-items:stretch;background:${bg};border-bottom:0.5px solid #f0f0f0;">
-          <div style="width:${LABEL_W}px;flex-shrink:0;font-size:8px;color:#222;padding:6px 8px 6px 0;display:flex;align-items:center;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;">${fas.namn}</div>
-          <div style="flex:1;position:relative;height:28px;">
-            <div style="position:absolute;top:50%;transform:translateY(-50%);left:${leftPct.toFixed(2)}%;width:${Math.max(widthPct, 0.5).toFixed(2)}%;height:14px;background:${accent};border-radius:3px;opacity:0.85;display:flex;align-items:center;overflow:hidden;">
-              ${widthPct > 8 ? `<span style="font-size:6.5px;color:#fff;padding-left:4px;white-space:nowrap;">${dur}</span>` : ''}
-            </div>
+        <div style="display:flex;align-items:stretch;border-bottom:0.5px solid #f0f0f0;background:${rowBg};">
+          <div style="width:${LABEL_W}px;flex-shrink:0;font-size:8px;color:#222;padding:6px 8px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;">${fas.namn}</div>
+          <div style="width:${ganttW}px;height:26px;position:relative;background:${bgStripe};background-size:${7 * DAY_PX}px 100%;">
+            <div style="position:absolute;top:50%;transform:translateY(-50%);left:${leftPx}px;width:${widthPx}px;height:14px;background:rgba(52,211,153,0.2);border:1px solid rgba(52,211,153,0.5);border-radius:3px;overflow:hidden;"></div>
           </div>
         </div>`
     }).join('')
 
     ganttHtml = `
       <div style="margin-bottom:20px;">
-        <div style="font-size:8px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;color:#000;margin-bottom:6px;border-bottom:1.5px solid ${accent};padding-bottom:3px;">Tidplan</div>
-        <div style="display:flex;align-items:stretch;">
-          <div style="width:${LABEL_W}px;flex-shrink:0;"></div>
-          <div style="flex:1;display:flex;height:16px;border-bottom:0.5px solid #d0d0d0;margin-bottom:2px;">${monthCells}</div>
+        <div style="font-size:8px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;color:#000;margin-bottom:4px;border-bottom:1.5px solid ${accent};padding-bottom:3px;">Tidplan</div>
+        <div style="display:flex;border-bottom:0.5px solid #ccc;">
+          <div style="width:${LABEL_W}px;flex-shrink:0;border-right:0.5px solid #e0e0e0;"></div>
+          ${monthCells}
+        </div>
+        <div style="display:flex;border-bottom:0.5px solid #ccc;">
+          <div style="width:${LABEL_W}px;flex-shrink:0;border-right:0.5px solid #e0e0e0;"></div>
+          ${weekCells}
+        </div>
+        <div style="display:flex;border-bottom:0.5px solid #ddd;">
+          <div style="width:${LABEL_W}px;flex-shrink:0;border-right:0.5px solid #e0e0e0;"></div>
+          ${dayCells}
         </div>
         ${phaseRows}
       </div>`
@@ -102,14 +156,11 @@ export function buildTidplanHtml(
   // ── Phase table ────────────────────────────────────────────
   const tableRows = faser.map((fas, i) => {
     const bg = i % 2 === 0 ? '#fafafa' : '#fff'
-    const dur = fas.start_datum && fas.slut_datum ? durationLabel(fas.start_datum, fas.slut_datum) : '—'
     return `
       <tr style="background:${bg};">
         <td style="padding:5px 8px;font-size:8px;color:#111;border-bottom:0.5px solid #f0f0f0;">${fas.namn}</td>
         <td style="padding:5px 8px;font-size:8px;color:#555;font-family:monospace;border-bottom:0.5px solid #f0f0f0;">${fas.start_datum ? fmtDate(fas.start_datum) : '—'}</td>
         <td style="padding:5px 8px;font-size:8px;color:#555;font-family:monospace;border-bottom:0.5px solid #f0f0f0;">${fas.slut_datum ? fmtDate(fas.slut_datum) : '—'}</td>
-        <td style="padding:5px 8px;font-size:8px;color:#555;text-align:right;border-bottom:0.5px solid #f0f0f0;">${dur}</td>
-        ${fas.beskrivning ? `<td style="padding:5px 8px;font-size:7.5px;color:#888;border-bottom:0.5px solid #f0f0f0;">${fas.beskrivning}</td>` : '<td style="border-bottom:0.5px solid #f0f0f0;"></td>'}
       </tr>`
   }).join('')
 
@@ -176,11 +227,9 @@ export function buildTidplanHtml(
   <table style="width:100%;border-collapse:collapse;">
     <thead>
       <tr style="border-bottom:1px solid #ccc;">
-        <th style="text-align:left;padding:4px 8px;font-size:7.5px;color:#333;font-weight:700;width:30%;">Fas</th>
-        <th style="text-align:left;padding:4px 8px;font-size:7.5px;color:#333;font-weight:700;width:16%;">Startdatum</th>
-        <th style="text-align:left;padding:4px 8px;font-size:7.5px;color:#333;font-weight:700;width:16%;">Slutdatum</th>
-        <th style="text-align:right;padding:4px 8px;font-size:7.5px;color:#333;font-weight:700;width:14%;">Varaktighet</th>
-        <th style="text-align:left;padding:4px 8px;font-size:7.5px;color:#333;font-weight:700;width:24%;">Beskrivning</th>
+        <th style="text-align:left;padding:4px 8px;font-size:7.5px;color:#333;font-weight:700;width:50%;">Fas</th>
+        <th style="text-align:left;padding:4px 8px;font-size:7.5px;color:#333;font-weight:700;width:25%;">Startdatum</th>
+        <th style="text-align:left;padding:4px 8px;font-size:7.5px;color:#333;font-weight:700;width:25%;">Slutdatum</th>
       </tr>
     </thead>
     <tbody>${tableRows}</tbody>
