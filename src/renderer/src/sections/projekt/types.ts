@@ -3,7 +3,7 @@ export type ProjektStatus = string
 export interface ProjektStatusar {
   id: string
   namn: string
-  farg: 'emerald' | 'blue' | 'amber' | 'red' | 'muted'
+  farg: 'emerald' | 'blue' | 'amber' | 'red' | 'muted' | 'violet' | 'pink' | 'cyan' | 'orange' | 'rose' | 'indigo'
   sortering: number
   skapad_at: string
   inbyggd: boolean
@@ -11,10 +11,12 @@ export interface ProjektStatusar {
 
 export const FARG_DOT: Record<ProjektStatusar['farg'], string> = {
   emerald: 'bg-emerald-400', blue: 'bg-blue-400', amber: 'bg-amber-400', red: 'bg-red-400', muted: 'bg-muted',
+  violet: 'bg-violet-400', pink: 'bg-pink-400', cyan: 'bg-cyan-400', orange: 'bg-orange-400', rose: 'bg-rose-400', indigo: 'bg-indigo-400',
 }
 
 export const FARG_TEXT: Record<ProjektStatusar['farg'], string> = {
   emerald: 'text-emerald-400', blue: 'text-blue-400', amber: 'text-amber-400', red: 'text-red-400', muted: 'text-muted',
+  violet: 'text-violet-400', pink: 'text-pink-400', cyan: 'text-cyan-400', orange: 'text-orange-400', rose: 'text-rose-400', indigo: 'text-indigo-400',
 }
 
 export interface Projekt {

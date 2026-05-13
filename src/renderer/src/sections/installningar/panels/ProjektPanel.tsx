@@ -10,8 +10,14 @@ type Farg = ProjektStatusar['farg']
 const FARG_OPTIONS: { value: Farg; dot: string; label: string }[] = [
   { value: 'emerald', dot: 'bg-emerald-400', label: 'Grön' },
   { value: 'blue',    dot: 'bg-blue-400',    label: 'Blå' },
-  { value: 'amber',   dot: 'bg-amber-400',   label: 'Gul' },
+  { value: 'cyan',    dot: 'bg-cyan-400',    label: 'Cyan' },
+  { value: 'indigo',  dot: 'bg-indigo-400',  label: 'Indigo' },
+  { value: 'violet',  dot: 'bg-violet-400',  label: 'Lila' },
+  { value: 'pink',    dot: 'bg-pink-400',    label: 'Rosa' },
+  { value: 'rose',    dot: 'bg-rose-400',    label: 'Röd-rosa' },
   { value: 'red',     dot: 'bg-red-400',     label: 'Röd' },
+  { value: 'orange',  dot: 'bg-orange-400',  label: 'Orange' },
+  { value: 'amber',   dot: 'bg-amber-400',   label: 'Gul' },
   { value: 'muted',   dot: 'bg-muted',       label: 'Grå' },
 ]
 
@@ -288,7 +294,7 @@ function ColorPicker({ value, onChange }: { value: Farg; onChange: (f: Farg) => 
         <span className={`block size-3.5 rounded-full ${FARG_DOT[value]} transition-transform hover:scale-110`} />
       </button>
       {open && (
-        <div className="absolute left-0 top-5 z-10 flex gap-1.5 p-2 bg-elevated border border-border rounded-lg shadow-lg">
+        <div className="absolute left-0 top-5 z-10 flex flex-wrap gap-1.5 p-2 bg-elevated border border-border rounded-lg shadow-lg w-28">
           {FARG_OPTIONS.map((o) => (
             <button
               key={o.value}
