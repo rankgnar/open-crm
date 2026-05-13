@@ -44,6 +44,7 @@ const CHANNELS = [
   'db:forslag-epost:list',
   'db:forslag-epost:create',
   'db:forslag-epost:delete',
+  'db:forslag:status-summary',
 ] as const
 
 type ForslagStatus = 'utkast' | 'skickat' | 'accepterat' | 'avvisat'
@@ -664,5 +665,22 @@ export function registerForslagHandlers(): void {
     const { error } = await supabase.from('forslag_epost_refs').delete().eq('id', id)
     if (error) throw new Error(error.message)
     return { ok: true }
+  })
+
+  ipcMain.handle('db:forslag:status-summary', async () => {
+    const [{ data: forslag, error }, { data: statusar }] = await Promise.all([
+      supabase.from('forslag').select('projekt_id, status, forslag_nummer, skapad_at').order('skapad_at', { ascending: false }),
+      supabase.from('forslag_statusar').select('namn, farg'),
+    ])
+    if (error) throw new Error(error.message)
+    const fargMap: Record<string, string> = {}
+    for (const s of statusar ?? []) fargMap[s.namn] = s.farg
+    const result: Record<string, { status: string; farg: string; forslag_nummer: string }> = {}
+    for (const f of forslag ?? []) {
+      if (!result[f.projekt_id]) {
+        result[f.projekt_id] = { status: f.status, farg: fargMap[f.status] ?? 'muted', forslag_nummer: f.forslag_nummer }
+      }
+    }
+    return result
   })
 }

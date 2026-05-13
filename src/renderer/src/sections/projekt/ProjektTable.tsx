@@ -11,6 +11,7 @@ interface Props {
   statusar: ProjektStatusar[]
   fragSummary: Record<string, string>
   lastAnteckning: Record<string, { titel: string; farg: string }>
+  forslagSummary: Record<string, { status: string; farg: string; forslag_nummer: string }>
   onSelect: (p: ProjektWithKund) => void
   onNew: () => void
   onStatusChange: (id: string, status: string) => Promise<void>
@@ -57,10 +58,6 @@ function StatusPicker({ projekt, statusar, onStatusChange }: { projekt: ProjektW
   )
 }
 
-function formatDate(d: string | null): string {
-  if (!d) return '—'
-  return new Date(d).toLocaleDateString('sv-SE')
-}
 
 const FRAG_STATUS_FARG: Record<string, string> = {
   besvarat: 'text-emerald-400',
@@ -161,7 +158,7 @@ function StatusSelect({ value, onChange, statusar }: { value: string[]; onChange
   )
 }
 
-export function ProjektTable({ projekt, statusar, fragSummary, lastAnteckning, onSelect, onNew, onStatusChange, onStatusChangeMany, onDeleteMany }: Props) {
+export function ProjektTable({ projekt, statusar, fragSummary, lastAnteckning, forslagSummary, onSelect, onNew, onStatusChange, onStatusChangeMany, onDeleteMany }: Props) {
   const [query, setQuery] = useState('')
   const [statusFilter, setStatusFilter] = useState<string[]>([])
 const [selected, setSelected] = useState<Set<string>>(new Set())
@@ -193,11 +190,11 @@ const [selected, setSelected] = useState<Set<string>>(new Set())
   const sorted = sortCol ? [...filtered].sort((a, b) => {
     const vals: Record<string, string | null | number> = {
       projekt_nummer: a.projekt_nummer, namn: a.namn, kund: a.kunder.namn,
-      status: a.status, startdatum: a.startdatum,
+      status: a.status,
     }
     const bvals: Record<string, string | null | number> = {
       projekt_nummer: b.projekt_nummer, namn: b.namn, kund: b.kunder.namn,
-      status: b.status, startdatum: b.startdatum,
+      status: b.status,
     }
     const av = String(vals[sortCol] ?? ''), bv = String(bvals[sortCol] ?? '')
     const cmp = av.localeCompare(bv, 'sv')
@@ -241,7 +238,6 @@ const [selected, setSelected] = useState<Set<string>>(new Set())
     ['kund', 'Kund'],
     ['namn', 'Projektnamn'],
     ['status', 'Status'],
-    ['startdatum', 'Start'],
   ]
 
   return (
@@ -336,6 +332,7 @@ const [selected, setSelected] = useState<Set<string>>(new Set())
                     </div>
                   </th>
                 ))}
+                <th className="px-4 py-2.5 text-[11px] font-medium uppercase tracking-wider text-muted select-none">Offert</th>
                 <th className="px-4 py-2.5 text-[11px] font-medium uppercase tracking-wider text-muted select-none">Formulär</th>
                 <th className="px-4 py-2.5 text-[11px] font-medium uppercase tracking-wider text-muted select-none">Anteckningar</th>
                 <th className="w-10" />
@@ -361,7 +358,16 @@ const [selected, setSelected] = useState<Set<string>>(new Set())
                     <td className="px-4 py-3 whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
                       <StatusPicker projekt={p} statusar={statusar} onStatusChange={onStatusChange} />
                     </td>
-                    <td className="px-4 py-3 text-muted text-xs whitespace-nowrap">{formatDate(p.startdatum)}</td>
+                    <td className="px-4 py-3 whitespace-nowrap">
+                      {forslagSummary[p.id] ? (
+                        <span className="inline-flex items-center gap-1.5 text-xs">
+                          <span className={`size-1.5 rounded-full shrink-0 ${FARG_DOT[forslagSummary[p.id].farg as keyof typeof FARG_DOT] ?? 'bg-muted'}`} />
+                          <span className={FARG_TEXT[forslagSummary[p.id].farg as keyof typeof FARG_TEXT] ?? 'text-muted'}>
+                            {forslagSummary[p.id].status}
+                          </span>
+                        </span>
+                      ) : <span className="text-subtle text-xs">—</span>}
+                    </td>
                     <td className="px-4 py-3 whitespace-nowrap">
                       {fragSummary[p.id] ? (
                         <span className={`inline-flex items-center gap-1.5 text-xs ${FRAG_STATUS_FARG[fragSummary[p.id]] ?? 'text-muted'}`}>

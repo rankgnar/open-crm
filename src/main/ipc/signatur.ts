@@ -281,24 +281,6 @@ export function registerSignaturHandlers(): void {
         .eq('status', 'Utkast')
     }
 
-    // Mirror the bump on the projekt: any signing flow (forslag/fritt/order/ata)
-    // means we've left "still negotiating, nothing sent" territory. Only
-    // promotes early-stage projekts so we never silently downgrade an
-    // already-Acepterat/Aktiv/Klar projekt when, e.g., resending a link.
-    if (bundle.projekt_id) {
-      const { data: proj } = await supabase
-        .from('projekt')
-        .select('status')
-        .eq('id', bundle.projekt_id)
-        .single()
-      const downstream = ['Skickat', 'Acepterat', 'Aktiv', 'Klar', 'Avbruten', 'Pausad']
-      if (proj && !downstream.includes((proj as { status: string }).status)) {
-        await supabase.from('projekt')
-          .update({ status: 'Skickat' })
-          .eq('id', bundle.projekt_id)
-      }
-    }
-
     // Optional attachments: upload to Zoho first so the queue worker can
     // forward them with the email. Failures here propagate so the user
     // sees a clear error instead of a silently-link-without-attachment.

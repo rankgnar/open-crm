@@ -18,6 +18,7 @@ export function ProjektSection({ initialProjektId }: Props = {}) {
   const [kunder, setKunder] = useState<Kund[]>([])
   const [fragSummary, setFragSummary] = useState<Record<string, string>>({})
   const [lastAnteckning, setLastAnteckning] = useState<Record<string, { titel: string; farg: string }>>({})
+  const [forslagSummary, setForslagSummary] = useState<Record<string, { status: string; farg: string; forslag_nummer: string }>>({})
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [view, setView] = useState<View>('list')
@@ -36,18 +37,20 @@ export function ProjektSection({ initialProjektId }: Props = {}) {
 
   const loadData = useCallback(async () => {
     try {
-      const [projektData, kunderData, statusData, fc, ac] = await Promise.all([
+      const [projektData, kunderData, statusData, fc, ac, fs] = await Promise.all([
         window.api.invoke('db:projekt:list') as Promise<ProjektWithKund[]>,
         window.api.invoke('db:kunder:list') as Promise<Kund[]>,
         window.api.invoke('db:projekt-statusar:list') as Promise<ProjektStatusar[]>,
         window.api.invoke('db:projekt:frageblankett-summary') as Promise<Record<string, string>>,
         window.api.invoke('db:projekt:last-anteckning') as Promise<Record<string, { titel: string; farg: string }>>,
+        window.api.invoke('db:forslag:status-summary') as Promise<Record<string, { status: string; farg: string; forslag_nummer: string }>>,
       ])
       setProjekt(projektData)
       setKunder(kunderData)
       setStatusar(statusData)
       setFragSummary(fc)
       setLastAnteckning(ac)
+      setForslagSummary(fs)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Kunde inte ladda data')
     } finally {
@@ -356,6 +359,7 @@ export function ProjektSection({ initialProjektId }: Props = {}) {
       statusar={statusar}
       fragSummary={fragSummary}
       lastAnteckning={lastAnteckning}
+      forslagSummary={forslagSummary}
       onSelect={(p) => { setSelectedProjekt(p); setView('detail'); loadAnteckningar(p.id) }}
       onNew={() => setView('create')}
       onStatusChange={handleStatusChange}
