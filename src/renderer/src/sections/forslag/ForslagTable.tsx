@@ -289,7 +289,7 @@ export function ForslagTable({ forslag, statusar, signingEvents, onSelect, onNew
                     />
                   </td>
                   <td className="px-2 py-3 font-mono text-xs text-muted whitespace-nowrap">{f.forslag_nummer}</td>
-                  <td className="px-4 py-3 text-fg whitespace-nowrap">{f.projekt.kunder.namn}</td>
+                  <td className="px-4 py-3 text-fg whitespace-nowrap uppercase">{f.projekt.kunder.namn}</td>
                   <td className="px-4 py-3 whitespace-nowrap">
                     <span className="font-mono text-xs text-muted">{f.projekt.projekt_nummer}</span>
                     <span className="ml-2 text-fg">{f.projekt.namn}</span>
