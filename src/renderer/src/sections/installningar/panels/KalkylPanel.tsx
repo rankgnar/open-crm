@@ -56,8 +56,10 @@ function makePresetsHandlers(
 }
 
 function PresetsTable({
-  items, saved, onSet, onSave, onRemove, onAdd, onReset, addLabel,
+  title, description, items, saved, onSet, onSave, onRemove, onAdd, onReset, addLabel,
 }: {
+  title: string
+  description?: string
   items: VentanaPreset[]
   saved: boolean
   onSet: (id: string, field: keyof VentanaPreset, value: string | number) => void
@@ -69,12 +71,14 @@ function PresetsTable({
 }) {
   return (
     <>
-      <div className="flex items-center gap-3 mb-5">
+      <div className="flex items-center gap-3 mb-1">
+        <p className="text-[11px] uppercase tracking-widest text-muted">{title}</p>
         {saved && <SavedBadge />}
         <button onClick={onReset} className="ml-auto text-xs text-subtle hover:text-muted transition-colors">
           Återställ standard
         </button>
       </div>
+      <p className="text-xs text-subtle mt-1 mb-5">{description ?? ''}</p>
       <table className="w-full text-sm mb-4">
         <thead>
           <tr className="text-left border-b border-border">
@@ -262,12 +266,9 @@ export function KalkylPanel() {
       {activeTab === 'fasad' && (
         <>
           <div className="px-8 py-6 border-b border-border">
-            <div className="flex items-center gap-3 mb-1">
-              <p className="text-[11px] uppercase tracking-widest text-muted">Fönster & Dörrar</p>
-              {ventanaSaved && <SavedBadge />}
-            </div>
-            <p className="text-xs text-subtle mb-5">Förvalt avdragstyper för fasadkalkyl</p>
             <PresetsTable
+              title="Fönster & Dörrar"
+              description="Förvalt avdragstyper för fasadkalkyl"
               items={localVentana} saved={ventanaSaved}
               onSet={vh.setField} onSave={vh.saveField} onRemove={vh.remove} onAdd={vh.add}
               onReset={() => void saveVentana(DEFAULT_VENTANA_PRESETS)}
@@ -339,12 +340,9 @@ export function KalkylPanel() {
       {/* Tak tab */}
       {activeTab === 'tak' && (
         <div className="px-8 py-6">
-          <div className="flex items-center gap-3 mb-1">
-            <p className="text-[11px] uppercase tracking-widest text-muted">Öppningar</p>
-            {takAvdragSaved && <SavedBadge />}
-          </div>
-          <p className="text-xs text-subtle mb-5">Förvalt avdragstyper för takkalkyl — takfönster, rökluckor, genomföringar</p>
           <PresetsTable
+            title="Öppningar"
+            description="Förvalt avdragstyper för takkalkyl — takfönster, rökluckor, genomföringar"
             items={localTakAvdrag} saved={takAvdragSaved}
             onSet={tah.setField} onSave={tah.saveField} onRemove={tah.remove} onAdd={tah.add}
             onReset={() => void saveTakAvdrag(DEFAULT_TAK_AVDRAG)}
@@ -356,12 +354,9 @@ export function KalkylPanel() {
       {/* Golv tab */}
       {activeTab === 'golv' && (
         <div className="px-8 py-6">
-          <div className="flex items-center gap-3 mb-1">
-            <p className="text-[11px] uppercase tracking-widest text-muted">Avdrag</p>
-            {golvAvdragSaved && <SavedBadge />}
-          </div>
-          <p className="text-xs text-subtle mb-5">Förvalt avdragstyper för golvkalkyl — trappor, pelare, dörrpartier</p>
           <PresetsTable
+            title="Avdrag"
+            description="Förvalt avdragstyper för golvkalkyl — trappor, pelare, dörrpartier"
             items={localGolvAvdrag} saved={golvAvdragSaved}
             onSet={goh.setField} onSave={goh.saveField} onRemove={goh.remove} onAdd={goh.add}
             onReset={() => void saveGolvAvdrag(DEFAULT_GOLV_AVDRAG)}
@@ -373,12 +368,9 @@ export function KalkylPanel() {
       {/* Vägg tab */}
       {activeTab === 'vagg' && (
         <div className="px-8 py-6">
-          <div className="flex items-center gap-3 mb-1">
-            <p className="text-[11px] uppercase tracking-widest text-muted">Fönster & Dörrar</p>
-            {vaggAvdragSaved && <SavedBadge />}
-          </div>
-          <p className="text-xs text-subtle mb-5">Förvalt avdragstyper för väggkalkyl — fönster, dörrar</p>
           <PresetsTable
+            title="Fönster & Dörrar"
+            description="Förvalt avdragstyper för väggkalkyl — fönster, dörrar"
             items={localVaggAvdrag} saved={vaggAvdragSaved}
             onSet={vah.setField} onSave={vah.saveField} onRemove={vah.remove} onAdd={vah.add}
             onReset={() => void saveVaggAvdrag(DEFAULT_VAGG_AVDRAG)}
