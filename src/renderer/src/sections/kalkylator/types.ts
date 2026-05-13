@@ -79,6 +79,26 @@ export const DEFAULT_VENTANA_PRESETS: VentanaPreset[] = [
   { id: 'v5', name: 'Garage', icon: 'garage', defaultWidth: 2500, defaultHeight: 2200 },
 ]
 
+export const DEFAULT_TAK_AVDRAG: VentanaPreset[] = [
+  { id: 'ta1', name: 'Taklucka', icon: 'rectangle', defaultWidth: 780, defaultHeight: 1140 },
+  { id: 'ta2', name: 'Takfönster', icon: 'window-single', defaultWidth: 780, defaultHeight: 1400 },
+  { id: 'ta3', name: 'Röklucka', icon: 'rectangle', defaultWidth: 600, defaultHeight: 600 },
+  { id: 'ta4', name: 'Skorsten', icon: 'rectangle', defaultWidth: 400, defaultHeight: 400 },
+]
+
+export const DEFAULT_GOLV_AVDRAG: VentanaPreset[] = [
+  { id: 'ga1', name: 'Trappa', icon: 'rectangle', defaultWidth: 1000, defaultHeight: 2500 },
+  { id: 'ga2', name: 'Pelare', icon: 'rectangle', defaultWidth: 300, defaultHeight: 300 },
+  { id: 'ga3', name: 'Dörrparti', icon: 'door', defaultWidth: 900, defaultHeight: 100 },
+]
+
+export const DEFAULT_VAGG_AVDRAG: VentanaPreset[] = [
+  { id: 'wa1', name: 'Fönster', icon: 'window-single', defaultWidth: 800, defaultHeight: 1200 },
+  { id: 'wa2', name: 'Dubbelfönster', icon: 'window-double', defaultWidth: 1600, defaultHeight: 1200 },
+  { id: 'wa3', name: 'Dörr', icon: 'door', defaultWidth: 900, defaultHeight: 2100 },
+  { id: 'wa4', name: 'Dubbeldörr', icon: 'door-double', defaultWidth: 1600, defaultHeight: 2100 },
+]
+
 export const DEFAULT_TAK_TYPER: TakType[] = [
   { id: 't0', name: 'Ingen lutning', angleDeg: 0, slopeFactor: 1.0 },
   { id: 't1', name: 'Låg (18°)', angleDeg: 18, slopeFactor: 1.05 },

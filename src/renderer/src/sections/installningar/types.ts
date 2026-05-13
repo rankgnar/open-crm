@@ -66,9 +66,12 @@ export interface AppInstallningar {
   ai_api_key: string
   // Klientportal
   kund_portal_auto_invite: boolean
-  // Kalkylator presets (JSONB arrays)
-  kalkyl_ventanatyper?: unknown
-  kalkyl_taktyper?: unknown
+  // Kalkylator presets (JSONB arrays, per section)
+  kalkyl_ventanatyper?: unknown   // Fasad: window/door deductions
+  kalkyl_taktyper?: unknown       // Shared slope types (fasad & tak)
+  kalkyl_tak_avdrag?: unknown     // Tak: skylight/chimney openings
+  kalkyl_golv_avdrag?: unknown    // Golv: staircase/pillar cutouts
+  kalkyl_vagg_avdrag?: unknown    // Vägg: window/door deductions
   skapad_at: string
   uppdaterad_at: string
 }

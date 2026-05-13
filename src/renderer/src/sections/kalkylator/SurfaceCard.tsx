@@ -161,24 +161,26 @@ export function SurfaceCard({ row, takTyper, onChange, onDuplicate, onRemove }: 
           <span className="text-xs text-subtle shrink-0">mm</span>
         </div>
 
-        {/* Slope */}
-        <div className="flex items-center gap-1.5 ml-auto">
-          <label className="text-xs text-muted shrink-0">Lutning</label>
-          <select
-            value={row.slopeFactor}
-            onChange={e => onChange({ ...row, slopeFactor: parseFloat(e.target.value) })}
-            className={[
-              'input text-xs py-1',
-              hasSlope ? 'text-amber-400' : 'text-muted',
-            ].join(' ')}
-          >
-            {takTyper.map(t => (
-              <option key={t.id} value={t.slopeFactor}>
-                {t.name}
-              </option>
-            ))}
-          </select>
-        </div>
+        {/* Slope — hidden when caller passes no slope types (e.g. golv/vagg) */}
+        {takTyper.length > 0 && (
+          <div className="flex items-center gap-1.5 ml-auto">
+            <label className="text-xs text-muted shrink-0">Lutning</label>
+            <select
+              value={row.slopeFactor}
+              onChange={e => onChange({ ...row, slopeFactor: parseFloat(e.target.value) })}
+              className={[
+                'input text-xs py-1',
+                hasSlope ? 'text-amber-400' : 'text-muted',
+              ].join(' ')}
+            >
+              {takTyper.map(t => (
+                <option key={t.id} value={t.slopeFactor}>
+                  {t.name}
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
       </div>
     </div>
   )

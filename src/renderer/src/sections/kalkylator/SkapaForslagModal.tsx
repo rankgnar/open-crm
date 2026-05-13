@@ -1,7 +1,14 @@
 import { useState } from 'react'
 import { X, Loader2 } from 'lucide-react'
 import type { ProjektWithKund } from '@/sections/projekt/types'
-import type { KalkylatorInput, KalkylatorResult } from './types'
+import type { KalkylatorInput, KalkylatorResult, KalkylatorType } from './types'
+
+const DEFAULT_TITLES: Record<KalkylatorType, string> = {
+  fasad: 'Fasadrenovering',
+  tak: 'Takrenovering',
+  golv: 'Golvläggning',
+  vagg: 'Väggrehabilitering',
+}
 
 interface Props {
   input: KalkylatorInput
@@ -15,7 +22,7 @@ const round2 = (n: number) => Math.round(n * 100) / 100
 
 export function SkapaForslagModal({ input, result, projekt, onSkapa, onClose }: Props) {
   const [selectedProjektId, setSelectedProjektId] = useState(() => projekt[0]?.id ?? '')
-  const [titel, setTitel] = useState('Fasadrenovering')
+  const [titel, setTitel] = useState(() => DEFAULT_TITLES[input.type] ?? 'Renovering')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
