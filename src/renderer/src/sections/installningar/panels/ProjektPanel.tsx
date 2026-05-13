@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { Plus, Trash2, Pencil, ChevronDown, ChevronUp, Lock } from 'lucide-react'
+import { Plus, Trash2, Pencil, ChevronDown, ChevronUp, Lock, ArrowUp, ArrowDown } from 'lucide-react'
 import { ConfigField, ConfigTextarea } from './ConfigField'
 import type { ProjektStatusar } from '@/sections/projekt/types'
 import { FARG_DOT, FARG_TEXT } from '@/sections/projekt/types'
@@ -65,6 +65,21 @@ export function ProjektPanel() {
       setStatusar((prev) => [...prev, created])
       setNewNamn(''); setNewFarg('muted'); setAdding(false)
     } finally { setStatusSaving(false) }
+  }
+
+  async function handleMove(id: string, dir: 'up' | 'down') {
+    const idx = statusar.findIndex((s) => s.id === id)
+    const neighbor = statusar[dir === 'up' ? idx - 1 : idx + 1]
+    if (!neighbor) return
+    const a = statusar[idx]
+    const [updA, updB] = await Promise.all([
+      window.api.invoke('db:projekt-statusar:update', a.id, { sortering: neighbor.sortering }) as Promise<ProjektStatusar>,
+      window.api.invoke('db:projekt-statusar:update', neighbor.id, { sortering: a.sortering }) as Promise<ProjektStatusar>,
+    ])
+    setStatusar((prev) =>
+      prev.map((s) => (s.id === updA.id ? updA : s.id === updB.id ? updB : s))
+        .sort((x, y) => x.sortering - y.sortering)
+    )
   }
 
   async function handleUpdateNamn(id: string, namn: string) {
@@ -178,17 +193,21 @@ export function ProjektPanel() {
 
         <div className="flex-1 overflow-auto">
           <div className="flex flex-col divide-y divide-border">
-            {statusar.map((s) => (
+            {statusar.map((s, i) => (
               <StatusRow
                 key={s.id}
                 status={s}
                 isEditing={editingId === s.id}
                 deleting={deletingId === s.id}
+                isFirst={i === 0}
+                isLast={i === statusar.length - 1}
                 onStartEdit={() => setEditingId(s.id)}
                 onSaveNamn={(namn) => handleUpdateNamn(s.id, namn)}
                 onCancelEdit={() => setEditingId(null)}
                 onFargChange={(farg) => handleUpdateFarg(s.id, farg)}
                 onDelete={() => handleDeleteStatus(s.id)}
+                onMoveUp={() => handleMove(s.id, 'up')}
+                onMoveDown={() => handleMove(s.id, 'down')}
               />
             ))}
 
@@ -228,14 +247,18 @@ interface StatusRowProps {
   status: ProjektStatusar
   isEditing: boolean
   deleting: boolean
+  isFirst: boolean
+  isLast: boolean
   onStartEdit: () => void
   onSaveNamn: (namn: string) => void
   onCancelEdit: () => void
   onFargChange: (farg: Farg) => void
   onDelete: () => void
+  onMoveUp: () => void
+  onMoveDown: () => void
 }
 
-function StatusRow({ status, isEditing, deleting, onStartEdit, onSaveNamn, onCancelEdit, onFargChange, onDelete }: StatusRowProps) {
+function StatusRow({ status, isEditing, deleting, isFirst, isLast, onStartEdit, onSaveNamn, onCancelEdit, onFargChange, onDelete, onMoveUp, onMoveDown }: StatusRowProps) {
   const [draft, setDraft] = useState(status.namn)
   const [confirmDelete, setConfirmDelete] = useState(false)
   const locked = status.inbyggd
@@ -274,6 +297,12 @@ function StatusRow({ status, isEditing, deleting, onStartEdit, onSaveNamn, onCan
         </div>
       ) : (
         <div className="flex items-center gap-1.5 ml-auto shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
+          <button onClick={onMoveUp} disabled={isFirst} className="text-muted hover:text-fg disabled:opacity-20 transition-colors">
+            <ArrowUp size={13} />
+          </button>
+          <button onClick={onMoveDown} disabled={isLast} className="text-muted hover:text-fg disabled:opacity-20 transition-colors">
+            <ArrowDown size={13} />
+          </button>
           <button onClick={onStartEdit} className="text-muted hover:text-fg transition-colors">
             <Pencil size={13} />
           </button>
