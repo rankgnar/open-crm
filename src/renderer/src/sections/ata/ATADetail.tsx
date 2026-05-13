@@ -153,7 +153,7 @@ export function ATADetail({ ata: ataProp, onBack, onSetStatus, onSign, onUpdate,
     setExportingPdf(true)
     try {
       const html = await buildAtaHtml()
-      await window.api.invoke('pdf:generate-html', { html, name: `ata-${ata.ata_nummer}`, save: true })
+      await window.api.invoke('pdf:generate-html', { html, name: `ata-${ata.ata_nummer}-${ata.kund_namn.replace(/\s+/g, '_')}`, save: true })
     } finally {
       setExportingPdf(false)
     }

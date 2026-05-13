@@ -157,7 +157,7 @@ export function OrderDetail({ order: orderProp, onBack, onSetStatus, onSign, onU
     setExportingPdf(true)
     try {
       const html = await buildOrderHtml()
-      await window.api.invoke('pdf:generate-html', { html, name: `order-${order.order_nummer}`, save: true })
+      await window.api.invoke('pdf:generate-html', { html, name: `order-${order.order_nummer}-${order.kund_namn.replace(/\s+/g, '_')}`, save: true })
     } finally {
       setExportingPdf(false)
     }

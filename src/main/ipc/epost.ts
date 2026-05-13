@@ -1,4 +1,4 @@
-import { ipcMain, dialog, shell } from 'electron'
+import { ipcMain, dialog, shell, app } from 'electron'
 import { readFile, writeFile } from 'fs/promises'
 import { basename, join } from 'path'
 import { tmpdir } from 'os'
@@ -520,7 +520,7 @@ export function registerEpostHandlers(): void {
 
     if (input.save) {
       const { filePath, canceled } = await dialog.showSaveDialog({
-        defaultPath: input.attachmentName,
+        defaultPath: join(app.getPath('downloads'), input.attachmentName),
       })
       if (canceled || !filePath) return null
       await writeFile(filePath, result.buf)

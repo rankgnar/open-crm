@@ -515,7 +515,7 @@ export function ForslagDetail({ forslag: forslagProp, statusar, allProjekt, onBa
       }
       await window.api.invoke('pdf:generate-merged', {
         parts,
-        name: `forslag-${forslag.forslag_nummer}`,
+        name: `forslag-${forslag.forslag_nummer}-${forslag.projekt.kunder.namn.replace(/\s+/g, '_')}`,
       })
     } finally {
       setExportingPdf(false)

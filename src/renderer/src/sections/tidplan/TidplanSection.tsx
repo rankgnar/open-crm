@@ -626,7 +626,7 @@ export function TidplanSection({ onNavigateBack, navigateBackLabel, initialForsl
       const html = buildTidplanHtml(selected, faserRef.current, mall, config)
       await window.api.invoke('pdf:generate-html', {
         html,
-        name: `tidplan-${selected.forslag_nummer}`,
+        name: `tidplan-${selected.forslag_nummer}-${selected.projekt.kunder.namn.replace(/\s+/g, '_')}`,
         save: true,
         landscape: true,
       })

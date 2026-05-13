@@ -1,4 +1,4 @@
-import { ipcMain, dialog, shell, BrowserWindow } from 'electron'
+import { ipcMain, dialog, shell, BrowserWindow, app } from 'electron'
 import { writeFile, readFile } from 'fs/promises'
 import { join } from 'path'
 import { tmpdir } from 'os'
@@ -56,7 +56,7 @@ export function registerPdfHandlers(): void {
 
     if (save) {
       const { filePath, canceled } = await dialog.showSaveDialog({
-        defaultPath: `${name}.pdf`,
+        defaultPath: join(app.getPath('downloads'), `${name}.pdf`),
         filters: [{ name: 'PDF', extensions: ['pdf'] }]
       })
       if (canceled || !filePath) return null
@@ -113,7 +113,7 @@ export function registerPdfHandlers(): void {
     }
 
     const { filePath, canceled } = await dialog.showSaveDialog({
-      defaultPath: `${args.name}.pdf`,
+      defaultPath: join(app.getPath('downloads'), `${args.name}.pdf`),
       filters: [{ name: 'PDF', extensions: ['pdf'] }]
     })
     if (canceled || !filePath) return null
@@ -163,7 +163,7 @@ export function registerPdfHandlers(): void {
   // Legacy: save buffer received from renderer to user-chosen location
   ipcMain.handle('pdf:save-file', async (_, { buffer, defaultName }: { buffer: number[]; defaultName: string }) => {
     const { filePath, canceled } = await dialog.showSaveDialog({
-      defaultPath: defaultName,
+      defaultPath: join(app.getPath('downloads'), defaultName),
       filters: [{ name: 'PDF', extensions: ['pdf'] }]
     })
     if (canceled || !filePath) return null

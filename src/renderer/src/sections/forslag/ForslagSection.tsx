@@ -211,7 +211,7 @@ export function ForslagSection({ initialProjektId, onNavigateProjekt, initialFor
     }
 
     const html = injectVars(template, vars)
-    await window.api.invoke('pdf:generate-html', { html, name: `forslag-${f.forslag_nummer}`, save: true })
+    await window.api.invoke('pdf:generate-html', { html, name: `forslag-${f.forslag_nummer}-${f.projekt.kunder.namn.replace(/\s+/g, '_')}`, save: true })
   }
 
   async function handleDelete() {
