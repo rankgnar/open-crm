@@ -202,7 +202,7 @@ export function buildForslagDesglose(
     </tr>`
     if (fas.notat && showFasNotat) {
       html += `<tr>
-        <td colspan="6" style="padding:1px 5px 4px;font-size:7.5px;font-style:italic;color:#374151;">* Anm: ${fas.notat}</td>
+        <td colspan="6" style="padding:3px 6px;font-size:8px;font-style:italic;color:#111827;background:#fef2f2;border-left:2px solid #fca5a5;">* Anm: ${fas.notat}</td>
       </tr>`
     }
     html += `<tr><td colspan="6" style="height:6px;"></td></tr>`
