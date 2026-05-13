@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { Plus, Trash2, ChevronDown, ChevronUp, Lock } from 'lucide-react'
+import { Plus, Trash2, Pencil, ChevronDown, ChevronUp, Lock } from 'lucide-react'
 import { ConfigField, ConfigTextarea } from './ConfigField'
 import type { ProjektStatusar } from '@/sections/projekt/types'
 import { FARG_DOT, FARG_TEXT } from '@/sections/projekt/types'
@@ -267,9 +267,14 @@ function StatusRow({ status, isEditing, deleting, onStartEdit, onSaveNamn, onCan
           <button onClick={() => setConfirmDelete(false)} className="text-xs text-muted hover:text-fg transition-colors">Nej</button>
         </div>
       ) : (
-        <button onClick={() => setConfirmDelete(true)} className="ml-auto shrink-0 opacity-0 group-hover:opacity-100 transition-opacity text-muted hover:text-red-400">
-          <Trash2 size={13} />
-        </button>
+        <div className="flex items-center gap-1.5 ml-auto shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
+          <button onClick={onStartEdit} className="text-muted hover:text-fg transition-colors">
+            <Pencil size={13} />
+          </button>
+          <button onClick={() => setConfirmDelete(true)} className="text-muted hover:text-red-400 transition-colors">
+            <Trash2 size={13} />
+          </button>
+        </div>
       )}
     </div>
   )
