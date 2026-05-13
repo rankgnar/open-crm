@@ -10,7 +10,6 @@ interface Props {
   projekt: ProjektWithKund[]
   statusar: ProjektStatusar[]
   fragSummary: Record<string, string>
-  lastAnteckning: Record<string, { titel: string; farg: string }>
   forslagSummary: Record<string, { status: string; farg: string; forslag_nummer: string }>
   onSelect: (p: ProjektWithKund) => void
   onNew: () => void
@@ -75,13 +74,6 @@ const FRAG_STATUS_LABEL: Record<string, string> = {
   utkast:   'Utkast',
 }
 
-const ANT_FARG_DOT: Record<string, string> = {
-  emerald: 'bg-emerald-400',
-  amber:   'bg-amber-400',
-  red:     'bg-red-400',
-  blue:    'bg-blue-400',
-  muted:   'bg-muted',
-}
 
 function StatusSelect({ value, onChange, statusar }: { value: string[]; onChange: (v: string[]) => void; statusar: ProjektStatusar[] }) {
   const [open, setOpen] = useState(false)
@@ -158,7 +150,7 @@ function StatusSelect({ value, onChange, statusar }: { value: string[]; onChange
   )
 }
 
-export function ProjektTable({ projekt, statusar, fragSummary, lastAnteckning, forslagSummary, onSelect, onNew, onStatusChange, onStatusChangeMany, onDeleteMany }: Props) {
+export function ProjektTable({ projekt, statusar, fragSummary, forslagSummary, onSelect, onNew, onStatusChange, onStatusChangeMany, onDeleteMany }: Props) {
   const [query, setQuery] = useState('')
   const [statusFilter, setStatusFilter] = useState<string[]>([])
 const [selected, setSelected] = useState<Set<string>>(new Set())
@@ -314,6 +306,7 @@ const [selected, setSelected] = useState<Set<string>>(new Set())
           <table className="w-full text-sm">
             <thead className="sticky top-0 bg-sidebar z-10">
               <tr className="border-b border-border text-left">
+                <th className="w-10" />
                 <th className="pl-4 pr-2 py-2.5 w-8">
                   <input type="checkbox" checked={allFilteredSelected} onChange={() => {}} onClick={toggleAll}
                     className="rounded border-border accent-emerald-400 cursor-pointer" />
@@ -334,8 +327,6 @@ const [selected, setSelected] = useState<Set<string>>(new Set())
                 ))}
                 <th className="px-4 py-2.5 text-[11px] font-medium uppercase tracking-wider text-muted select-none">Offert</th>
                 <th className="px-4 py-2.5 text-[11px] font-medium uppercase tracking-wider text-muted select-none">Formulär</th>
-                <th className="px-4 py-2.5 text-[11px] font-medium uppercase tracking-wider text-muted select-none">Anteckningar</th>
-                <th className="w-10" />
               </tr>
             </thead>
             <tbody>
@@ -346,6 +337,19 @@ const [selected, setSelected] = useState<Set<string>>(new Set())
                   <tr key={p.id} onClick={() => onSelect(p)}
                     className={`border-b border-border hover:bg-hover cursor-pointer transition-colors group ${isSelected ? 'bg-elevated' : ''}`}
                   >
+                    <td className="pl-4 py-3 whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
+                      {isConfirmRow ? (
+                        <div className="flex items-center gap-2">
+                          <button onClick={(e) => handleRowDelete(e, p.id)} className="text-xs text-red-400 hover:text-red-300 font-medium transition-colors">Ja</button>
+                          <button onClick={(e) => { e.stopPropagation(); setConfirmRowId(null) }} className="text-xs text-muted hover:text-fg transition-colors">Nej</button>
+                        </div>
+                      ) : (
+                        <button onClick={(e) => { e.stopPropagation(); setConfirmRowId(p.id) }}
+                          className="opacity-0 group-hover:opacity-100 text-muted hover:text-red-400 transition-all">
+                          <Trash2 size={13} />
+                        </button>
+                      )}
+                    </td>
                     <td className="pl-4 pr-2 py-3" onClick={(e) => toggleSelect(e, p.id)}>
                       <input type="checkbox" checked={isSelected} onChange={() => {}} className="rounded border-border accent-emerald-400 cursor-pointer" />
                     </td>
@@ -375,27 +379,6 @@ const [selected, setSelected] = useState<Set<string>>(new Set())
                           {FRAG_STATUS_LABEL[fragSummary[p.id]] ?? fragSummary[p.id]}
                         </span>
                       ) : <span className="text-subtle text-xs">—</span>}
-                    </td>
-                    <td className="px-4 py-3 whitespace-nowrap max-w-[180px]">
-                      {lastAnteckning[p.id] ? (
-                        <span className="inline-flex items-center gap-1.5 text-xs text-muted min-w-0">
-                          <span className={`size-1.5 rounded-full shrink-0 ${ANT_FARG_DOT[lastAnteckning[p.id].farg] ?? 'bg-muted'}`} />
-                          <span className="truncate">{lastAnteckning[p.id].titel}</span>
-                        </span>
-                      ) : <span className="text-subtle text-xs">—</span>}
-                    </td>
-                    <td className="pr-4 py-3 whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
-                      {isConfirmRow ? (
-                        <div className="flex items-center gap-2">
-                          <button onClick={(e) => handleRowDelete(e, p.id)} className="text-xs text-red-400 hover:text-red-300 font-medium transition-colors">Ja</button>
-                          <button onClick={(e) => { e.stopPropagation(); setConfirmRowId(null) }} className="text-xs text-muted hover:text-fg transition-colors">Nej</button>
-                        </div>
-                      ) : (
-                        <button onClick={(e) => { e.stopPropagation(); setConfirmRowId(p.id) }}
-                          className="opacity-0 group-hover:opacity-100 text-muted hover:text-red-400 transition-all">
-                          <Trash2 size={13} />
-                        </button>
-                      )}
                     </td>
                   </tr>
                 )
