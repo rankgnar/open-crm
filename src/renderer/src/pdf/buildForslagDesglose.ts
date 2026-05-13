@@ -50,8 +50,8 @@ export function buildForslagDesglose(
   const acBorder = hexToRgba(ac, 0.35)
 
   const MINI_HEADER = (label: string): string =>
-    `<tr style="background:${acBg};">
-      <td colspan="6" style="padding:3px 5px;font-size:7px;font-weight:700;color:${ac};text-transform:uppercase;letter-spacing:0.3px;border-bottom:0.5px solid ${acBorder};">${label}</td>
+    `<tr>
+      <td colspan="6" style="padding:2px 5px 2px 10px;font-size:6.5px;font-weight:500;color:#9ca3af;text-transform:uppercase;letter-spacing:0.3px;border-bottom:0.5px solid #e5e7eb;">${label}</td>
     </tr>`
 
   let html = `<table style="width:100%;border-collapse:collapse;font-family:-apple-system,'Helvetica Neue',Helvetica,Arial,sans-serif;">`
@@ -79,7 +79,7 @@ export function buildForslagDesglose(
       : ''
     html += `<tr>
       <td colspan="6" style="background:${acBg};border-left:2px solid ${ac};border-bottom:0.5px solid ${acBorder};padding:4px 6px;">
-        <span style="font-size:8px;font-weight:700;color:${ac};text-transform:uppercase;letter-spacing:0.3px;">${fas.namn}</span>
+        <span style="font-size:9px;font-weight:700;color:${ac};text-transform:uppercase;letter-spacing:0.3px;">${fas.namn}</span>
         ${dateRange ? `&nbsp;&nbsp;${dateRange}` : ''}
       </td>
     </tr>`
@@ -94,8 +94,8 @@ export function buildForslagDesglose(
 
       // Subphase header
       html += `<tr>
-        <td colspan="6" style="background:${hexToRgba(ac, 0.04)};border-left:1.5px solid ${acBorder};padding:3px 6px 3px 10px;">
-          <span style="font-size:7.5px;font-weight:700;color:${ac};opacity:0.85;">${subfas.namn}</span>
+        <td colspan="6" style="background:#f9fafb;border-left:2px solid ${acBorder};padding:4px 6px 4px 10px;">
+          <span style="font-size:8.5px;font-weight:600;color:#111827;text-transform:uppercase;letter-spacing:0.2px;">${subfas.namn}</span>
         </td>
       </tr>`
 
