@@ -418,7 +418,7 @@ export function ForslagDetail({ forslag: forslagProp, statusar, allProjekt, onBa
     return buildTidplanHtml(forslag, faser, mall, config)
   }
 
-  async function buildForslagHtml(titelOverride: string): Promise<string> {
+  async function buildForslagHtml(titelOverride: string, displayOverrides?: Record<string, string>): Promise<string> {
     const mall = await window.api.invoke('db:pdf-mall:get', 'forslag') as PdfMall | null
     const template = mall?.html_mall || DEFAULT_FORSLAG_HTML
     const accentFarg = mall?.accent_farg ?? '#1B3A6B'
@@ -462,6 +462,7 @@ export function ForslagDetail({ forslag: forslagProp, statusar, allProjekt, onBa
       portada_titel: titelOverride,
       portada_undertitel: mall?.portada_undertitel || 'Sammanställning av arbete och material',
       visa_portada_display: mall?.visa_portada !== false ? 'flex' : 'none',
+      visa_desglose_display: 'block',
       visa_sammanfattning_display: mall?.visa_sammanfattning !== false ? 'flex' : 'none',
       visa_villkor_display: mall?.visa_villkor !== false ? 'block' : 'none',
       projekt_villkor: p.villkor ?? '',
@@ -493,6 +494,7 @@ export function ForslagDetail({ forslag: forslagProp, statusar, allProjekt, onBa
       desglose_html: desgloseHtml,
     }
 
+    if (displayOverrides) Object.assign(vars, displayOverrides)
     return injectVars(template, vars)
   }
 
@@ -500,11 +502,16 @@ export function ForslagDetail({ forslag: forslagProp, statusar, allProjekt, onBa
     setPdfTitelPicker(null)
     setExportingPdf(true)
     try {
-      const forslagHtml = await buildForslagHtml(titelOverride)
-      const parts: { html: string; landscape?: boolean }[] = [{ html: forslagHtml }]
+      const parts: { html: string; landscape?: boolean }[] = []
       if (bifogaTidplan) {
-        const tidplanHtml = await buildTidplanHtmlForExport()
-        parts.push({ html: tidplanHtml, landscape: true })
+        const [forslagSinSammaf, tidplanHtml, sammafHtml] = await Promise.all([
+          buildForslagHtml(titelOverride, { visa_sammanfattning_display: 'none' }),
+          buildTidplanHtmlForExport(),
+          buildForslagHtml(titelOverride, { visa_portada_display: 'none', visa_desglose_display: 'none' }),
+        ])
+        parts.push({ html: forslagSinSammaf }, { html: tidplanHtml, landscape: true }, { html: sammafHtml })
+      } else {
+        parts.push({ html: await buildForslagHtml(titelOverride) })
       }
       await window.api.invoke('pdf:generate-merged', {
         parts,

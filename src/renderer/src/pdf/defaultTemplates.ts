@@ -301,8 +301,27 @@ export const DEFAULT_FORSLAG_HTML = `<!DOCTYPE html>
   <div class="cover-footer">{{foretag_namn}} &nbsp;·&nbsp; Org.nr: {{foretag_org_nummer}}</div>
 </div>
 
-<!-- PAGE 2: Content summary -->
-<div class="content-page" style="display:{{visa_sammanfattning_display}};">
+<!-- PAGE 2: Desglose completo de faser/subfaser -->
+<div class="content-page" style="display:{{visa_desglose_display}};">
+  <div class="content-header">
+    <div class="content-logo">{{logo_html}}</div>
+    <div class="content-company-info">
+      <div class="content-company-line">Org.nr: {{foretag_org_nummer}}{{visa_godkand_fskatt_text}}</div>
+      <div class="content-company-line">{{foretag_telefon}} &nbsp;·&nbsp; {{foretag_email}} &nbsp;·&nbsp; {{foretag_webbadress}}</div>
+    </div>
+  </div>
+
+  <div style="font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.5px;color:#000;margin-bottom:16px;padding-bottom:8px;border-bottom:0.5px solid #e0e0e0;">
+    Kostnadsspecifikation
+  </div>
+
+  {{desglose_html}}
+
+  <div class="content-footer" style="margin-top:24px;">{{foretag_namn}} &nbsp;·&nbsp; Org.nr: {{foretag_org_nummer}}</div>
+</div>
+
+<!-- PAGE 3: Content summary -->
+<div class="content-page" style="display:{{visa_sammanfattning_display}};page-break-before:always;">
   <div class="content-header">
     <div class="content-logo">{{logo_html}}</div>
     <div class="content-company-info">
@@ -387,25 +406,6 @@ export const DEFAULT_FORSLAG_HTML = `<!DOCTYPE html>
   </div>
 
   <div class="content-footer">{{foretag_namn}} &nbsp;·&nbsp; Org.nr: {{foretag_org_nummer}}</div>
-</div>
-
-<!-- PAGE 3: Desglose completo de faser/subfaser -->
-<div class="content-page" style="page-break-before: always;">
-  <div class="content-header">
-    <div class="content-logo">{{logo_html}}</div>
-    <div class="content-company-info">
-      <div class="content-company-line">Org.nr: {{foretag_org_nummer}}{{visa_godkand_fskatt_text}}</div>
-      <div class="content-company-line">{{foretag_telefon}} &nbsp;·&nbsp; {{foretag_email}} &nbsp;·&nbsp; {{foretag_webbadress}}</div>
-    </div>
-  </div>
-
-  <div style="font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.5px;color:#000;margin-bottom:16px;padding-bottom:8px;border-bottom:0.5px solid #e0e0e0;">
-    Kostnadsspecifikation
-  </div>
-
-  {{desglose_html}}
-
-  <div class="content-footer" style="margin-top:24px;">{{foretag_namn}} &nbsp;·&nbsp; Org.nr: {{foretag_org_nummer}}</div>
 </div>
 
 </body>
