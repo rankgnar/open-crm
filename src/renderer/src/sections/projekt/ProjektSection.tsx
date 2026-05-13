@@ -3,7 +3,7 @@ import { useRefreshHandler } from '@/context/RefreshContext'
 import { ProjektTable } from './ProjektTable'
 import { ProjektForm } from './ProjektForm'
 import { ProjektDetail } from './ProjektDetail'
-import type { ProjektWithKund, CreateProjektInput, ProjektAnteckning, ProjektStatusar, ProjektDokument, FileDialogResult, ProjektAktivitet, DokumentKategori, Frageblankett, FragaFalt, FrageblanktEpostDraft, ProjektPrioritet } from './types'
+import type { ProjektWithKund, CreateProjektInput, ProjektAnteckning, ProjektStatusar, ProjektDokument, FileDialogResult, ProjektAktivitet, DokumentKategori, Frageblankett, FragaFalt, FrageblanktEpostDraft } from './types'
 import type { Kund } from '@/sections/kunder/types'
 import type { FaktureringSnapshot } from '@/sections/fakturering/types'
 
@@ -282,18 +282,6 @@ export function ProjektSection({ initialProjektId }: Props = {}) {
     if (selectedProjekt && ids.includes(selectedProjekt.id)) setSelectedProjekt((prev) => prev ? { ...prev, status } : prev)
   }
 
-  async function handlePriorityChange(id: string, prioritet: ProjektPrioritet) {
-    const updated = await window.api.invoke('db:projekt:set-prioritet', id, prioritet) as ProjektWithKund
-    setProjekt((prev) => prev.map((p) => (p.id === updated.id ? updated : p)))
-    if (selectedProjekt?.id === id) setSelectedProjekt(updated)
-  }
-
-  async function handlePriorityChangeMany(ids: string[], prioritet: ProjektPrioritet) {
-    await window.api.invoke('db:projekt:update-prioritet-many', ids, prioritet)
-    setProjekt((prev) => prev.map((p) => ids.includes(p.id) ? { ...p, prioritet } : p))
-    if (selectedProjekt && ids.includes(selectedProjekt.id)) setSelectedProjekt((prev) => prev ? { ...prev, prioritet } : prev)
-  }
-
   async function handleDeleteMany(ids: string[]) {
     await window.api.invoke('db:projekt:delete-many', ids)
     setProjekt((prev) => prev.filter((p) => !ids.includes(p.id)))
@@ -373,8 +361,6 @@ export function ProjektSection({ initialProjektId }: Props = {}) {
       onStatusChange={handleStatusChange}
       onStatusChangeMany={handleStatusChangeMany}
       onDeleteMany={handleDeleteMany}
-      onPriorityChange={handlePriorityChange}
-      onPriorityChangeMany={handlePriorityChangeMany}
     />
   )
 }

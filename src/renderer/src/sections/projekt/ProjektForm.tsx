@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { ArrowLeft } from 'lucide-react'
-import type { ProjektWithKund, CreateProjektInput, ProjektStatusar, ProjektPrioritet } from './types'
+import type { ProjektWithKund, CreateProjektInput, ProjektStatusar } from './types'
 import type { Kund } from '@/sections/kunder/types'
 import { useAppConfig } from '@/context/AppConfig'
 import { SelectField } from '@/components/SelectField'
@@ -26,7 +26,6 @@ export function ProjektForm({ kunder, statusar, initial, onSubmit, onCancel }: P
   const [namn, setNamn] = useState(initial?.namn ?? '')
   const [beskrivning, setBeskrivning] = useState(initial?.beskrivning ?? '')
   const [status, setStatus] = useState<string>(initial?.status ?? '')
-  const [prioritet, setPrioritet] = useState<ProjektPrioritet>(initial?.prioritet ?? 'parked')
   const [kundId, setKundId] = useState(initial?.kund_id ?? '')
   const [startdatum, setStartdatum] = useState(initial?.startdatum ?? '')
   const [slutdatum, setSlutdatum] = useState(initial?.slutdatum ?? '')
@@ -74,7 +73,6 @@ export function ProjektForm({ kunder, statusar, initial, onSubmit, onCancel }: P
         namn: namn.trim(),
         beskrivning: beskrivning.trim() || undefined,
         status,
-        prioritet,
         startdatum: startdatum || undefined,
         slutdatum: slutdatum || undefined,
         budget_total: parseFloat(budgetTotal) || 0,
@@ -172,27 +170,6 @@ export function ProjektForm({ kunder, statusar, initial, onSubmit, onCancel }: P
               searchable
               options={kunder.map((k) => ({ value: k.id, label: `${k.kundnummer} — ${k.namn}` }))}
             />
-          </FC>
-          <FC label="Prioritet">
-            <div className="flex items-center gap-1">
-              {([
-                { value: 'high',   label: 'Hög',      active: 'border-red-400 text-red-400' },
-                { value: 'normal', label: 'Normal',   active: 'border-amber-400 text-amber-400' },
-                { value: 'low',    label: 'Låg',      active: 'border-blue-400 text-blue-400' },
-                { value: 'parked', label: 'Park.',    active: 'border-border text-muted' },
-              ] as { value: ProjektPrioritet; label: string; active: string }[]).map(({ value, label, active }) => (
-                <button
-                  key={value}
-                  type="button"
-                  onClick={() => setPrioritet(value)}
-                  className={`flex-1 py-1 rounded text-[11px] font-medium border transition-colors ${
-                    prioritet === value ? active : 'border-border/50 text-subtle hover:text-fg hover:border-border'
-                  }`}
-                >
-                  {label}
-                </button>
-              ))}
-            </div>
           </FC>
         </FS>
 

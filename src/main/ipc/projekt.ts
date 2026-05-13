@@ -39,8 +39,6 @@ const CHANNELS = [
   'db:projekt:set-kalender-farg',
   'db:projekt:frageblankett-summary',
   'db:projekt:last-anteckning',
-  'db:projekt:set-prioritet',
-  'db:projekt:update-prioritet-many',
 ] as const
 
 interface CreateProjektInput {
@@ -49,7 +47,6 @@ interface CreateProjektInput {
   namn: string
   beskrivning?: string
   status?: string
-  prioritet?: 'high' | 'normal' | 'low' | 'parked'
   startdatum?: string
   slutdatum?: string
   budget_total?: number
@@ -510,22 +507,6 @@ export function registerProjektHandlers(): void {
     })
     await win.loadURL(`file://${tmpFile}`)
     win.show()
-  })
-
-  ipcMain.handle('db:projekt:set-prioritet', async (_, id: string, prioritet: 'high' | 'normal' | 'low' | 'parked') => {
-    const { data, error } = await supabase
-      .from('projekt')
-      .update({ prioritet })
-      .eq('id', id)
-      .select(SELECT_WITH_KUND)
-      .single()
-    if (error) throw new Error(error.message)
-    return data
-  })
-
-  ipcMain.handle('db:projekt:update-prioritet-many', async (_, ids: string[], prioritet: 'high' | 'normal' | 'low' | 'parked') => {
-    const { error } = await supabase.from('projekt').update({ prioritet }).in('id', ids)
-    if (error) throw new Error(error.message)
   })
 
   ipcMain.handle('db:projekt:set-kalender-farg', async (_, projekt_id: string, farg: string | null) => {

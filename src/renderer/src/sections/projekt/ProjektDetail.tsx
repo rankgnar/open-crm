@@ -216,17 +216,6 @@ export function ProjektDetail({ projekt, kunder, statusar, anteckningar, snapsho
 
           <DetailSection title="Projektinfo">
             <DetailField label="Status" value={projekt.status} />
-            <div className="flex flex-col gap-1.5 bg-elevated px-4 py-3">
-              <span className="text-[11px] uppercase tracking-wider text-muted">Prioritet</span>
-              <span className={`text-sm font-medium ${
-                projekt.prioritet === 'high'   ? 'text-red-400'
-                : projekt.prioritet === 'normal' ? 'text-amber-400'
-                : projekt.prioritet === 'low'    ? 'text-blue-400'
-                : 'text-muted'
-              }`}>
-                {{ high: 'Hög', normal: 'Normal', low: 'Låg', parked: 'Parkerad' }[projekt.prioritet ?? 'parked']}
-              </span>
-            </div>
             <DetailField label="Preliminär budget" value={formatCurrency(projekt.budget_total, 0)} />
             <DetailField label="Startdatum" value={formatDate(projekt.startdatum)} />
             <DetailField label="Slutdatum" value={formatDate(projekt.slutdatum)} />

@@ -1,0 +1,1 @@
+ALTER TABLE projekt DROP COLUMN IF EXISTS prioritet;

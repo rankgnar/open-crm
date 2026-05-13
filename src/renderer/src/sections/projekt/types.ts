@@ -17,8 +17,6 @@ export const FARG_TEXT: Record<ProjektStatusar['farg'], string> = {
   emerald: 'text-emerald-400', blue: 'text-blue-400', amber: 'text-amber-400', red: 'text-red-400', muted: 'text-muted',
 }
 
-export type ProjektPrioritet = 'high' | 'normal' | 'low' | 'parked'
-
 export interface Projekt {
   id: string
   projekt_nummer: string
@@ -26,7 +24,6 @@ export interface Projekt {
   namn: string
   beskrivning: string | null
   status: ProjektStatus
-  prioritet: ProjektPrioritet
   startdatum: string | null
   slutdatum: string | null
   budget_total: number
@@ -55,7 +52,6 @@ export interface CreateProjektInput {
   namn: string
   beskrivning?: string
   status?: ProjektStatus
-  prioritet?: ProjektPrioritet
   startdatum?: string
   slutdatum?: string
   budget_total?: number

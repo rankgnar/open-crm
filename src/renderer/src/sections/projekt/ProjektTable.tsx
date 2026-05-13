@@ -1,40 +1,10 @@
-import { Plus, Search, X, Trash2, ArrowUp, ArrowDown, ArrowUpDown, ChevronDown, Flame, Pause, Check } from 'lucide-react'
+import { Plus, Search, X, Trash2, ArrowUp, ArrowDown, ArrowUpDown, ChevronDown, Check } from 'lucide-react'
 import { RefreshButton } from '@/components/RefreshButton'
 import { useRef, useState, useEffect } from 'react'
-import type { ProjektWithKund, ProjektStatusar, ProjektPrioritet } from './types'
+import type { ProjektWithKund, ProjektStatusar } from './types'
 import { FARG_DOT, FARG_TEXT } from './types'
 import { WorkflowTriggerInline } from '@/components/WorkflowTriggerInline'
 
-const PRIORITET_SORT: Record<ProjektPrioritet, number> = {
-  high: 0, normal: 1, low: 2, parked: 3,
-}
-
-const PRIORITET_CYCLE: Record<ProjektPrioritet, ProjektPrioritet> = {
-  parked: 'high',
-  high: 'normal',
-  normal: 'low',
-  low: 'parked',
-}
-
-const PRIORITET_CONFIG: Record<ProjektPrioritet, { icon: React.ReactNode; cls: string; rowBg: string; title: string }> = {
-  high:   { icon: <Flame size={13} />,    cls: 'text-red-400',   rowBg: 'bg-red-400/[0.06]',   title: 'Hög prioritet' },
-  normal: { icon: <ArrowUp size={13} />,  cls: 'text-amber-400', rowBg: 'bg-amber-400/[0.06]', title: 'Normal prioritet' },
-  low:    { icon: <ArrowDown size={13} />, cls: 'text-blue-400', rowBg: 'bg-blue-400/[0.06]',  title: 'Låg prioritet' },
-  parked: { icon: <Pause size={13} />,    cls: 'text-muted', rowBg: 'bg-zinc-400/[0.04]', title: 'Parkerad' },
-}
-
-function PriorityButton({ prioritet, onChange }: { prioritet: ProjektPrioritet; onChange: () => void }) {
-  const cfg = PRIORITET_CONFIG[prioritet]
-  return (
-    <button
-      onClick={(e) => { e.stopPropagation(); onChange() }}
-      title={`${cfg.title} — klicka för att ändra`}
-      className={`flex items-center justify-center w-6 h-6 rounded hover:bg-hover transition-colors ${cfg.cls}`}
-    >
-      {cfg.icon}
-    </button>
-  )
-}
 
 interface Props {
   projekt: ProjektWithKund[]
@@ -46,8 +16,6 @@ interface Props {
   onStatusChange: (id: string, status: string) => Promise<void>
   onStatusChangeMany: (ids: string[], status: string) => Promise<void>
   onDeleteMany: (ids: string[]) => Promise<void>
-  onPriorityChange: (id: string, prioritet: ProjektPrioritet) => Promise<void>
-  onPriorityChangeMany: (ids: string[], prioritet: ProjektPrioritet) => Promise<void>
 }
 
 function StatusPicker({ projekt, statusar, onStatusChange }: { projekt: ProjektWithKund; statusar: ProjektStatusar[]; onStatusChange: (id: string, status: string) => Promise<void> }) {
@@ -193,15 +161,13 @@ function StatusSelect({ value, onChange, statusar }: { value: string[]; onChange
   )
 }
 
-export function ProjektTable({ projekt, statusar, fragSummary, lastAnteckning, onSelect, onNew, onStatusChange, onStatusChangeMany, onDeleteMany, onPriorityChange, onPriorityChangeMany }: Props) {
+export function ProjektTable({ projekt, statusar, fragSummary, lastAnteckning, onSelect, onNew, onStatusChange, onStatusChangeMany, onDeleteMany }: Props) {
   const [query, setQuery] = useState('')
   const [statusFilter, setStatusFilter] = useState<string[]>([])
-  const [prioritetFilter, setPrioritetFilter] = useState<ProjektPrioritet | ''>('')
-  const [selected, setSelected] = useState<Set<string>>(new Set())
+const [selected, setSelected] = useState<Set<string>>(new Set())
   const [confirmBulk, setConfirmBulk] = useState(false)
   const [deletingBulk, setDeletingBulk] = useState(false)
   const [savingBulkStatus, setSavingBulkStatus] = useState(false)
-  const [savingBulkPriority, setSavingBulkPriority] = useState(false)
   const [confirmRowId, setConfirmRowId] = useState<string | null>(null)
   const [sortCol, setSortCol] = useState<string | null>(null)
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc')
@@ -221,14 +187,10 @@ export function ProjektTable({ projekt, statusar, fragSummary, lastAnteckning, o
     const q = query.toLowerCase()
     const matchesQuery = !q || [p.projekt_nummer, p.namn, p.kunder.namn, p.kunder.kundnummer, p.arbetsplats_stad]
       .some((v) => v?.toLowerCase().includes(q))
-    return matchesQuery && (statusFilter.length === 0 || statusFilter.includes(p.status)) && (!prioritetFilter || (p.prioritet ?? 'parked') === prioritetFilter)
+    return matchesQuery && (statusFilter.length === 0 || statusFilter.includes(p.status))
   })
 
   const sorted = sortCol ? [...filtered].sort((a, b) => {
-    if (sortCol === 'prioritet') {
-      const cmp = PRIORITET_SORT[a.prioritet ?? 'parked'] - PRIORITET_SORT[b.prioritet ?? 'parked']
-      return sortDir === 'asc' ? cmp : -cmp
-    }
     const vals: Record<string, string | null | number> = {
       projekt_nummer: a.projekt_nummer, namn: a.namn, kund: a.kunder.namn,
       status: a.status, startdatum: a.startdatum,
@@ -258,14 +220,6 @@ export function ProjektTable({ projekt, statusar, fragSummary, lastAnteckning, o
     } finally { setSavingBulkStatus(false) }
   }
 
-  async function handleBulkPriorityChange(prioritet: ProjektPrioritet) {
-    setSavingBulkPriority(true)
-    try {
-      await onPriorityChangeMany([...selected], prioritet)
-      setSelected(new Set())
-    } finally { setSavingBulkPriority(false) }
-  }
-
   async function handleBulkDelete() {
     setDeletingBulk(true)
     try {
@@ -280,7 +234,7 @@ export function ProjektTable({ projekt, statusar, fragSummary, lastAnteckning, o
     setConfirmRowId(null)
   }
 
-  const isFiltering = query !== '' || statusFilter.length > 0 || prioritetFilter !== ''
+  const isFiltering = query !== '' || statusFilter.length > 0
 
   const COLS: [string, string][] = [
     ['projekt_nummer', 'Nr'],
@@ -315,8 +269,7 @@ export function ProjektTable({ projekt, statusar, fragSummary, lastAnteckning, o
           )}
         </div>
         <StatusSelect value={statusFilter} onChange={setStatusFilter} statusar={statusar} />
-        <PrioritetSelect value={prioritetFilter} onChange={setPrioritetFilter} />
-        <div className="ml-auto flex items-center gap-2 shrink-0">
+<div className="ml-auto flex items-center gap-2 shrink-0">
           <WorkflowTriggerInline
             seccion="projekt"
             context={selected.size === 1 ? { projekt_id: [...selected][0] } : {}}
@@ -333,7 +286,6 @@ export function ProjektTable({ projekt, statusar, fragSummary, lastAnteckning, o
         <div className="flex items-center gap-4 px-6 py-2 border-b border-border bg-elevated shrink-0">
           <span className="text-xs text-fg font-medium shrink-0">{selected.size} valda</span>
           <BulkStatusPicker statusar={statusar} saving={savingBulkStatus} onPick={handleBulkStatusChange} />
-          <BulkPriorityPicker saving={savingBulkPriority} onPick={handleBulkPriorityChange} />
           {confirmBulk ? (
             <>
               <span className="text-xs text-muted">Radera {selected.size} projekt?</span>
@@ -370,18 +322,6 @@ export function ProjektTable({ projekt, statusar, fragSummary, lastAnteckning, o
                   <input type="checkbox" checked={allFilteredSelected} onChange={() => {}} onClick={toggleAll}
                     className="rounded border-border accent-emerald-400 cursor-pointer" />
                 </th>
-                <th className="px-2 py-2.5 w-8 cursor-pointer select-none hover:text-fg transition-colors group/th"
-                  onClick={() => handleSort('prioritet')}
-                  title="Sortera efter prioritet">
-                  <div className="flex items-center justify-center">
-                    {sortCol === 'prioritet'
-                      ? sortDir === 'asc'
-                        ? <ArrowUp size={10} className="text-fg" />
-                        : <ArrowDown size={10} className="text-fg" />
-                      : <ArrowUpDown size={10} className="text-muted opacity-0 group-hover/th:opacity-40 transition-opacity" />
-                    }
-                  </div>
-                </th>
                 {COLS.map(([col, label]) => (
                   <th key={col} onClick={() => handleSort(col)}
                     className="px-4 py-2.5 text-[11px] font-medium uppercase tracking-wider text-muted cursor-pointer select-none hover:text-fg transition-colors group/th">
@@ -405,19 +345,12 @@ export function ProjektTable({ projekt, statusar, fragSummary, lastAnteckning, o
               {sorted.map((p) => {
                 const isSelected = selected.has(p.id)
                 const isConfirmRow = confirmRowId === p.id
-                const baseBg = isSelected ? 'bg-elevated' : PRIORITET_CONFIG[p.prioritet ?? 'parked'].rowBg
                 return (
                   <tr key={p.id} onClick={() => onSelect(p)}
-                    className={`border-b border-border hover:bg-hover cursor-pointer transition-colors group ${baseBg}`}
+                    className={`border-b border-border hover:bg-hover cursor-pointer transition-colors group ${isSelected ? 'bg-elevated' : ''}`}
                   >
                     <td className="pl-4 pr-2 py-3" onClick={(e) => toggleSelect(e, p.id)}>
                       <input type="checkbox" checked={isSelected} onChange={() => {}} className="rounded border-border accent-emerald-400 cursor-pointer" />
-                    </td>
-                    <td className="px-2 py-3" onClick={(e) => e.stopPropagation()}>
-                      <PriorityButton
-                        prioritet={p.prioritet ?? 'parked'}
-                        onChange={() => onPriorityChange(p.id, PRIORITET_CYCLE[p.prioritet ?? 'parked'])}
-                      />
                     </td>
                     <td className="px-4 py-3 font-mono text-xs text-muted whitespace-nowrap">{p.projekt_nummer ?? '—'}</td>
                     <td className="px-4 py-3 whitespace-nowrap">
@@ -469,65 +402,6 @@ export function ProjektTable({ projekt, statusar, fragSummary, lastAnteckning, o
   )
 }
 
-function PrioritetSelect({ value, onChange }: { value: ProjektPrioritet | ''; onChange: (v: ProjektPrioritet | '') => void }) {
-  const [open, setOpen] = useState(false)
-  const ref = useRef<HTMLDivElement>(null)
-
-  useEffect(() => {
-    if (!open) return
-    const handler = (e: MouseEvent) => {
-      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false)
-    }
-    document.addEventListener('mousedown', handler)
-    return () => document.removeEventListener('mousedown', handler)
-  }, [open])
-
-  const selected = BULK_PRIORITY_OPTIONS.find(o => o.value === value)
-
-  return (
-    <div ref={ref} className="relative w-40 shrink-0">
-      <button
-        type="button"
-        onClick={() => setOpen(v => !v)}
-        className="w-full flex items-center justify-between gap-2 bg-elevated border border-border rounded-lg px-3 py-2 text-sm outline-none hover:border-fg/30 transition-colors"
-      >
-        <span className={`truncate flex items-center gap-2 ${selected ? 'text-fg' : 'text-subtle'}`}>
-          {selected
-            ? <span className={`text-sm ${selected.color}`}>{selected.label}</span>
-            : 'Alla prioriteter'
-          }
-        </span>
-        <ChevronDown size={12} className="text-muted shrink-0" />
-      </button>
-
-      {open && (
-        <div className="absolute left-0 right-0 top-full mt-1 z-50 bg-elevated border border-border rounded-lg shadow-xl flex flex-col overflow-hidden">
-          <div className="max-h-64 overflow-auto py-1">
-            {value && (
-              <button
-                type="button"
-                onClick={() => { onChange(''); setOpen(false) }}
-                className="w-full text-left px-3 py-2 text-xs text-subtle hover:bg-hover transition-colors"
-              >
-                — Alla prioriteter —
-              </button>
-            )}
-            {BULK_PRIORITY_OPTIONS.map(opt => (
-              <button
-                key={opt.value}
-                type="button"
-                onClick={() => { onChange(opt.value); setOpen(false) }}
-                className={`w-full flex items-center gap-2 text-left px-3 py-2 text-xs hover:bg-hover transition-colors ${opt.value === value ? 'font-medium bg-hover/50' : ''}`}
-              >
-                <span className={`font-medium ${opt.color}`}>{opt.label}</span>
-              </button>
-            ))}
-          </div>
-        </div>
-      )}
-    </div>
-  )
-}
 
 function BulkStatusPicker({ statusar, saving, onPick }: {
   statusar: ProjektStatusar[]
@@ -573,48 +447,3 @@ function BulkStatusPicker({ statusar, saving, onPick }: {
   )
 }
 
-const BULK_PRIORITY_OPTIONS: { value: ProjektPrioritet; label: string; color: string }[] = [
-  { value: 'high',   label: 'Hög',      color: 'text-red-400' },
-  { value: 'normal', label: 'Normal',   color: 'text-amber-400' },
-  { value: 'low',    label: 'Låg',      color: 'text-blue-400' },
-  { value: 'parked', label: 'Parkerad', color: 'text-muted' },
-]
-
-function BulkPriorityPicker({ saving, onPick }: { saving: boolean; onPick: (p: ProjektPrioritet) => void }) {
-  const [open, setOpen] = useState(false)
-  const ref = useRef<HTMLDivElement>(null)
-
-  useEffect(() => {
-    if (!open) return
-    function onDown(e: MouseEvent) {
-      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false)
-    }
-    document.addEventListener('mousedown', onDown)
-    return () => document.removeEventListener('mousedown', onDown)
-  }, [open])
-
-  return (
-    <div ref={ref} className="relative">
-      <button
-        onClick={() => setOpen((v) => !v)}
-        disabled={saving}
-        className="flex items-center gap-1 text-xs text-muted hover:text-fg disabled:opacity-40 transition-colors"
-      >
-        {saving ? '...' : 'Ändra prioritet'} <ChevronDown size={11} />
-      </button>
-      {open && (
-        <div className="absolute left-0 top-full mt-1 z-20 min-w-[130px] bg-elevated border border-border rounded-lg shadow-lg overflow-hidden">
-          {BULK_PRIORITY_OPTIONS.map((opt) => (
-            <button
-              key={opt.value}
-              onClick={() => { setOpen(false); onPick(opt.value) }}
-              className="w-full flex items-center gap-2 px-3 py-2 text-xs text-left hover:bg-hover transition-colors"
-            >
-              <span className={`text-xs font-medium ${opt.color}`}>{opt.label}</span>
-            </button>
-          ))}
-        </div>
-      )}
-    </div>
-  )
-}
