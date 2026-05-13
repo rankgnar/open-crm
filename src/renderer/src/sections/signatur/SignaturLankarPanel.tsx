@@ -82,7 +82,7 @@ export function SignaturLankarPanel({ dokument_typ, dokument_id, refreshKey }: P
 
   async function handleDelete(l: SignaturLank) {
     const msg = l.signerad_at
-      ? `Ta bort länken permanent? Detta tar även bort signaturen från dokumentet, återställer det till utkast och flyttar projektet till Negociacion.`
+      ? `Ta bort länken permanent? Detta tar även bort signaturen från dokumentet och återställer det till utkast.`
       : `Ta bort länken till ${l.kund_email} permanent?`
     if (!confirm(msg)) return
     setBusyId(l.id)
