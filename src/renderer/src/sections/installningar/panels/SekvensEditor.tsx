@@ -181,7 +181,7 @@ export function SekvensEditor({ sequence, allWorkflows, onSave, onDelete, onCanc
                     >
                       <span className="text-subtle">{p.projekt_nummer}</span> — {p.namn}
                       {p.kunder?.namn && (
-                        <span className="text-subtle"> · {p.kunder.namn}</span>
+                        <span className="text-subtle uppercase"> · {p.kunder.namn}</span>
                       )}
                     </button>
                   ))}

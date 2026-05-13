@@ -756,7 +756,7 @@ export function TidplanSection({ onNavigateBack, navigateBackLabel, initialForsl
                     onClick={() => selectForslag(f)}
                     className="w-full text-left px-4 py-3 pr-9"
                   >
-                    <p className="text-xs font-semibold text-fg truncate">{f.projekt.kunder.namn}</p>
+                    <p className="text-xs font-semibold text-fg truncate uppercase">{f.projekt.kunder.namn}</p>
                     <p className="text-[11px] text-fg/75 truncate mt-0.5">{f.projekt.namn}</p>
                     <p className="text-[10px] text-muted mt-1 font-mono truncate">{f.forslag_nummer} · {f.titel}</p>
                   </button>
@@ -791,7 +791,7 @@ export function TidplanSection({ onNavigateBack, navigateBackLabel, initialForsl
               <div className="px-6 py-3 border-b border-border shrink-0 flex items-center gap-3">
                 <span className="font-mono text-xs text-muted">{selected.forslag_nummer}</span>
                 <span className="text-sm font-semibold text-fg">{selected.titel}</span>
-                <span className="text-xs text-muted">· {selected.projekt.kunder.namn}</span>
+                <span className="text-xs text-muted uppercase">· {selected.projekt.kunder.namn}</span>
                 {todayBadge()}
                 <button
                   onClick={() => void handleSynka()}

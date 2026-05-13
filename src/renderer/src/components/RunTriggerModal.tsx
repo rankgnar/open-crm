@@ -569,7 +569,7 @@ function ProjektPicker({ value, onChange, options }: { value: string; onChange: 
         <>
           <span className="text-subtle font-mono">{p.projekt_nummer}</span>
           <span className="text-fg ml-2">{p.namn}</span>
-          {p.kunder?.namn && <span className="text-muted ml-2">· {p.kunder.namn}</span>}
+          {p.kunder?.namn && <span className="text-muted ml-2 uppercase">· {p.kunder.namn}</span>}
         </>
       )}
       itemSearch={(p, q) => `${p.projekt_nummer} ${p.namn} ${p.kunder?.namn ?? ''}`.toLowerCase().includes(q)}

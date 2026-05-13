@@ -196,7 +196,7 @@ export function OrderTable({ ordrar, onSelect, onNew, onSetStatus, onDeleteMany 
                   </td>
                   <td className="px-2 py-2.5 font-mono text-fg">{o.order_nummer}</td>
                   <td className="px-2 py-2.5 text-fg">{o.projekt?.namn ?? '—'}</td>
-                  <td className="px-2 py-2.5 text-muted">{o.kund_namn}</td>
+                  <td className="px-2 py-2.5 text-muted uppercase">{o.kund_namn}</td>
                   <td className="px-2 py-2.5 text-fg">{o.titel}</td>
                   <td className="px-2 py-2.5">
                     <OrderStatusPicker

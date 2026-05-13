@@ -117,7 +117,7 @@ export function KundDetail({ kund, statusar, onBack, onEdit, onDelete }: Props) 
             Kunder
           </button>
           <span className="text-subtle">/</span>
-          <span className="text-sm text-fg font-medium">{kund.namn}</span>
+          <span className="text-sm text-fg font-medium uppercase">{kund.namn}</span>
           <span className="inline-flex items-center gap-1.5 text-xs px-2 py-0.5 rounded-full border border-border bg-elevated">
             <span className={`size-1.5 rounded-full ${FARG_DOT[currentStatus?.farg ?? 'muted']}`} />
             {kund.status}
@@ -188,7 +188,7 @@ export function KundDetail({ kund, statusar, onBack, onEdit, onDelete }: Props) 
 
         <div className="px-8 py-6 border-b border-border">
           <p className="text-[11px] uppercase tracking-widest text-muted mb-0.5">{kund.kundnummer}</p>
-          <h2 className="text-xl font-semibold text-fg">{kund.namn}</h2>
+          <h2 className="text-xl font-semibold text-fg uppercase">{kund.namn}</h2>
         </div>
 
         <WorkflowTriggerBar seccion="kunder" context={{ kund_id: kund.id }} />

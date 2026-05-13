@@ -115,7 +115,7 @@ export function EkonomiTable({ projekt, utfallAll, onSelect }: Props) {
                     </td>
                     <td className="px-4 py-3 font-mono text-xs text-muted">{p.projekt_nummer}</td>
                     <td className="px-4 py-3 font-medium text-fg">{p.namn}</td>
-                    <td className="px-4 py-3 text-muted text-xs">{p.kunder.namn}</td>
+                    <td className="px-4 py-3 text-muted text-xs uppercase">{p.kunder.namn}</td>
                     <td className="px-4 py-3 text-right font-mono text-xs text-muted">{p.budget_total > 0 ? fmt(p.budget_total) : '—'}</td>
                     <td className="px-4 py-3 text-right font-mono text-xs text-muted">{utfall > 0 ? fmt(utfall) : '—'}</td>
                     <td className={`px-4 py-3 text-right font-mono text-xs ${diff < 0 ? 'text-red-400' : 'text-emerald-400'}`}>

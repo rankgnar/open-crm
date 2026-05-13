@@ -147,7 +147,7 @@ export function EkonomiDetail({ projekt, utfall, onBack, onAddUtfall, onDeleteUt
           <span className="text-subtle">/</span>
           <span className="text-fg font-medium">{projekt.namn}</span>
         </div>
-        <span className="text-xs text-muted ml-1">— {projekt.kunder.namn}</span>
+        <span className="text-xs text-muted ml-1 uppercase">— {projekt.kunder.namn}</span>
       </div>
 
       <WorkflowTriggerBar seccion="ekonomi" context={{ projekt_id: projekt.id }} />

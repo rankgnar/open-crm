@@ -196,7 +196,7 @@ export function ATATable({ atas, onSelect, onNew, onSetStatus, onDeleteMany }: P
                   </td>
                   <td className="px-2 py-2.5 font-mono text-fg">{a.ata_nummer}</td>
                   <td className="px-2 py-2.5 text-fg">{a.projekt?.namn ?? '—'}</td>
-                  <td className="px-2 py-2.5 text-muted">{a.kund_namn}</td>
+                  <td className="px-2 py-2.5 text-muted uppercase">{a.kund_namn}</td>
                   <td className="px-2 py-2.5 text-fg">{a.titel}</td>
                   <td className="px-2 py-2.5">
                     <ATAStatusPicker
