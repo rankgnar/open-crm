@@ -356,7 +356,7 @@ const [selected, setSelected] = useState<Set<string>>(new Set())
                     <td className="px-4 py-3 font-mono text-xs text-muted whitespace-nowrap">{p.projekt_nummer ?? '—'}</td>
                     <td className="px-4 py-3 whitespace-nowrap">
                       <span className="font-mono text-xs text-muted">{p.kunder.kundnummer}</span>
-                      <span className="ml-2 text-fg">{p.kunder.namn}</span>
+                      <span className="ml-2 text-fg uppercase">{p.kunder.namn}</span>
                     </td>
                     <td className="px-4 py-3 font-medium text-fg whitespace-nowrap">{p.namn}</td>
                     <td className="px-4 py-3 whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
