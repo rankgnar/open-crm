@@ -68,7 +68,8 @@ export function ProjektPanel() {
     if (!newNamn.trim()) return
     setStatusSaving(true)
     try {
-      const created = await window.api.invoke('db:projekt-statusar:create', { namn: newNamn.trim(), farg: newFarg }) as ProjektStatusar
+      const nextSortering = statusar.length > 0 ? Math.max(...statusar.map((s) => s.sortering)) + 10 : 0
+      const created = await window.api.invoke('db:projekt-statusar:create', { namn: newNamn.trim(), farg: newFarg, sortering: nextSortering }) as ProjektStatusar
       setStatusar((prev) => [...prev, created])
       setNewNamn(''); setNewFarg('muted'); setAdding(false)
     } finally { setStatusSaving(false) }
@@ -76,16 +77,14 @@ export function ProjektPanel() {
 
   async function handleMove(id: string, dir: 'up' | 'down') {
     const idx = statusar.findIndex((s) => s.id === id)
-    const neighbor = statusar[dir === 'up' ? idx - 1 : idx + 1]
-    if (!neighbor) return
-    const a = statusar[idx]
-    const [updA, updB] = await Promise.all([
-      window.api.invoke('db:projekt-statusar:update', a.id, { sortering: neighbor.sortering }) as Promise<ProjektStatusar>,
-      window.api.invoke('db:projekt-statusar:update', neighbor.id, { sortering: a.sortering }) as Promise<ProjektStatusar>,
-    ])
-    setStatusar((prev) =>
-      prev.map((s) => (s.id === updA.id ? updA : s.id === updB.id ? updB : s))
-        .sort((x, y) => x.sortering - y.sortering)
+    const neighborIdx = dir === 'up' ? idx - 1 : idx + 1
+    if (neighborIdx < 0 || neighborIdx >= statusar.length) return
+    const next = [...statusar]
+    ;[next[idx], next[neighborIdx]] = [next[neighborIdx], next[idx]]
+    const reindexed = next.map((s, i) => ({ ...s, sortering: i * 10 }))
+    setStatusar(reindexed)
+    await Promise.all(
+      reindexed.map((s) => window.api.invoke('db:projekt-statusar:update', s.id, { sortering: s.sortering }))
     )
   }
 

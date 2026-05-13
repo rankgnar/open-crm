@@ -324,7 +324,7 @@ export function registerProjektHandlers(): void {
     return data
   })
 
-  ipcMain.handle('db:projekt-statusar:create', async (_, input: { namn: string; farg: string }) => {
+  ipcMain.handle('db:projekt-statusar:create', async (_, input: { namn: string; farg: string; sortering?: number }) => {
     const { data, error } = await supabase
       .from('projekt_statusar')
       .insert(input)
