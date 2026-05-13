@@ -66,6 +66,9 @@ export interface AppInstallningar {
   ai_api_key: string
   // Klientportal
   kund_portal_auto_invite: boolean
+  // Kalkylator presets (JSONB arrays)
+  kalkyl_ventanatyper?: unknown
+  kalkyl_taktyper?: unknown
   skapad_at: string
   uppdaterad_at: string
 }
@@ -216,6 +219,7 @@ export type InstallningarPanel =
   | 'epost-alias'
   | 'pdfs'
   | 'personal'
+  | 'kalkyl'
 
 export type AvanceratPanel =
   | 'databas'

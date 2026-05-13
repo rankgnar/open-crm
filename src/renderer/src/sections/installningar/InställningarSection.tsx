@@ -1,6 +1,7 @@
 import { useState } from 'react'
-import { Building2, Briefcase, Package, Boxes, Layers, Mail, FileText, Users, FolderKanban, TrendingUp, ClipboardSignature, ClipboardPlus, ChevronRight, SquareArrowOutUpRight, RefreshCw, type LucideIcon } from 'lucide-react'
+import { Building2, Briefcase, Package, Boxes, Layers, Mail, FileText, Users, FolderKanban, TrendingUp, ClipboardSignature, ClipboardPlus, ChevronRight, SquareArrowOutUpRight, RefreshCw, Calculator, type LucideIcon } from 'lucide-react'
 import type { InstallningarPanel } from './types'
+import { KalkylPanel } from './panels/KalkylPanel'
 import { ForetagPanel } from './panels/ForetagPanel'
 import { KunderPanel } from './panels/KunderPanel'
 import { ProjektPanel } from './panels/ProjektPanel'
@@ -65,6 +66,7 @@ const NAV_GROUPS: NavGroup[] = [
       { id: 'artiklar', label: 'F-Artiklar', icon: Package },
       { id: 'materialkatalog', label: 'Materialkatalog', icon: Boxes, popout: true },
       { id: 'fas-mallar', label: 'Fas-Subfas', icon: Layers, popout: true },
+      { id: 'kalkyl', label: 'Kalkylator', icon: Calculator },
     ]
   },
 ]
@@ -81,6 +83,7 @@ const PANEL_TITLES: Record<InstallningarPanel, string> = {
   artiklar: 'F-Artiklar',
   materialkatalog: 'Materialkatalog',
   'fas-mallar': 'Fas-Subfas',
+  'kalkyl': 'Kalkylator-config',
   'epost-mallar': 'E-post mallar',
   'epost-alias': 'E-post alias',
   'pdfs': 'PDF-konfiguration',
@@ -104,6 +107,7 @@ function renderPanel(panel: InstallningarPanel) {
     case 'epost-alias': return <EpostAliasPanel />
     case 'pdfs': return <PDFsPanel />
     case 'personal': return <PersonalPanel />
+    case 'kalkyl': return <KalkylPanel />
   }
 }
 

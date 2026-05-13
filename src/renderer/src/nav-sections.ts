@@ -1,7 +1,7 @@
 import {
   LayoutDashboard, Users, FolderKanban, FileText, TrendingUp, Receipt, ReceiptText,
   CalendarRange, Mail, Calendar, Building2, MessageCircle,
-  UserCheck, Users2, ClipboardSignature, ClipboardPlus, Signature, Truck, Upload, Package, Languages, type LucideIcon,
+  UserCheck, Users2, ClipboardSignature, ClipboardPlus, Signature, Truck, Upload, Package, Languages, Calculator, type LucideIcon,
 } from 'lucide-react'
 
 export interface NavSection {
@@ -38,10 +38,11 @@ export const NAV_GROUPS: NavGroup[] = [
   {
     label: 'Projektering',
     items: [
-      { id: 'kalender', label: 'Kalender', icon: Calendar,            popout: true },
-      { id: 'tidplan',  label: 'Tidplan',  icon: CalendarRange,       popout: true },
-      { id: 'order',    label: 'Order',    icon: ClipboardSignature,  popout: true },
-      { id: 'ata',      label: 'ÄTA',      icon: ClipboardPlus,       popout: true },
+      { id: 'kalender',   label: 'Kalender',   icon: Calendar,            popout: true },
+      { id: 'tidplan',    label: 'Tidplan',    icon: CalendarRange,       popout: true },
+      { id: 'kalkylator', label: 'Kalkylator', icon: Calculator },
+      { id: 'order',      label: 'Order',      icon: ClipboardSignature,  popout: true },
+      { id: 'ata',        label: 'ÄTA',        icon: ClipboardPlus,       popout: true },
     ],
   },
   {
