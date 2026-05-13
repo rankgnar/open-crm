@@ -370,7 +370,7 @@ export function KunderTable({ kunder, statusar, projektCounts, forslagCounts, on
                       <input type="checkbox" checked={isSelected} onChange={() => {}} className="rounded border-border accent-emerald-400 cursor-pointer" />
                     </td>
                     <td className="px-4 py-3 font-mono text-xs text-muted whitespace-nowrap">{kund.kundnummer ?? '—'}</td>
-                    <td className="px-4 py-3 font-medium text-fg whitespace-nowrap">{kund.namn}</td>
+                    <td className="px-4 py-3 font-medium text-fg whitespace-nowrap uppercase">{kund.namn}</td>
                     <td className="px-4 py-3 text-muted whitespace-nowrap">{kund.telefon ?? '—'}</td>
                     <td className="px-4 py-3 text-muted whitespace-nowrap">{kund.email ?? '—'}</td>
                     <td className="px-4 py-3 whitespace-nowrap">
