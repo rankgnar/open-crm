@@ -8,16 +8,23 @@ import { ProjektImportSection } from './ProjektImportSection'
 type Farg = ProjektStatusar['farg']
 
 const FARG_OPTIONS: { value: Farg; dot: string; label: string }[] = [
-  { value: 'emerald', dot: 'bg-emerald-400', label: 'Grön' },
-  { value: 'blue',    dot: 'bg-blue-400',    label: 'Blå' },
+  { value: 'lime',    dot: 'bg-lime-400',    label: 'Lime' },
+  { value: 'green',   dot: 'bg-green-400',   label: 'Grön' },
+  { value: 'emerald', dot: 'bg-emerald-400', label: 'Mint' },
+  { value: 'teal',    dot: 'bg-teal-400',    label: 'Teal' },
   { value: 'cyan',    dot: 'bg-cyan-400',    label: 'Cyan' },
+  { value: 'sky',     dot: 'bg-sky-400',     label: 'Himmel' },
+  { value: 'blue',    dot: 'bg-blue-400',    label: 'Blå' },
   { value: 'indigo',  dot: 'bg-indigo-400',  label: 'Indigo' },
-  { value: 'violet',  dot: 'bg-violet-400',  label: 'Lila' },
+  { value: 'violet',  dot: 'bg-violet-400',  label: 'Violett' },
+  { value: 'purple',  dot: 'bg-purple-400',  label: 'Lila' },
+  { value: 'fuchsia', dot: 'bg-fuchsia-400', label: 'Fuchsia' },
   { value: 'pink',    dot: 'bg-pink-400',    label: 'Rosa' },
-  { value: 'rose',    dot: 'bg-rose-400',    label: 'Röd-rosa' },
+  { value: 'rose',    dot: 'bg-rose-400',    label: 'Ros' },
   { value: 'red',     dot: 'bg-red-400',     label: 'Röd' },
   { value: 'orange',  dot: 'bg-orange-400',  label: 'Orange' },
   { value: 'amber',   dot: 'bg-amber-400',   label: 'Gul' },
+  { value: 'yellow',  dot: 'bg-yellow-400',  label: 'Citron' },
   { value: 'muted',   dot: 'bg-muted',       label: 'Grå' },
 ]
 
