@@ -325,7 +325,7 @@ export function ForetagPanel() {
             <div className="grid grid-cols-2 gap-x-6 gap-y-4">
               <Field label="Telefon" field="foretag_telefon" />
               <Field label="E-post" field="foretag_email" type="email" />
-              <Field label="Webbadress" field="foretag_webbadress" placeholder="https://..." />
+              <Field label="Url" field="foretag_webbadress" placeholder="https://..." />
             </div>
           </div>
 

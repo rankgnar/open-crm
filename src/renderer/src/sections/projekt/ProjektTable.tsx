@@ -1,4 +1,4 @@
-import { Plus, Search, X, Trash2, ArrowUp, ArrowDown, ArrowUpDown, ChevronDown, Check } from 'lucide-react'
+import { Plus, Search, X, Trash2, ArrowUp, ArrowDown, ArrowUpDown, ChevronDown, Check, Globe } from 'lucide-react'
 import { RefreshButton } from '@/components/RefreshButton'
 import { useRef, useState, useEffect } from 'react'
 import type { ProjektWithKund, ProjektStatusar } from './types'
@@ -311,7 +311,22 @@ const [selected, setSelected] = useState<Set<string>>(new Set())
                   <input type="checkbox" checked={allFilteredSelected} onChange={() => {}} onClick={toggleAll}
                     className="rounded border-border accent-emerald-400 cursor-pointer" />
                 </th>
-                {COLS.map(([col, label]) => (
+                {COLS.slice(0, 2).map(([col, label]) => (
+                  <th key={col} onClick={() => handleSort(col)}
+                    className="px-4 py-2.5 text-[11px] font-medium uppercase tracking-wider text-muted cursor-pointer select-none hover:text-fg transition-colors group/th">
+                    <div className="flex items-center gap-1">
+                      {label}
+                      {sortCol === col
+                        ? sortDir === 'asc'
+                          ? <ArrowUp size={10} className="text-fg shrink-0" />
+                          : <ArrowDown size={10} className="text-fg shrink-0" />
+                        : <ArrowUpDown size={10} className="shrink-0 opacity-0 group-hover/th:opacity-40 transition-opacity" />
+                      }
+                    </div>
+                  </th>
+                ))}
+                <th className="w-8" />
+                {COLS.slice(2).map(([col, label]) => (
                   <th key={col} onClick={() => handleSort(col)}
                     className="px-4 py-2.5 text-[11px] font-medium uppercase tracking-wider text-muted cursor-pointer select-none hover:text-fg transition-colors group/th">
                     <div className="flex items-center gap-1">
@@ -357,6 +372,17 @@ const [selected, setSelected] = useState<Set<string>>(new Set())
                     <td className="px-4 py-3 whitespace-nowrap">
                       <span className="font-mono text-xs text-muted">{p.kunder.kundnummer}</span>
                       <span className="ml-2 text-fg uppercase">{p.kunder.namn}</span>
+                    </td>
+                    <td className="px-2 py-3 w-8" onClick={(e) => e.stopPropagation()}>
+                      {p.kunder.webbadress ? (
+                        <button
+                          onClick={() => window.api.invoke('shell:open-external', p.kunder.webbadress!)}
+                          className="text-muted hover:text-fg transition-colors"
+                          title={p.kunder.webbadress}
+                        >
+                          <Globe size={13} />
+                        </button>
+                      ) : null}
                     </td>
                     <td className="px-4 py-3 font-medium text-fg whitespace-nowrap">{p.namn}</td>
                     <td className="px-4 py-3 whitespace-nowrap" onClick={(e) => e.stopPropagation()}>

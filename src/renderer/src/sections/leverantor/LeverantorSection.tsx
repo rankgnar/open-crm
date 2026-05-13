@@ -433,7 +433,7 @@ export function LeverantorSection() {
                             <Field label="Org.nummer" value={l.org_nummer} placeholder="XXXXXX-XXXX" onSave={(v) => handleUpdate(l.id, 'org_nummer', v)} />
                             <Field label="E-post" value={l.email} onSave={(v) => handleUpdate(l.id, 'email', v)} />
                             <Field label="Telefon" value={l.telefon} onSave={(v) => handleUpdate(l.id, 'telefon', v)} />
-                            <Field label="Webbadress" value={l.webbadress} placeholder="https://..." onSave={(v) => handleUpdate(l.id, 'webbadress', v)} />
+                            <Field label="Url" value={l.webbadress} placeholder="https://..." onSave={(v) => handleUpdate(l.id, 'webbadress', v)} />
                             <div className="col-span-3">
                               <Field label="Anteckning" value={l.anteckning} onSave={(v) => handleUpdate(l.id, 'anteckning', v)} />
                             </div>

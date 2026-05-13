@@ -232,7 +232,7 @@ export function KundForm({ initial, statusar, onSubmit, onCancel }: Props) {
           <FC label="E-post">
             <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="kontakt@exempel.se" className={CI} />
           </FC>
-          <FC label="Webbadress">
+          <FC label="Url">
             <input value={webbadress} onChange={(e) => setWebbadress(e.target.value)} placeholder="www.exempel.se" className={CI} />
           </FC>
           <FC label="Telefon">

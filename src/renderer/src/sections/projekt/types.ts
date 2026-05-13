@@ -47,6 +47,7 @@ export interface ProjektWithKund extends Projekt {
   kunder: {
     namn: string
     kundnummer: string
+    webbadress: string | null
   }
 }
 

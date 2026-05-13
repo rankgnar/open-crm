@@ -64,7 +64,7 @@ type UpdateProjektInput = Partial<Omit<CreateProjektInput, 'kund_id'>>
 
 const SELECT_WITH_KUND = `
   *,
-  kunder!inner(namn, kundnummer)
+  kunder!inner(namn, kundnummer, webbadress)
 `
 
 async function nextProjektNummer(): Promise<string> {

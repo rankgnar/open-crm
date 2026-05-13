@@ -201,7 +201,7 @@ export function KundDetail({ kund, statusar, onBack, onEdit, onDelete }: Props) 
 
         <DetailSection title="Kontaktuppgifter">
           <DetailField label="E-post" value={kund.email} />
-          <DetailField label="Webbadress" value={kund.webbadress} />
+          <DetailField label="Url" value={kund.webbadress} />
           <DetailField label="Telefon" value={kund.telefon} />
           <DetailField label="Telefon 2" value={kund.telefon_2} />
           <DetailField label="Fax" value={kund.fax} />

@@ -591,7 +591,7 @@ function CompanyStep({ company, loaded, error, logoLoading, onUpdate, onBlur, on
           onBlur={(v) => onBlur('foretag_email', v)}
         />
         <CompanyField
-          label="Webbadress"
+          label="Url"
           value={company.foretag_webbadress}
           onChange={(v) => onUpdate('foretag_webbadress', v)}
           onBlur={(v) => onBlur('foretag_webbadress', v)}
