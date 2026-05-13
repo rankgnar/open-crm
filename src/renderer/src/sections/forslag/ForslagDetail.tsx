@@ -109,6 +109,14 @@ export function ForslagDetail({ forslag: forslagProp, statusar, allProjekt, onBa
     if (openTidplanReminder) setShowTidplanReminder(true)
   }, [openTidplanReminder])
 
+  const [accentFarg, setAccentFarg] = useState('#1B3A6B')
+  useEffect(() => {
+    window.api.invoke('db:pdf-mall:get', 'forslag').then((m) => {
+      const mall = m as PdfMall | null
+      if (mall?.accent_farg) setAccentFarg(mall.accent_farg)
+    }).catch(() => {})
+  }, [])
+
   // Faser
   const [faser, setFaser] = useState<ForslagFas[]>([])
   const [selectedFasId, setSelectedFasId] = useState<string | null>(null)
@@ -782,7 +790,8 @@ export function ForslagDetail({ forslag: forslagProp, statusar, allProjekt, onBa
 
               {/* Fas header */}
               <div
-                className="group flex items-center gap-2 px-4 py-2.5 bg-sidebar cursor-pointer select-none"
+                className="group flex items-center gap-2 px-4 py-2.5 cursor-pointer select-none"
+                style={{ backgroundColor: accentFarg + '28', borderLeft: `2px solid ${accentFarg}60` }}
                 onClick={() => setCollapsedFaser((prev) => {
                   const next = new Set(prev)
                   next.has(fas.id) ? next.delete(fas.id) : next.add(fas.id)
