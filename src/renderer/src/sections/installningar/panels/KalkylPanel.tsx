@@ -21,7 +21,9 @@ const CONFIG_TABS: { type: ConfigTab; label: string }[] = [
   { type: 'vagg', label: 'Vägg' },
 ]
 
-const ICON_OPTIONS: { value: DeductionIconType; label: string }[] = [
+type IconOption = { value: DeductionIconType; label: string }
+
+const ICON_OPTIONS_FASAD: IconOption[] = [
   { value: 'window-single', label: 'Fönster' },
   { value: 'window-double', label: 'Dubbelfönster' },
   { value: 'door', label: 'Dörr' },
@@ -29,6 +31,28 @@ const ICON_OPTIONS: { value: DeductionIconType; label: string }[] = [
   { value: 'garage', label: 'Garageport' },
   { value: 'triangle', label: 'Triangel' },
   { value: 'triangle-right', label: 'Triangel 90°' },
+  { value: 'rectangle', label: 'Rektangel' },
+]
+
+const ICON_OPTIONS_TAK: IconOption[] = [
+  { value: 'rectangle', label: 'Rektangel' },
+  { value: 'window-single', label: 'Takfönster' },
+  { value: 'triangle', label: 'Triangel' },
+  { value: 'triangle-right', label: 'Triangel 90°' },
+]
+
+const ICON_OPTIONS_GOLV: IconOption[] = [
+  { value: 'rectangle', label: 'Rektangel' },
+  { value: 'door', label: 'Dörrparti' },
+  { value: 'triangle', label: 'Triangel' },
+  { value: 'triangle-right', label: 'Triangel 90°' },
+]
+
+const ICON_OPTIONS_VAGG: IconOption[] = [
+  { value: 'window-single', label: 'Fönster' },
+  { value: 'window-double', label: 'Dubbelfönster' },
+  { value: 'door', label: 'Dörr' },
+  { value: 'door-double', label: 'Dubbeldörr' },
   { value: 'rectangle', label: 'Rektangel' },
 ]
 
@@ -56,12 +80,13 @@ function makePresetsHandlers(
 }
 
 function PresetsTable({
-  title, description, items, saved, onSet, onSave, onRemove, onAdd, onReset, addLabel,
+  title, description, items, saved, iconOptions, onSet, onSave, onRemove, onAdd, onReset, addLabel,
 }: {
   title: string
   description?: string
   items: VentanaPreset[]
   saved: boolean
+  iconOptions: IconOption[]
   onSet: (id: string, field: keyof VentanaPreset, value: string | number) => void
   onSave: (id: string, field: keyof VentanaPreset, value: string | number) => void
   onRemove: (id: string) => void
@@ -108,7 +133,7 @@ function PresetsTable({
                 <select value={p.icon}
                   onChange={e => onSave(p.id, 'icon', e.target.value)}
                   className="input text-sm w-full">
-                  {ICON_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+                  {iconOptions.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
                 </select>
               </td>
               <td className="py-2 pr-3">
@@ -269,7 +294,7 @@ export function KalkylPanel() {
             <PresetsTable
               title="Fönster & Dörrar"
               description="Förvalt avdragstyper för fasadkalkyl"
-              items={localVentana} saved={ventanaSaved}
+              items={localVentana} saved={ventanaSaved} iconOptions={ICON_OPTIONS_FASAD}
               onSet={vh.setField} onSave={vh.saveField} onRemove={vh.remove} onAdd={vh.add}
               onReset={() => void saveVentana(DEFAULT_VENTANA_PRESETS)}
               addLabel="Ny fönster-/dörrtyp"
@@ -343,7 +368,7 @@ export function KalkylPanel() {
           <PresetsTable
             title="Öppningar"
             description="Förvalt avdragstyper för takkalkyl — takfönster, rökluckor, genomföringar"
-            items={localTakAvdrag} saved={takAvdragSaved}
+            items={localTakAvdrag} saved={takAvdragSaved} iconOptions={ICON_OPTIONS_TAK}
             onSet={tah.setField} onSave={tah.saveField} onRemove={tah.remove} onAdd={tah.add}
             onReset={() => void saveTakAvdrag(DEFAULT_TAK_AVDRAG)}
             addLabel="Ny öppningstyp"
@@ -357,7 +382,7 @@ export function KalkylPanel() {
           <PresetsTable
             title="Avdrag"
             description="Förvalt avdragstyper för golvkalkyl — trappor, pelare, dörrpartier"
-            items={localGolvAvdrag} saved={golvAvdragSaved}
+            items={localGolvAvdrag} saved={golvAvdragSaved} iconOptions={ICON_OPTIONS_GOLV}
             onSet={goh.setField} onSave={goh.saveField} onRemove={goh.remove} onAdd={goh.add}
             onReset={() => void saveGolvAvdrag(DEFAULT_GOLV_AVDRAG)}
             addLabel="Ny avdragstyp"
@@ -371,7 +396,7 @@ export function KalkylPanel() {
           <PresetsTable
             title="Fönster & Dörrar"
             description="Förvalt avdragstyper för väggkalkyl — fönster, dörrar"
-            items={localVaggAvdrag} saved={vaggAvdragSaved}
+            items={localVaggAvdrag} saved={vaggAvdragSaved} iconOptions={ICON_OPTIONS_VAGG}
             onSet={vah.setField} onSave={vah.saveField} onRemove={vah.remove} onAdd={vah.add}
             onReset={() => void saveVaggAvdrag(DEFAULT_VAGG_AVDRAG)}
             addLabel="Ny fönster-/dörrtyp"
