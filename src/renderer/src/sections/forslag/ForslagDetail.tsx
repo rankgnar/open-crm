@@ -845,8 +845,12 @@ export function ForslagDetail({ forslag: forslagProp, statusar, allProjekt, onBa
 
               {/* Fas note — read-only display */}
               {fas.notat && editingFasNotatId !== fas.id && (
-                <div className="px-5 py-1.5 border-t border-border/30 bg-sidebar/60">
-                  <span className="text-[10px] text-muted italic">* Anm: {fas.notat}</span>
+                <div
+                  className="px-5 py-1.5 border-t border-border/30 bg-sidebar/60 cursor-pointer hover:bg-hover/40 flex items-center gap-1.5 group/note"
+                  onClick={(e) => { e.stopPropagation(); setEditFasNotat(fas.notat ?? ''); setEditingFasNotatId(fas.id) }}
+                >
+                  <span className="text-[10px] text-muted italic flex-1">* Anm: {fas.notat}</span>
+                  <Pencil size={9} className="text-subtle opacity-0 group-hover/note:opacity-100 transition-opacity shrink-0" />
                 </div>
               )}
 
