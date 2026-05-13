@@ -813,31 +813,31 @@ export function ForslagDetail({ forslag: forslagProp, statusar, allProjekt, onBa
                     </span>
                     <button
                       onClick={(e) => { e.stopPropagation(); setSelectedFasId(fas.id); setAddingSubfas(true); setCollapsedFaser((prev) => { const n = new Set(prev); n.delete(fas.id); return n }) }}
-                      className="opacity-0 group-hover:opacity-100 flex items-center gap-0.5 text-[10px] text-subtle hover:text-fg transition-opacity shrink-0"
+                      className="flex items-center gap-0.5 text-[10px] text-subtle hover:text-fg transition-opacity shrink-0"
                     >
                       <Plus size={10} />subfas
                     </button>
                     <button
                       onClick={(e) => { e.stopPropagation(); setEditFasNamn(fas.namn); setEditingFasId(fas.id) }}
-                      className="opacity-0 group-hover:opacity-100 text-subtle hover:text-fg shrink-0 transition-opacity"
+                      className="text-subtle hover:text-fg shrink-0 transition-opacity"
                     ><Pencil size={10} /></button>
                     <button
                       onClick={(e) => { e.stopPropagation(); setEditFasNotat(fas.notat ?? ''); setEditingFasNotatId(fas.id) }}
-                      className={`opacity-0 group-hover:opacity-100 shrink-0 transition-opacity ${fas.notat ? 'text-amber-400' : 'text-subtle hover:text-fg'}`}
+                      className={`shrink-0 transition-opacity ${fas.notat ? 'text-amber-400' : 'text-subtle hover:text-fg'}`}
                     ><StickyNote size={10} /></button>
                     <button
                       onClick={(e) => { e.stopPropagation(); handleDeleteFas(fas.id) }}
-                      className="opacity-0 group-hover:opacity-100 text-subtle hover:text-red-400 shrink-0 transition-opacity"
+                      className="text-subtle hover:text-red-400 shrink-0 transition-opacity"
                     ><Trash2 size={10} /></button>
                     <button
                       onClick={(e) => { e.stopPropagation(); handleMoveFas(fas, 'up') }}
                       disabled={faser.indexOf(fas) === 0}
-                      className="opacity-0 group-hover:opacity-100 text-subtle hover:text-fg shrink-0 transition-opacity disabled:opacity-20 disabled:pointer-events-none"
+                      className="text-subtle hover:text-fg shrink-0 transition-opacity disabled:opacity-20 disabled:pointer-events-none"
                     ><ArrowUp size={10} /></button>
                     <button
                       onClick={(e) => { e.stopPropagation(); handleMoveFas(fas, 'down') }}
                       disabled={faser.indexOf(fas) === faser.length - 1}
-                      className="opacity-0 group-hover:opacity-100 text-subtle hover:text-fg shrink-0 transition-opacity disabled:opacity-20 disabled:pointer-events-none"
+                      className="text-subtle hover:text-fg shrink-0 transition-opacity disabled:opacity-20 disabled:pointer-events-none"
                     ><ArrowDown size={10} /></button>
                   </>
                 )}
@@ -940,21 +940,21 @@ export function ForslagDetail({ forslag: forslagProp, statusar, allProjekt, onBa
                         )}
                         <button
                           onClick={(e) => { e.stopPropagation(); setEditSubfasNamn(sf.namn); setEditingSubfasId(sf.id) }}
-                          className="opacity-0 group-hover:opacity-100 text-subtle hover:text-fg shrink-0 transition-opacity"
+                          className="text-subtle hover:text-fg shrink-0 transition-opacity"
                         ><Pencil size={10} /></button>
                         <button
                           onClick={(e) => { e.stopPropagation(); handleDeleteSubfas(sf) }}
-                          className="opacity-0 group-hover:opacity-100 text-subtle hover:text-red-400 shrink-0 transition-opacity"
+                          className="text-subtle hover:text-red-400 shrink-0 transition-opacity"
                         ><Trash2 size={10} /></button>
                         <button
                           onClick={(e) => { e.stopPropagation(); handleMoveSubfas(sf, fas.id, 'up') }}
                           disabled={(subfaserByFas[fas.id] ?? []).indexOf(sf) === 0}
-                          className="opacity-0 group-hover:opacity-100 text-subtle hover:text-fg shrink-0 transition-opacity disabled:opacity-20 disabled:pointer-events-none"
+                          className="text-subtle hover:text-fg shrink-0 transition-opacity disabled:opacity-20 disabled:pointer-events-none"
                         ><ArrowUp size={10} /></button>
                         <button
                           onClick={(e) => { e.stopPropagation(); handleMoveSubfas(sf, fas.id, 'down') }}
                           disabled={(subfaserByFas[fas.id] ?? []).indexOf(sf) === (subfaserByFas[fas.id] ?? []).length - 1}
-                          className="opacity-0 group-hover:opacity-100 text-subtle hover:text-fg shrink-0 transition-opacity disabled:opacity-20 disabled:pointer-events-none"
+                          className="text-subtle hover:text-fg shrink-0 transition-opacity disabled:opacity-20 disabled:pointer-events-none"
                         ><ArrowDown size={10} /></button>
                       </>
                     )}
@@ -1337,7 +1337,7 @@ export function ForslagDetail({ forslag: forslagProp, statusar, allProjekt, onBa
                             setEpostOpenHint(true)
                             setTimeout(() => setEpostOpenHint(false), 3000)
                           }}
-                          className="text-[10px] text-blue-400 hover:text-blue-300 opacity-0 group-hover:opacity-100 transition-opacity shrink-0"
+                          className="text-[10px] text-blue-400 hover:text-blue-300 transition-opacity shrink-0"
                         >
                           Öppna
                         </button>
@@ -1346,7 +1346,7 @@ export function ForslagDetail({ forslag: forslagProp, statusar, allProjekt, onBa
                             await window.api.invoke('db:forslag-epost:delete', ref.id)
                             setEpostRefs(prev => prev.filter(r => r.id !== ref.id))
                           }}
-                          className="text-[10px] text-red-400 hover:text-red-300 opacity-0 group-hover:opacity-100 transition-opacity shrink-0"
+                          className="text-[10px] text-red-400 hover:text-red-300 transition-opacity shrink-0"
                         >
                           Ta bort
                         </button>
