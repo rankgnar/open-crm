@@ -1,4 +1,4 @@
-import { Plus, Search, X, Trash2, ArrowUp, ArrowDown, ArrowUpDown, ChevronDown, Flame, Pause } from 'lucide-react'
+import { Plus, Search, X, Trash2, ArrowUp, ArrowDown, ArrowUpDown, ChevronDown, Flame, Pause, Check } from 'lucide-react'
 import { RefreshButton } from '@/components/RefreshButton'
 import { useRef, useState, useEffect } from 'react'
 import type { ProjektWithKund, ProjektStatusar, ProjektPrioritet } from './types'
@@ -118,7 +118,7 @@ const ANT_FARG_DOT: Record<string, string> = {
   muted:   'bg-muted',
 }
 
-function StatusSelect({ value, onChange, statusar }: { value: string; onChange: (v: string) => void; statusar: ProjektStatusar[] }) {
+function StatusSelect({ value, onChange, statusar }: { value: string[]; onChange: (v: string[]) => void; statusar: ProjektStatusar[] }) {
   const [open, setOpen] = useState(false)
   const ref = useRef<HTMLDivElement>(null)
 
@@ -131,7 +131,18 @@ function StatusSelect({ value, onChange, statusar }: { value: string; onChange: 
     return () => document.removeEventListener('mousedown', handler)
   }, [open])
 
-  const selected = statusar.find(s => s.namn === value)
+  function toggle(namn: string) {
+    const next = value.includes(namn) ? value.filter(v => v !== namn) : [...value, namn]
+    onChange(next)
+  }
+
+  const label = value.length === 0
+    ? 'Alla statusar'
+    : value.length === 1
+      ? value[0]
+      : `${value.length} statusar`
+
+  const hasSelection = value.length > 0
 
   return (
     <div ref={ref} className="relative w-48 shrink-0">
@@ -140,13 +151,8 @@ function StatusSelect({ value, onChange, statusar }: { value: string; onChange: 
         onClick={() => setOpen(v => !v)}
         className="w-full flex items-center justify-between gap-2 bg-elevated border border-border rounded-lg px-3 py-2 text-sm outline-none hover:border-fg/30 transition-colors"
       >
-        <span className={`truncate flex items-center gap-2 ${selected ? 'text-fg' : 'text-subtle'}`}>
-          {selected ? (
-            <>
-              <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${FARG_DOT[selected.farg]}`} />
-              <span>{selected.namn}</span>
-            </>
-          ) : 'Alla statusar'}
+        <span className={`truncate ${hasSelection ? 'text-fg' : 'text-subtle'}`}>
+          {label}
         </span>
         <ChevronDown size={12} className="text-muted shrink-0" />
       </button>
@@ -154,26 +160,32 @@ function StatusSelect({ value, onChange, statusar }: { value: string; onChange: 
       {open && (
         <div className="absolute left-0 right-0 top-full mt-1 z-50 bg-elevated border border-border rounded-lg shadow-xl flex flex-col overflow-hidden">
           <div className="max-h-64 overflow-auto py-1">
-            {value && (
+            {hasSelection && (
               <button
                 type="button"
-                onClick={() => { onChange(''); setOpen(false) }}
+                onClick={() => { onChange([]); setOpen(false) }}
                 className="w-full text-left px-3 py-2 text-xs text-subtle hover:bg-hover transition-colors"
               >
                 — Alla statusar —
               </button>
             )}
-            {statusar.map(s => (
-              <button
-                key={s.id}
-                type="button"
-                onClick={() => { onChange(s.namn); setOpen(false) }}
-                className={`w-full flex items-center gap-2 text-left px-3 py-2 text-xs hover:bg-hover transition-colors ${s.namn === value ? 'text-fg font-medium bg-hover/50' : 'text-muted'}`}
-              >
-                <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${FARG_DOT[s.farg]}`} />
-                <span className="truncate">{s.namn}</span>
-              </button>
-            ))}
+            {statusar.map(s => {
+              const checked = value.includes(s.namn)
+              return (
+                <button
+                  key={s.id}
+                  type="button"
+                  onClick={() => toggle(s.namn)}
+                  className={`w-full flex items-center gap-2 text-left px-3 py-2 text-xs hover:bg-hover transition-colors ${checked ? 'text-fg font-medium' : 'text-muted'}`}
+                >
+                  <span className={`w-3.5 h-3.5 rounded border shrink-0 flex items-center justify-center transition-colors ${checked ? 'bg-emerald-500 border-emerald-500' : 'border-border bg-bg'}`}>
+                    {checked && <Check size={9} className="text-white" />}
+                  </span>
+                  <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${FARG_DOT[s.farg]}`} />
+                  <span className="truncate">{s.namn}</span>
+                </button>
+              )
+            })}
           </div>
         </div>
       )}
@@ -183,7 +195,7 @@ function StatusSelect({ value, onChange, statusar }: { value: string; onChange: 
 
 export function ProjektTable({ projekt, statusar, fragSummary, lastAnteckning, onSelect, onNew, onStatusChange, onStatusChangeMany, onDeleteMany, onPriorityChange, onPriorityChangeMany }: Props) {
   const [query, setQuery] = useState('')
-  const [statusFilter, setStatusFilter] = useState('')
+  const [statusFilter, setStatusFilter] = useState<string[]>([])
   const [prioritetFilter, setPrioritetFilter] = useState<ProjektPrioritet | ''>('')
   const [selected, setSelected] = useState<Set<string>>(new Set())
   const [confirmBulk, setConfirmBulk] = useState(false)
@@ -209,7 +221,7 @@ export function ProjektTable({ projekt, statusar, fragSummary, lastAnteckning, o
     const q = query.toLowerCase()
     const matchesQuery = !q || [p.projekt_nummer, p.namn, p.kunder.namn, p.kunder.kundnummer, p.arbetsplats_stad]
       .some((v) => v?.toLowerCase().includes(q))
-    return matchesQuery && (!statusFilter || p.status === statusFilter) && (!prioritetFilter || (p.prioritet ?? 'parked') === prioritetFilter)
+    return matchesQuery && (statusFilter.length === 0 || statusFilter.includes(p.status)) && (!prioritetFilter || (p.prioritet ?? 'parked') === prioritetFilter)
   })
 
   const sorted = sortCol ? [...filtered].sort((a, b) => {
@@ -268,7 +280,7 @@ export function ProjektTable({ projekt, statusar, fragSummary, lastAnteckning, o
     setConfirmRowId(null)
   }
 
-  const isFiltering = query !== '' || statusFilter !== '' || prioritetFilter !== ''
+  const isFiltering = query !== '' || statusFilter.length > 0 || prioritetFilter !== ''
 
   const COLS: [string, string][] = [
     ['projekt_nummer', 'Nr'],
