@@ -39,10 +39,12 @@ export function buildForslagDesglose(
     rotCapDubbel: number
     accentFarg: string
     visaLeverantor?: boolean
+    visaFasNotat?: boolean
   }
 ): string {
   const ac = opts.accentFarg
   const showLeverantor = opts.visaLeverantor !== false
+  const showFasNotat = opts.visaFasNotat !== false
   const acBg = hexToRgba(ac, 0.08)
   const acBgMid = hexToRgba(ac, 0.12)
   const acBorder = hexToRgba(ac, 0.35)
@@ -197,8 +199,13 @@ export function buildForslagDesglose(
     html += `<tr style="background:${acBgMid};">
       <td colspan="5" style="padding:4px 5px;font-size:8px;font-weight:700;color:${ac};text-align:right;border-bottom:0.5px solid ${acBorder};border-top:0.5px solid ${acBorder};">Summa ${fas.namn}</td>
       <td style="padding:4px 5px;font-size:8px;font-weight:700;color:${ac};text-align:right;border-bottom:0.5px solid ${acBorder};border-top:0.5px solid ${acBorder};white-space:nowrap;">${fmt(fasTotal)} kr</td>
-    </tr>
-    <tr><td colspan="6" style="height:6px;"></td></tr>`
+    </tr>`
+    if (fas.notat && showFasNotat) {
+      html += `<tr>
+        <td colspan="6" style="padding:1px 5px 4px;font-size:6.5px;font-style:italic;color:#6b7280;">* Anm: ${fas.notat}</td>
+      </tr>`
+    }
+    html += `<tr><td colspan="6" style="height:6px;"></td></tr>`
   }
 
   html += `</table>`

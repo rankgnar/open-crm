@@ -86,6 +86,7 @@ export interface ForslagFas {
   sortering: number
   start_datum: string | null
   slut_datum: string | null
+  notat: string | null
   skapad_at: string
 }
 

@@ -28,6 +28,7 @@ const TAB_META: Record<Tab, { label: string; defaultMall: Omit<PdfMall, 'id' | '
       visa_materialkostnad: true,
       visa_godkand_f_skatt: true,
       visa_leverantor_material: true,
+      visa_fas_notat: true,
       visa_villkor: true,
       html_mall: '',
     },
@@ -49,6 +50,7 @@ const TAB_META: Record<Tab, { label: string; defaultMall: Omit<PdfMall, 'id' | '
       visa_materialkostnad: false,
       visa_godkand_f_skatt: true,
       visa_leverantor_material: false,
+      visa_fas_notat: true,
       visa_villkor: false,
       html_mall: '',
     },
@@ -132,7 +134,7 @@ export function PDFsPanel() {
   async function previewForslag() {
     const template = (mall.html_mall && mall.html_mall.trim() !== '') ? mall.html_mall : DEFAULT_FORSLAG_HTML
     const mockDesglose = buildForslagDesglose(
-      [{ id: 'f1', forslag_id: 'x', namn: 'Projektering', beskrivning: null, sortering: 0, start_datum: null, slut_datum: null, skapad_at: '' }],
+      [{ id: 'f1', forslag_id: 'x', namn: 'Projektering', beskrivning: null, sortering: 0, start_datum: null, slut_datum: null, notat: null, skapad_at: '' }],
       { f1: [{ id: 's1', fas_id: 'f1', namn: 'Ritningar', beskrivning: null, sortering: 0, skapad_at: '' }] },
       { s1: [{ id: 'a1', subfas_id: 's1', beskrivning: 'Projekteringsarbete', yrkesroll: 'Projektledare', antal_timmar: 20, timpris: 950, rot_berattigad: true, skapad_at: '' }] },
       { s1: [{ id: 'm1', subfas_id: 's1', beskrivning: 'Ritningspapper A1', enhet: 'st', antal: 10, a_pris: 85, leverantor: 'Contex', skapad_at: '' }] },
@@ -367,6 +369,9 @@ export function PDFsPanel() {
                 </Row>
                 <Row label="Visa leverantör på material" description="Leverantörskolumn i materialtabellen">
                   <Toggle checked={mall.visa_leverantor_material !== false} onChange={(v) => set('visa_leverantor_material', v)} />
+                </Row>
+                <Row label="Visa noteringar" description="Anmärkningar per fas i kostnadsspec">
+                  <Toggle checked={mall.visa_fas_notat !== false} onChange={(v) => set('visa_fas_notat', v)} />
                 </Row>
                 <Row label="Godkänd för F-skatt" description="F-skatt-godkännande i header">
                   <Toggle checked={mall.visa_godkand_f_skatt !== false} onChange={(v) => set('visa_godkand_f_skatt', v)} />

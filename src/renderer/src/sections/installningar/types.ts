@@ -268,6 +268,7 @@ export interface PdfMall {
   visa_materialkostnad: boolean
   visa_godkand_f_skatt: boolean
   visa_leverantor_material: boolean
+  visa_fas_notat: boolean
   visa_villkor: boolean
   html_mall: string
   skapad_at: string

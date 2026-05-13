@@ -155,7 +155,7 @@ export function ForslagSection({ initialProjektId, onNavigateProjekt, initialFor
 
     const desgloseHtml = buildForslagDesglose(
       faserData, subfaserByFas, arbeteBySubfas, materialBySubfas, ueBySubfas,
-      { momsProcent: f.moms_procent, rotAvdrag, rotProcent, rotInkluderaMedsokande, rotCapEnkel: ROT_CAP_SINGLE, rotCapDubbel: ROT_CAP_DOUBLE, accentFarg, visaLeverantor: mall?.visa_leverantor_material !== false }
+      { momsProcent: f.moms_procent, rotAvdrag, rotProcent, rotInkluderaMedsokande, rotCapEnkel: ROT_CAP_SINGLE, rotCapDubbel: ROT_CAP_DOUBLE, accentFarg, visaLeverantor: mall?.visa_leverantor_material !== false, visaFasNotat: mall?.visa_fas_notat !== false }
     )
 
     const totals = computeForslagTotals({

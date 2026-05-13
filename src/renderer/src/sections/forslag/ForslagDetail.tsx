@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
-import { ArrowLeft, ArrowUp, ArrowDown, Pencil, Trash2, Plus, X as XIcon, Check, ChevronRight, ChevronDown, CalendarDays, FileDown, Send, Mail, RefreshCw, FolderOpen, ChevronsUpDown } from 'lucide-react'
+import { ArrowLeft, ArrowUp, ArrowDown, Pencil, Trash2, Plus, X as XIcon, Check, ChevronRight, ChevronDown, CalendarDays, FileDown, Send, Mail, RefreshCw, FolderOpen, ChevronsUpDown, StickyNote } from 'lucide-react'
 import { WorkflowTriggerBar } from '@/components/WorkflowTriggerBar'
 import { SkickaForSignaturModal } from '@/sections/signatur/SkickaForSignaturModal'
 import { SkickaUppdateradVersionModal } from '@/sections/signatur/SkickaUppdateradVersionModal'
@@ -117,6 +117,8 @@ export function ForslagDetail({ forslag: forslagProp, statusar, allProjekt, onBa
   const [nyFasNamn, setNyFasNamn] = useState('')
   const [editingFasId, setEditingFasId] = useState<string | null>(null)
   const [editFasNamn, setEditFasNamn] = useState('')
+  const [editingFasNotatId, setEditingFasNotatId] = useState<string | null>(null)
+  const [editFasNotat, setEditFasNotat] = useState('')
 
   // Subfaser
   const [subfaserByFas, setSubfaserByFas] = useState<Record<string, ForslagSubfas[]>>({})
@@ -228,6 +230,13 @@ export function ForslagDetail({ forslag: forslagProp, statusar, allProjekt, onBa
     const updated = await window.api.invoke('db:forslag-faser:update', editingFasId, { namn }) as ForslagFas
     setFaser((prev) => prev.map((f) => f.id === updated.id ? updated : f))
     setEditingFasId(null)
+  }
+
+  async function handleSaveFasNotat(fasId: string) {
+    const notat = editFasNotat.trim() || null
+    const updated = await window.api.invoke('db:forslag-faser:update', fasId, { notat }) as ForslagFas
+    setFaser((prev) => prev.map((f) => f.id === fasId ? updated : f))
+    setEditingFasNotatId(null)
   }
 
   async function handleDeleteFas(fasId: string) {
@@ -413,7 +422,7 @@ export function ForslagDetail({ forslag: forslagProp, statusar, allProjekt, onBa
 
     const desgloseHtml = buildForslagDesglose(
       faser, subfaserByFas, arbeteBySubfas, materialBySubfas, ueBySubfas,
-      { momsProcent: forslag.moms_procent, rotAvdrag, rotProcent, rotInkluderaMedsokande, rotCapEnkel: ROT_CAP_SINGLE, rotCapDubbel: ROT_CAP_DOUBLE, accentFarg, visaLeverantor: mall?.visa_leverantor_material !== false }
+      { momsProcent: forslag.moms_procent, rotAvdrag, rotProcent, rotInkluderaMedsokande, rotCapEnkel: ROT_CAP_SINGLE, rotCapDubbel: ROT_CAP_DOUBLE, accentFarg, visaLeverantor: mall?.visa_leverantor_material !== false, visaFasNotat: mall?.visa_fas_notat !== false }
     )
 
     const allArbete = Object.values(arbeteBySubfas).flat()
@@ -813,6 +822,10 @@ export function ForslagDetail({ forslag: forslagProp, statusar, allProjekt, onBa
                       className="opacity-0 group-hover:opacity-100 text-subtle hover:text-fg shrink-0 transition-opacity"
                     ><Pencil size={10} /></button>
                     <button
+                      onClick={(e) => { e.stopPropagation(); setEditFasNotat(fas.notat ?? ''); setEditingFasNotatId(fas.id) }}
+                      className={`opacity-0 group-hover:opacity-100 shrink-0 transition-opacity ${fas.notat ? 'text-amber-400' : 'text-subtle hover:text-fg'}`}
+                    ><StickyNote size={10} /></button>
+                    <button
                       onClick={(e) => { e.stopPropagation(); handleDeleteFas(fas.id) }}
                       className="opacity-0 group-hover:opacity-100 text-subtle hover:text-red-400 shrink-0 transition-opacity"
                     ><Trash2 size={10} /></button>
@@ -829,6 +842,56 @@ export function ForslagDetail({ forslag: forslagProp, statusar, allProjekt, onBa
                   </>
                 )}
               </div>
+
+              {/* Fas note — read-only display */}
+              {fas.notat && editingFasNotatId !== fas.id && (
+                <div className="px-5 py-1.5 border-t border-border/30 bg-sidebar/60">
+                  <span className="text-[10px] text-muted italic">* Anm: {fas.notat}</span>
+                </div>
+              )}
+
+              {/* Fas note editor */}
+              {editingFasNotatId === fas.id && (
+                <div
+                  className="px-5 py-2 border-t border-border/30 bg-sidebar space-y-1.5"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <textarea
+                    autoFocus
+                    rows={2}
+                    placeholder="Anteckning till denna fas..."
+                    className="input w-full text-xs resize-none py-1 px-1.5"
+                    value={editFasNotat}
+                    onChange={(e) => setEditFasNotat(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Escape') setEditingFasNotatId(null)
+                      if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) handleSaveFasNotat(fas.id)
+                    }}
+                  />
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => handleSaveFasNotat(fas.id)}
+                      className="flex items-center gap-0.5 text-[10px] text-emerald-400 hover:text-emerald-300"
+                    >
+                      <Check size={10} /> Spara
+                    </button>
+                    <button
+                      onClick={() => setEditingFasNotatId(null)}
+                      className="text-[10px] text-subtle hover:text-fg"
+                    >
+                      Avbryt
+                    </button>
+                    {fas.notat && (
+                      <button
+                        onClick={() => { setEditFasNotat(''); handleSaveFasNotat(fas.id) }}
+                        className="ml-auto text-[10px] text-subtle hover:text-red-400"
+                      >
+                        Ta bort notat
+                      </button>
+                    )}
+                  </div>
+                </div>
+              )}
 
               {/* Subfaser — ocultas si colapsado */}
               {!collapsedFaser.has(fas.id) && (subfaserByFas[fas.id] ?? []).map((sf) => (
