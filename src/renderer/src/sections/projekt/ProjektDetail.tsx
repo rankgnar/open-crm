@@ -1,6 +1,6 @@
-import { useState } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { useAppConfig } from '@/context/AppConfig'
-import { ArrowLeft, Pencil, Trash2, Send, Check, X as XIcon, Eye, EyeOff, FileText } from 'lucide-react'
+import { ArrowLeft, Pencil, Trash2, Send, Check, X as XIcon, Eye, EyeOff, FileText, ChevronDown } from 'lucide-react'
 import { RefreshButton } from '@/components/RefreshButton'
 import { WorkflowTriggerBar } from '@/components/WorkflowTriggerBar'
 import { ProjektForm } from './ProjektForm'
@@ -142,7 +142,7 @@ export function ProjektDetail({ projekt, kunder, statusar, anteckningar, snapsho
   return (
     <div className="flex flex-col h-full">
 
-      <div className="flex items-center justify-between px-6 py-3 border-b border-border bg-sidebar shrink-0 gap-4">
+      <div className="flex items-center px-6 py-3 border-b border-border bg-sidebar shrink-0 gap-4">
         <div className="flex items-center gap-3 min-w-0 flex-1">
           <button onClick={onBack} className="flex items-center gap-1.5 text-muted hover:text-fg transition-colors text-sm shrink-0">
             <ArrowLeft size={14} />
@@ -150,13 +150,15 @@ export function ProjektDetail({ projekt, kunder, statusar, anteckningar, snapsho
           </button>
           <span className="text-subtle shrink-0">/</span>
           <span className="text-sm text-fg font-medium truncate shrink-0">{projekt.projekt_nummer} — {projekt.namn}</span>
-          <ProjektStatusTimeline
+        </div>
+        <div className="flex items-center justify-center shrink-0">
+          <StatusDropdown
             statusar={statusar}
             current={projekt.status}
             onChange={onChangeStatus}
           />
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-1 justify-end">
           <button onClick={() => setEditing(true)} className="inline-flex items-center gap-1.5 px-3 py-2.5 text-[10px] font-semibold uppercase tracking-wider text-muted hover:text-fg transition-colors">
             <Pencil size={11} />Redigera
           </button>
@@ -643,7 +645,7 @@ function MetaField({ label, value }: { label: string; value: string }) {
   )
 }
 
-function ProjektStatusTimeline({
+function StatusDropdown({
   statusar,
   current,
   onChange,
@@ -652,50 +654,61 @@ function ProjektStatusTimeline({
   current: string
   onChange: (status: string) => Promise<void>
 }) {
+  const [open, setOpen] = useState(false)
   const [busy, setBusy] = useState(false)
-  const sorted = [...statusar].sort(
-    (a, b) => a.sortering - b.sortering || a.namn.localeCompare(b.namn),
-  )
+  const ref = useRef<HTMLDivElement>(null)
+  const sorted = [...statusar].sort((a, b) => a.sortering - b.sortering || a.namn.localeCompare(b.namn))
+  const currentStatus = sorted.find((s) => s.namn === current)
+  const farg = currentStatus?.farg ?? 'muted'
+
+  useEffect(() => {
+    if (!open) return
+    function onMouseDown(e: MouseEvent) {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false)
+    }
+    document.addEventListener('mousedown', onMouseDown)
+    return () => document.removeEventListener('mousedown', onMouseDown)
+  }, [open])
 
   async function handle(namn: string) {
+    setOpen(false)
     if (busy || namn === current) return
     setBusy(true)
-    try {
-      await onChange(namn)
-    } finally {
-      setBusy(false)
-    }
+    try { await onChange(namn) } finally { setBusy(false) }
   }
 
   return (
-    <div className="flex items-center min-w-0 overflow-x-auto">
-      {sorted.map((s, i) => {
-        const active = s.namn === current
-        const farg = s.farg ?? 'muted'
-        return (
-          <div key={s.namn} className="flex items-center shrink-0">
-            {i > 0 && <div className="w-6 h-px bg-subtle/70" />}
+    <div ref={ref} className="relative shrink-0">
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        disabled={busy}
+        className="flex items-center gap-1.5 px-2.5 py-1.5 rounded border border-border bg-elevated hover:bg-hover transition-colors text-[11px] disabled:opacity-50"
+      >
+        <span className={`size-2 rounded-full shrink-0 ${FARG_DOT[farg]}`} />
+        <span className={FARG_TEXT[farg]}>{current}</span>
+        <ChevronDown size={10} className="text-subtle ml-0.5" />
+      </button>
+      {open && (
+        <div className="absolute left-0 top-full mt-1 z-50 min-w-[160px] bg-sidebar border border-border rounded shadow-lg py-1">
+          {sorted.map((s) => (
             <button
+              key={s.namn}
               type="button"
               onClick={() => handle(s.namn)}
-              disabled={busy || active}
-              title={s.namn}
-              className={`flex items-center gap-1.5 rounded-full px-2 py-1 text-[11px] transition-colors shrink-0 ${
-                active
-                  ? 'bg-elevated border border-border cursor-default'
-                  : 'border border-transparent text-muted hover:text-fg hover:bg-hover disabled:opacity-50'
+              disabled={busy}
+              className={`w-full flex items-center gap-2 px-3 py-2 text-[11px] transition-colors text-left ${
+                s.namn === current
+                  ? 'text-fg bg-elevated cursor-default'
+                  : 'text-muted hover:text-fg hover:bg-hover'
               }`}
             >
-              <span
-                className={`size-2 rounded-full ${
-                  active ? FARG_DOT[farg] : 'border border-subtle'
-                }`}
-              />
-              <span className={active ? FARG_TEXT[farg] : ''}>{s.namn}</span>
+              <span className={`size-2 rounded-full shrink-0 ${FARG_DOT[s.farg ?? 'muted']}`} />
+              {s.namn}
             </button>
-          </div>
-        )
-      })}
+          ))}
+        </div>
+      )}
     </div>
   )
 }
