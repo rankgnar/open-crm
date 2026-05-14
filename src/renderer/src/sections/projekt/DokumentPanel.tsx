@@ -1,6 +1,6 @@
 import { createPortal } from 'react-dom'
 import { useEffect, useState } from 'react'
-import { Upload, File, FileText, Image, ExternalLink, Trash2, Loader2, Eye, EyeOff, Folder, FolderOpen, Plus, X } from 'lucide-react'
+import { Upload, File, FileText, Image, ExternalLink, Trash2, Loader2, Eye, EyeOff, Folder, FolderOpen, Plus, X, Pencil, Check } from 'lucide-react'
 import type { ProjektDokument } from './types'
 import { WorkflowTriggerInline } from '@/components/WorkflowTriggerInline'
 
@@ -17,6 +17,7 @@ interface Props {
   onToggleVisibility: (id: string, synlig: boolean) => Promise<void>
   onMoveCarpeta: (id: string, carpeta: string | null) => Promise<void>
   onDeleteCarpeta: (carpeta: string) => Promise<void>
+  onRename: (id: string, filnamn: string) => Promise<void>
   uploadProgress: { current: number; total: number } | null
 }
 
@@ -32,7 +33,7 @@ function FileIcon({ mimeType }: { mimeType: string }) {
   return <File size={14} className="text-muted shrink-0" />
 }
 
-export function DokumentPanel({ dokument, projektId, onUpload, onDelete, onOpen, onToggleVisibility, onMoveCarpeta, onDeleteCarpeta, uploadProgress }: Props) {
+export function DokumentPanel({ dokument, projektId, onUpload, onDelete, onOpen, onToggleVisibility, onMoveCarpeta, onDeleteCarpeta, onRename, uploadProgress }: Props) {
   const [uploading, setUploading] = useState(false)
   const [deletingId, setDeletingId] = useState<string | null>(null)
   const [openingId, setOpeningId] = useState<string | null>(null)
@@ -48,6 +49,10 @@ export function DokumentPanel({ dokument, projektId, onUpload, onDelete, onOpen,
     } catch { return [] }
   })
   const [newCarpetaInput, setNewCarpetaInput] = useState<string | null>(null)
+
+  // Rename state
+  const [renamingId, setRenamingId] = useState<string | null>(null)
+  const [renameValue, setRenameValue] = useState('')
 
   // Move-to-folder dropdown (rendered via portal to escape scroll clipping)
   const [movingId, setMovingId] = useState<string | null>(null)
@@ -119,6 +124,23 @@ export function DokumentPanel({ dokument, projektId, onUpload, onDelete, onOpen,
   async function handleToggleVisibility(d: ProjektDokument) {
     setTogglingId(d.id)
     try { await onToggleVisibility(d.id, !d.synlig_for_kund) } finally { setTogglingId(null) }
+  }
+
+  function startRename(d: ProjektDokument) {
+    setRenamingId(d.id)
+    setRenameValue(d.filnamn)
+  }
+
+  async function confirmRename() {
+    if (!renamingId || !renameValue.trim()) { cancelRename(); return }
+    await onRename(renamingId, renameValue.trim())
+    setRenamingId(null)
+    setRenameValue('')
+  }
+
+  function cancelRename() {
+    setRenamingId(null)
+    setRenameValue('')
   }
 
   async function handleDeleteCarpeta(carpeta: string) {
@@ -277,7 +299,28 @@ export function DokumentPanel({ dokument, projektId, onUpload, onDelete, onOpen,
                 )}
 
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm text-fg truncate group-hover:text-blue-400 transition-colors">{d.filnamn}</p>
+                  {renamingId === d.id ? (
+                    <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
+                      <input
+                        autoFocus
+                        value={renameValue}
+                        onChange={(e) => setRenameValue(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') { e.preventDefault(); void confirmRename() }
+                          if (e.key === 'Escape') cancelRename()
+                        }}
+                        className="flex-1 min-w-0 text-sm bg-bg border border-blue-400 rounded px-1.5 py-0.5 text-fg outline-none"
+                      />
+                      <button onClick={() => void confirmRename()} className="p-0.5 text-emerald-400 hover:text-emerald-300 transition-colors shrink-0">
+                        <Check size={13} />
+                      </button>
+                      <button onClick={cancelRename} className="p-0.5 text-subtle hover:text-fg transition-colors shrink-0">
+                        <X size={13} />
+                      </button>
+                    </div>
+                  ) : (
+                    <p className="text-sm text-fg truncate group-hover:text-blue-400 transition-colors">{d.filnamn}</p>
+                  )}
                   <div className="flex items-center gap-1.5 flex-wrap">
                     <p className="text-[11px] text-subtle">
                       {formatSize(d.storlek)} · {new Date(d.skapad_at).toLocaleDateString('sv-SE')}
@@ -295,6 +338,15 @@ export function DokumentPanel({ dokument, projektId, onUpload, onDelete, onOpen,
                 </div>
 
                 <div className="flex items-center gap-0.5 shrink-0">
+                  {/* Rename */}
+                  <button
+                    onClick={(e) => { e.stopPropagation(); startRename(d) }}
+                    className="p-1 text-subtle hover:text-fg opacity-0 group-hover:opacity-100 transition-all"
+                    title="Byt namn"
+                  >
+                    <Pencil size={13} />
+                  </button>
+
                   {/* Move to folder */}
                   <button
                     onClick={(e) => openMoveDropdown(e, d.id)}

@@ -234,6 +234,11 @@ export function ProjektSection({ initialProjektId }: Props = {}) {
     setDokument((prev) => prev.map((d) => (d.id === id ? updated : d)))
   }
 
+  async function handleRenameDokument(id: string, filnamn: string) {
+    const updated = await window.api.invoke('db:projekt-dokument:rename', { id, filnamn }) as ProjektDokument
+    setDokument((prev) => prev.map((d) => (d.id === id ? updated : d)))
+  }
+
   async function handleAddAnteckning(titel: string, innehall: string, farg: string) {
     if (!selectedProjekt) return
     const created = await window.api.invoke('db:projekt-anteckningar:create', { projekt_id: selectedProjekt.id, titel, innehall, farg }) as ProjektAnteckning
@@ -335,6 +340,7 @@ export function ProjektSection({ initialProjektId }: Props = {}) {
         onToggleDokumentVisibility={handleToggleDokumentVisibility}
         onMoveCarpeta={handleMoveCarpeta}
         onDeleteCarpeta={handleClearCarpeta}
+        onRenameDokument={handleRenameDokument}
         uploadProgress={uploadProgress}
 
         frageblanktter={frageblanktter}

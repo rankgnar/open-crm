@@ -34,6 +34,7 @@ const CHANNELS = [
   'db:projekt-dokument:get-url',
   'db:projekt-dokument:get-data',
   'db:projekt-dokument:set-visibility',
+  'db:projekt-dokument:rename',
   'db:projekt-aktivitet:list',
   'db:projekt-aktivitet:create',
   'db:projekt:set-kalender-farg',
@@ -477,6 +478,17 @@ export function registerProjektHandlers(): void {
       .single()
     if (!setting?.aktiv) return
     await supabase.from('projekt_aktiviteter').insert({ projekt_id: input.projekt_id, text: input.text })
+  })
+
+  ipcMain.handle('db:projekt-dokument:rename', async (_, input: { id: string; filnamn: string }) => {
+    const { data, error } = await supabase
+      .from('projekt_dokument')
+      .update({ filnamn: input.filnamn.trim() })
+      .eq('id', input.id)
+      .select('*')
+      .single()
+    if (error) throw new Error(error.message)
+    return data
   })
 
   ipcMain.handle('db:projekt-dokument:set-visibility', async (_, input: { id: string; synlig_for_kund: boolean }) => {

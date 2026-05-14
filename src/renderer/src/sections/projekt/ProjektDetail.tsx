@@ -36,6 +36,7 @@ interface Props {
   onToggleDokumentVisibility: (id: string, synlig: boolean) => Promise<void>
   onMoveCarpeta: (id: string, carpeta: string | null) => Promise<void>
   onDeleteCarpeta: (carpeta: string) => Promise<void>
+  onRenameDokument: (id: string, filnamn: string) => Promise<void>
   uploadProgress: { current: number; total: number } | null
 
   frageblanktter: Frageblankett[]
@@ -57,7 +58,7 @@ type TimelineItem =
   | { kind: 'anteckning'; data: ProjektAnteckning }
   | { kind: 'aktivitet'; data: ProjektAktivitet }
 
-export function ProjektDetail({ projekt, kunder, statusar, anteckningar, snapshots, dokument, aktiviteter, onBack, onEdit, onChangeStatus, onDelete, onAddAnteckning, onUpdateAnteckning, onDeleteAnteckning, onChangeAnteckningFarg, onUploadDokument, onDeleteDokument, onOpenDokument, onToggleDokumentVisibility, onMoveCarpeta, onDeleteCarpeta, uploadProgress, frageblanktter, onGenerateFromText, onCreateBlankett, onDeleteBlankett, onGetBlanktLink, onSaveBlanktAsDoc, onRefreshBlankett, onGetBlanktEpostDraft, onSendBlanktEpost }: Props) {
+export function ProjektDetail({ projekt, kunder, statusar, anteckningar, snapshots, dokument, aktiviteter, onBack, onEdit, onChangeStatus, onDelete, onAddAnteckning, onUpdateAnteckning, onDeleteAnteckning, onChangeAnteckningFarg, onUploadDokument, onDeleteDokument, onOpenDokument, onToggleDokumentVisibility, onMoveCarpeta, onDeleteCarpeta, onRenameDokument, uploadProgress, frageblanktter, onGenerateFromText, onCreateBlankett, onDeleteBlankett, onGetBlanktLink, onSaveBlanktAsDoc, onRefreshBlankett, onGetBlanktEpostDraft, onSendBlanktEpost }: Props) {
   const { formatCurrency } = useAppConfig()
   const [editing, setEditing] = useState(false)
   const [confirmDelete, setConfirmDelete] = useState(false)
@@ -336,6 +337,7 @@ export function ProjektDetail({ projekt, kunder, statusar, anteckningar, snapsho
                     onToggleVisibility={onToggleDokumentVisibility}
                     onMoveCarpeta={onMoveCarpeta}
                     onDeleteCarpeta={onDeleteCarpeta}
+                    onRename={onRenameDokument}
                     uploadProgress={uploadProgress}
                   />
                 )}
