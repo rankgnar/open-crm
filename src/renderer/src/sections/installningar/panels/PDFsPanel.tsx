@@ -134,7 +134,7 @@ export function PDFsPanel() {
   async function previewForslag() {
     const template = (mall.html_mall && mall.html_mall.trim() !== '') ? mall.html_mall : DEFAULT_FORSLAG_HTML
     const mockDesglose = buildForslagDesglose(
-      [{ id: 'f1', forslag_id: 'x', namn: 'Projektering', beskrivning: null, sortering: 0, start_datum: null, slut_datum: null, notat: null, skapad_at: '' }],
+      [{ id: 'f1', forslag_id: 'x', namn: 'Projektering', beskrivning: null, sortering: 0, start_datum: null, slut_datum: null, notat: null, aktiv: true, skapad_at: '' }],
       { f1: [{ id: 's1', fas_id: 'f1', namn: 'Ritningar', beskrivning: null, sortering: 0, skapad_at: '' }] },
       { s1: [{ id: 'a1', subfas_id: 's1', beskrivning: 'Projekteringsarbete', yrkesroll: 'Projektledare', antal_timmar: 20, timpris: 950, rot_berattigad: true, skapad_at: '' }] },
       { s1: [{ id: 'm1', subfas_id: 's1', beskrivning: 'Ritningspapper A1', enhet: 'st', antal: 10, a_pris: 85, leverantor: 'Contex', skapad_at: '' }] },

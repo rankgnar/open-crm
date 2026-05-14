@@ -87,6 +87,7 @@ export interface ForslagFas {
   start_datum: string | null
   slut_datum: string | null
   notat: string | null
+  aktiv: boolean
   skapad_at: string
 }
 

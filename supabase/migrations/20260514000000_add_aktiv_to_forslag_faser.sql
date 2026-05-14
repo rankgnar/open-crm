@@ -1,0 +1,1 @@
+ALTER TABLE forslag_faser ADD COLUMN aktiv BOOLEAN NOT NULL DEFAULT true;

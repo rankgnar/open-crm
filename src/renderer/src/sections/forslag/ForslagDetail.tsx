@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
-import { ArrowLeft, ArrowUp, ArrowDown, Pencil, Trash2, Plus, X as XIcon, Check, ChevronRight, ChevronDown, CalendarDays, FileDown, Send, Mail, RefreshCw, FolderOpen, ChevronsUpDown, StickyNote } from 'lucide-react'
+import { ArrowLeft, ArrowUp, ArrowDown, Pencil, Trash2, Plus, X as XIcon, Check, ChevronRight, ChevronDown, CalendarDays, FileDown, Send, Mail, RefreshCw, FolderOpen, ChevronsUpDown, StickyNote, Eye, EyeOff } from 'lucide-react'
 import { WorkflowTriggerBar } from '@/components/WorkflowTriggerBar'
 import { SkickaForSignaturModal } from '@/sections/signatur/SkickaForSignaturModal'
 import { SkickaUppdateradVersionModal } from '@/sections/signatur/SkickaUppdateradVersionModal'
@@ -60,7 +60,7 @@ export function ForslagDetail({ forslag: forslagProp, statusar, allProjekt, onBa
   useEffect(() => { setForslag(forslagProp) }, [forslagProp])
 
   const currentStatus = statusar.find((s) => s.namn === forslag.status)
-  const { config } = useAppConfig()
+  const { config, formatCurrency } = useAppConfig()
   const ROT_CAP_SINGLE = config?.rot_avdrag_tak_enkel ?? 50000
   const ROT_CAP_DOUBLE = config?.rot_avdrag_tak_dubbel ?? 100000
   const [editing, setEditing] = useState(false)
@@ -294,6 +294,12 @@ export function ForslagDetail({ forslag: forslagProp, statusar, allProjekt, onBa
     setSelectedSubfasIds((prev) => { const n = new Set(prev); n.delete(subfas.id); return n })
   }
 
+  async function handleToggleFasAktiv(fas: ForslagFas) {
+    const next = !fas.aktiv
+    setFaser((prev) => prev.map((f) => f.id === fas.id ? { ...f, aktiv: next } : f))
+    await window.api.invoke('db:forslag-faser:update', fas.id, { aktiv: next })
+  }
+
   async function handleMoveFas(fas: ForslagFas, dir: 'up' | 'down') {
     const idx = faser.findIndex((f) => f.id === fas.id)
     const neighbor = dir === 'up' ? faser[idx - 1] : faser[idx + 1]
@@ -393,15 +399,37 @@ export function ForslagDetail({ forslag: forslagProp, statusar, allProjekt, onBa
     try { await onDelete() } catch { setDeleting(false); setConfirmDelete(false) }
   }
 
-  const allArbete = Object.values(arbeteBySubfas).flat()
-  const allMaterial = Object.values(materialBySubfas).flat()
-  const allUE = Object.values(ueBySubfas).flat()
+  const activeFasSubfasIds = new Set(
+    faser.filter(f => f.aktiv).flatMap(f => (subfaserByFas[f.id] ?? []).map(sf => sf.id))
+  )
+  const allArbete = Object.values(arbeteBySubfas).flat().filter(r => activeFasSubfasIds.has(r.subfas_id))
+  const allMaterial = Object.values(materialBySubfas).flat().filter(r => activeFasSubfasIds.has(r.subfas_id))
+  const allUE = Object.values(ueBySubfas).flat().filter(r => activeFasSubfasIds.has(r.subfas_id))
 
   const subfasCount = (id: string) =>
     (arbeteBySubfas[id]?.length ?? 0) + (materialBySubfas[id]?.length ?? 0) + (ueBySubfas[id]?.length ?? 0)
 
   const fasCount = (fasId: string) =>
     (subfaserByFas[fasId] ?? []).reduce((s, sf) => s + subfasCount(sf.id), 0)
+
+  const subfasTotal = (sfId: string) => {
+    const { totalArbete, totalMaterial, totalUE } = aggregateForslag(
+      arbeteBySubfas[sfId] ?? [],
+      materialBySubfas[sfId] ?? [],
+      ueBySubfas[sfId] ?? [],
+    )
+    return totalArbete + totalMaterial + totalUE
+  }
+
+  const fasTotal = (fasId: string) => {
+    const subfases = subfaserByFas[fasId] ?? []
+    const { totalArbete, totalMaterial, totalUE } = aggregateForslag(
+      subfases.flatMap(sf => arbeteBySubfas[sf.id] ?? []),
+      subfases.flatMap(sf => materialBySubfas[sf.id] ?? []),
+      subfases.flatMap(sf => ueBySubfas[sf.id] ?? []),
+    )
+    return totalArbete + totalMaterial + totalUE
+  }
 
   async function handleExportPdf() {
     const mall = await window.api.invoke('db:pdf-mall:get', 'forslag') as PdfMall | null
@@ -428,14 +456,17 @@ export function ForslagDetail({ forslag: forslagProp, statusar, allProjekt, onBa
     const rotProcent = p.rot_procent ?? 30
     const rotInkluderaMedsokande = p.rot_inkludera_medsokande ?? false
 
+    const activeFaser = faser.filter(f => f.aktiv)
+    const activeSubfasIds = new Set(activeFaser.flatMap(f => (subfaserByFas[f.id] ?? []).map(sf => sf.id)))
+
     const desgloseHtml = buildForslagDesglose(
-      faser, subfaserByFas, arbeteBySubfas, materialBySubfas, ueBySubfas,
+      activeFaser, subfaserByFas, arbeteBySubfas, materialBySubfas, ueBySubfas,
       { momsProcent: forslag.moms_procent, rotAvdrag, rotProcent, rotInkluderaMedsokande, rotCapEnkel: ROT_CAP_SINGLE, rotCapDubbel: ROT_CAP_DOUBLE, accentFarg, visaLeverantor: mall?.visa_leverantor_material !== false, visaFasNotat: mall?.visa_fas_notat !== false }
     )
 
-    const allArbete = Object.values(arbeteBySubfas).flat()
-    const allMaterial = Object.values(materialBySubfas).flat()
-    const allUE = Object.values(ueBySubfas).flat()
+    const allArbete = Object.values(arbeteBySubfas).flat().filter(r => activeSubfasIds.has(r.subfas_id))
+    const allMaterial = Object.values(materialBySubfas).flat().filter(r => activeSubfasIds.has(r.subfas_id))
+    const allUE = Object.values(ueBySubfas).flat().filter(r => activeSubfasIds.has(r.subfas_id))
     const totals = computeForslagTotals({
       ...aggregateForslag(allArbete, allMaterial, allUE),
       momsProcent: forslag.moms_procent, rotAvdrag, rotProcent, rotInkluderaMedsokande,
@@ -793,7 +824,7 @@ export function ForslagDetail({ forslag: forslagProp, statusar, allProjekt, onBa
 
           {/* Faser */}
           {faser.map((fas) => (
-            <div key={fas.id} className="border-b border-border">
+            <div key={fas.id} className={`border-b border-border transition-opacity ${!fas.aktiv ? 'opacity-50' : ''}`}>
 
               {/* Fas header */}
               <div
@@ -827,6 +858,11 @@ export function ForslagDetail({ forslag: forslagProp, statusar, allProjekt, onBa
                     <span className="text-[9px] font-mono bg-elevated text-subtle px-1 py-0.5 rounded shrink-0">
                       {(subfaserByFas[fas.id] ?? []).length} · {fasCount(fas.id)}
                     </span>
+                    {fasTotal(fas.id) > 0 && (
+                      <span className="text-[9px] font-mono text-emerald-400 shrink-0">
+                        {formatCurrency(fasTotal(fas.id), 0)}
+                      </span>
+                    )}
                     <button
                       onClick={(e) => { e.stopPropagation(); setSelectedFasId(fas.id); setAddingSubfas(true); setCollapsedFaser((prev) => { const n = new Set(prev); n.delete(fas.id); return n }) }}
                       className="flex items-center gap-0.5 text-[10px] text-subtle hover:text-fg transition-opacity shrink-0"
@@ -841,6 +877,11 @@ export function ForslagDetail({ forslag: forslagProp, statusar, allProjekt, onBa
                       onClick={(e) => { e.stopPropagation(); setEditFasNotat(fas.notat ?? ''); setEditingFasNotatId(fas.id) }}
                       className={`shrink-0 transition-opacity ${fas.notat ? 'text-amber-400' : 'text-subtle hover:text-fg'}`}
                     ><StickyNote size={10} /></button>
+                    <button
+                      onClick={(e) => { e.stopPropagation(); handleToggleFasAktiv(fas) }}
+                      className={`shrink-0 transition-opacity ${fas.aktiv ? 'text-subtle hover:text-fg' : 'text-red-400 hover:text-red-300'}`}
+                      title={fas.aktiv ? 'Inkluderad i PDF' : 'Exkluderad från PDF'}
+                    >{fas.aktiv ? <Eye size={10} /> : <EyeOff size={10} />}</button>
                     <button
                       onClick={(e) => { e.stopPropagation(); handleDeleteFas(fas.id) }}
                       className="text-subtle hover:text-red-400 shrink-0 transition-opacity"
@@ -957,6 +998,11 @@ export function ForslagDetail({ forslag: forslagProp, statusar, allProjekt, onBa
                         )}
                         {(ueBySubfas[sf.id]?.length ?? 0) > 0 && (
                           <span className="text-[9px] text-emerald-400 tabular-nums">UE:{ueBySubfas[sf.id].length}</span>
+                        )}
+                        {subfasTotal(sf.id) > 0 && (
+                          <span className="text-[9px] font-mono text-emerald-400 shrink-0">
+                            {formatCurrency(subfasTotal(sf.id), 0)}
+                          </span>
                         )}
                         <button
                           onClick={(e) => { e.stopPropagation(); setEditSubfasNamn(sf.namn); setEditingSubfasId(sf.id) }}

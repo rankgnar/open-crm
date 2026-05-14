@@ -204,7 +204,7 @@ export function registerForslagHandlers(): void {
     return data
   })
 
-  ipcMain.handle('db:forslag-faser:update', async (_, id: string, input: { namn?: string; beskrivning?: string; start_datum?: string | null; slut_datum?: string | null; notat?: string | null }) => {
+  ipcMain.handle('db:forslag-faser:update', async (_, id: string, input: { namn?: string; beskrivning?: string; start_datum?: string | null; slut_datum?: string | null; notat?: string | null; aktiv?: boolean }) => {
     const { data, error } = await supabase
       .from('forslag_faser')
       .update(input)
