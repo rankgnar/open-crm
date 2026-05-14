@@ -491,6 +491,7 @@ function VeckaGrid({
   } | null>(null)
   const resizeRef = useRef<{ event: KalenderEvent; startY: number; initialHeightPx: number; currentHeightPx: number } | null>(null)
   const [resizePreview, setResizePreview] = useState<{ id: string; heightPx: number } | null>(null)
+  const resizeCleanupRef = useRef<(() => void) | null>(null)
 
   function startResize(ev: React.MouseEvent, e: KalenderEvent) {
     if (!onResize) return
@@ -522,9 +523,17 @@ function VeckaGrid({
       }
       resizeRef.current = null
       setResizePreview(null)
+      resizeCleanupRef.current = null
       document.removeEventListener('mousemove', onMove)
       document.removeEventListener('mouseup', onUp)
     }
+    const cleanup = () => {
+      document.removeEventListener('mousemove', onMove)
+      document.removeEventListener('mouseup', onUp)
+      resizeRef.current = null
+      setResizePreview(null)
+    }
+    resizeCleanupRef.current = cleanup
     document.addEventListener('mousemove', onMove)
     document.addEventListener('mouseup', onUp)
   }
@@ -549,6 +558,21 @@ function VeckaGrid({
     measure()
     window.addEventListener('resize', measure)
     return () => window.removeEventListener('resize', measure)
+  }, [])
+
+  useEffect(() => {
+    const onBlur = () => {
+      resizeCleanupRef.current?.()
+      resizeCleanupRef.current = null
+      draggingVeckaEvent.current = null
+      setDragPreview(null)
+      setDragOverKey(null)
+    }
+    window.addEventListener('blur', onBlur)
+    return () => {
+      window.removeEventListener('blur', onBlur)
+      resizeCleanupRef.current?.()
+    }
   }, [])
 
   const helDagEvents = useMemo(() =>
@@ -840,6 +864,7 @@ function DagGrid({
   const [dragPreview, setDragPreview] = useState<{ topPx: number; heightPx: number; farg: string } | null>(null)
   const resizeRef = useRef<{ event: KalenderEvent; startY: number; initialHeightPx: number; currentHeightPx: number } | null>(null)
   const [resizePreview, setResizePreview] = useState<{ id: string; heightPx: number } | null>(null)
+  const resizeCleanupRef = useRef<(() => void) | null>(null)
 
   function startResize(ev: React.MouseEvent, e: KalenderEvent) {
     if (!onResize) return
@@ -871,9 +896,17 @@ function DagGrid({
       }
       resizeRef.current = null
       setResizePreview(null)
+      resizeCleanupRef.current = null
       document.removeEventListener('mousemove', onMove)
       document.removeEventListener('mouseup', onUp)
     }
+    const cleanup = () => {
+      document.removeEventListener('mousemove', onMove)
+      document.removeEventListener('mouseup', onUp)
+      resizeRef.current = null
+      setResizePreview(null)
+    }
+    resizeCleanupRef.current = cleanup
     document.addEventListener('mousemove', onMove)
     document.addEventListener('mouseup', onUp)
   }
@@ -898,6 +931,21 @@ function DagGrid({
     measure()
     window.addEventListener('resize', measure)
     return () => window.removeEventListener('resize', measure)
+  }, [])
+
+  useEffect(() => {
+    const onBlur = () => {
+      resizeCleanupRef.current?.()
+      resizeCleanupRef.current = null
+      draggingEvent.current = null
+      setDragPreview(null)
+      setDragOver(false)
+    }
+    window.addEventListener('blur', onBlur)
+    return () => {
+      window.removeEventListener('blur', onBlur)
+      resizeCleanupRef.current?.()
+    }
   }, [])
 
   const helDagEvents = useMemo(() =>
@@ -1155,15 +1203,29 @@ function SearchableSelect({
   const [open, setOpen] = useState(false)
   const [query, setQuery] = useState('')
   const ref = useRef<HTMLDivElement>(null)
+  const triggerRef = useRef<HTMLButtonElement>(null)
+  const [dropPos, setDropPos] = useState<{ top: number; left: number; width: number } | null>(null)
 
   useEffect(() => {
     if (!open) { setQuery(''); return }
     const handler = (e: MouseEvent) => {
-      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false)
+      const target = e.target as Node
+      if (
+        ref.current && !ref.current.contains(target) &&
+        triggerRef.current && !triggerRef.current.contains(target)
+      ) setOpen(false)
     }
     document.addEventListener('mousedown', handler)
     return () => document.removeEventListener('mousedown', handler)
   }, [open])
+
+  function handleToggle() {
+    if (!open && triggerRef.current) {
+      const r = triggerRef.current.getBoundingClientRect()
+      setDropPos({ top: r.bottom + 4, left: r.left, width: r.width })
+    }
+    setOpen(v => !v)
+  }
 
   const filtered = query
     ? options.filter(o =>
@@ -1175,10 +1237,11 @@ function SearchableSelect({
   const selected = options.find(o => o.id === value)
 
   return (
-    <div ref={ref} className="relative">
+    <div className="relative">
       <button
+        ref={triggerRef}
         type="button"
-        onClick={() => setOpen(v => !v)}
+        onClick={handleToggle}
         className="w-full flex items-center justify-between gap-2 bg-elevated border border-border rounded-lg px-3 py-2 text-sm outline-none hover:border-fg/30 transition-colors"
       >
         <span className={`truncate ${selected ? 'text-fg' : 'text-subtle'}`}>
@@ -1192,8 +1255,12 @@ function SearchableSelect({
         <ChevronDown size={12} className="text-muted shrink-0" />
       </button>
 
-      {open && (
-        <div className="absolute left-0 right-0 top-full mt-1 z-50 bg-elevated border border-border rounded-lg shadow-xl flex flex-col overflow-hidden">
+      {open && dropPos && (
+        <div
+          ref={ref}
+          style={{ position: 'fixed', top: dropPos.top, left: dropPos.left, width: dropPos.width, zIndex: 9999 }}
+          className="bg-elevated border border-border rounded-lg shadow-xl flex flex-col overflow-hidden"
+        >
           <div className="px-3 py-2 border-b border-border">
             <input
               autoFocus
