@@ -152,7 +152,17 @@ function StatusSelect({ value, onChange, statusar }: { value: string[]; onChange
 
 export function ProjektTable({ projekt, statusar, fragSummary, forslagSummary, onSelect, onNew, onStatusChange, onStatusChangeMany, onDeleteMany }: Props) {
   const [query, setQuery] = useState('')
-  const [statusFilter, setStatusFilter] = useState<string[]>([])
+  const [statusFilter, setStatusFilter] = useState<string[]>(() => {
+    try {
+      const saved = localStorage.getItem('projekt-status-filter')
+      return saved ? (JSON.parse(saved) as string[]) : []
+    } catch {
+      return []
+    }
+  })
+  useEffect(() => {
+    localStorage.setItem('projekt-status-filter', JSON.stringify(statusFilter))
+  }, [statusFilter])
 const [selected, setSelected] = useState<Set<string>>(new Set())
   const [confirmBulk, setConfirmBulk] = useState(false)
   const [deletingBulk, setDeletingBulk] = useState(false)

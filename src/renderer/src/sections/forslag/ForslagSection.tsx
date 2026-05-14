@@ -269,9 +269,20 @@ export function ForslagSection({ initialProjektId, onNavigateProjekt, initialFor
     )
   }
 
+  const projektStatusFilter = (() => {
+    try {
+      const saved = localStorage.getItem('projekt-status-filter')
+      return saved ? (JSON.parse(saved) as string[]) : []
+    } catch {
+      return []
+    }
+  })()
+
   const visibleForslag = initialProjektId
     ? forslag.filter((f) => f.projekt_id === initialProjektId)
-    : forslag
+    : projektStatusFilter.length > 0
+      ? forslag.filter((f) => projektStatusFilter.includes(f.projekt.status))
+      : forslag
 
   return (
     <ForslagTable

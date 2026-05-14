@@ -183,7 +183,15 @@ export function ProjektDetail({ projekt, kunder, statusar, anteckningar, snapsho
         <div className="flex-1 overflow-auto flex flex-col">
           <div className="px-8 py-6 border-b border-border">
             <p className="text-[11px] uppercase tracking-widest text-muted mb-0.5">{projekt.projekt_nummer}</p>
-            <h2 className="text-xl font-semibold text-fg">{projekt.namn}</h2>
+            <div className="flex items-start justify-between gap-4">
+              <h2 className="text-xl font-semibold text-fg">{projekt.namn}</h2>
+              <div className="flex flex-col items-end shrink-0">
+                <span className="text-sm font-semibold text-fg uppercase tracking-wide">{projekt.kunder.namn}</span>
+                {projekt.kunder.telefon && (
+                  <span className="text-xs text-muted mt-0.5">{projekt.kunder.telefon}</span>
+                )}
+              </div>
+            </div>
           </div>
 
           <WorkflowTriggerBar
