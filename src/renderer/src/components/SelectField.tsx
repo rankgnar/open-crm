@@ -29,6 +29,7 @@ export function SelectField({
   const [open, setOpen] = useState(false)
   const [query, setQuery] = useState('')
   const [dropRect, setDropRect] = useState<DOMRect | null>(null)
+  const [flipUp, setFlipUp] = useState(false)
   const containerRef = useRef<HTMLDivElement>(null)
   const btnRef = useRef<HTMLButtonElement>(null)
   const dropRef = useRef<HTMLDivElement>(null)
@@ -59,7 +60,11 @@ export function SelectField({
 
   function handleToggle() {
     if (disabled) return
-    if (!open && btnRef.current) setDropRect(btnRef.current.getBoundingClientRect())
+    if (!open && btnRef.current) {
+      const rect = btnRef.current.getBoundingClientRect()
+      setDropRect(rect)
+      setFlipUp(window.innerHeight - rect.bottom < 220)
+    }
     setOpen(v => !v)
   }
 
@@ -88,7 +93,9 @@ export function SelectField({
           ref={dropRef}
           style={{
             position: 'fixed',
-            top: dropRect.bottom + 4,
+            ...(flipUp
+              ? { bottom: window.innerHeight - dropRect.top + 4 }
+              : { top: dropRect.bottom + 4 }),
             left: dropRect.left,
             width: dropRect.width,
             zIndex: 9999,
