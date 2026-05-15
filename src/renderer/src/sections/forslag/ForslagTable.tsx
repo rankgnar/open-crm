@@ -1,4 +1,4 @@
-import { Plus, FileDown, Loader2, Trash2, ArrowUp, ArrowDown, ArrowUpDown } from 'lucide-react'
+import { Plus, FileDown, Loader2, Trash2, ArrowUp, ArrowDown, ArrowUpDown, Bell } from 'lucide-react'
 import { RefreshButton } from '@/components/RefreshButton'
 import { useRef, useState } from 'react'
 import type { ForslagWithProjekt, ForslagStatusar, SignaturSummary } from './types'
@@ -101,6 +101,22 @@ function SigneringLog({ summary }: { summary: SignaturSummary | undefined }) {
       {!summary.oppnad_at && !summary.signerad_at && !summary.revoked_at && (
         <span className="text-[10px] text-muted italic">Väntar på signatur...</span>
       )}
+    </div>
+  )
+}
+
+function PaminnelseCell({ historik }: { historik: { at: string }[] | undefined }) {
+  if (!historik || historik.length === 0) return <span className="text-[11px] text-muted">—</span>
+  const last = historik[historik.length - 1]
+  const d = new Date(last.at)
+  const dateStr = `${d.toLocaleDateString('sv-SE', { day: 'numeric', month: 'short' })} ${d.toLocaleTimeString('sv-SE', { hour: '2-digit', minute: '2-digit' })}`
+  return (
+    <div className="flex items-center gap-1.5">
+      <Bell size={10} className="text-amber-400 shrink-0" />
+      <span className="text-[11px] text-amber-400 font-medium whitespace-nowrap">
+        {historik.length > 1 ? `${historik.length}×` : '1×'}
+      </span>
+      <span className="text-[10px] text-muted whitespace-nowrap">{dateStr}</span>
     </div>
   )
 }
@@ -240,6 +256,7 @@ export function ForslagTable({ forslag, statusar, signingEvents, onSelect, onNew
                   </th>
                 ))}
                 <th className="px-4 py-2.5 text-[11px] font-medium uppercase tracking-wider text-muted select-none">Signering</th>
+                <th className="px-4 py-2.5 text-[11px] font-medium uppercase tracking-wider text-muted select-none">Påminnelse</th>
                 {([
                   ['status', 'Status', 'px-4'],
                   ['giltig_till', 'Giltig till', 'px-4'],
@@ -295,6 +312,7 @@ export function ForslagTable({ forslag, statusar, signingEvents, onSelect, onNew
                     <span className="ml-2 text-fg">{f.projekt.namn}</span>
                   </td>
                   <td className="px-4 py-3"><SigneringLog summary={signingEvents[f.id]} /></td>
+                  <td className="px-4 py-3"><PaminnelseCell historik={signingEvents[f.id]?.paminnelse_historik} /></td>
                   <td className="px-4 py-3 whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
                     <StatusPicker forslag={f} statusar={statusar} onStatusChange={onStatusChange} />
                   </td>

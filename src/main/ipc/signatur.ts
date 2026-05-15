@@ -548,7 +548,7 @@ export function registerSignaturHandlers(): void {
   ipcMain.handle('db:signatur-lank:forslag-events', async () => {
     const { data, error } = await supabase
       .from('signatur_lankar')
-      .select('dokument_id, skapad_at, oppnad_at, last_oppnad_at, signerad_at, signerad_namn, revoked_at, view_count')
+      .select('dokument_id, skapad_at, oppnad_at, last_oppnad_at, signerad_at, signerad_namn, revoked_at, view_count, paminnelse_historik')
       .eq('dokument_typ', 'forslag')
       .order('skapad_at', { ascending: false })
     if (error) throw new Error(error.message)
@@ -562,13 +562,18 @@ export function registerSignaturHandlers(): void {
       signerad_namn: string | null
       revoked_at: string | null
       view_count: number
+      paminnelse_historik: { at: string }[]
     }
     const result: Record<string, Omit<Row, 'dokument_id'>> = {}
     for (const row of (data ?? []) as Row[]) {
       const { dokument_id, ...fields } = row
       const existing = result[dokument_id]
       if (!existing || (fields.signerad_at && !existing.signerad_at)) {
-        result[dokument_id] = { ...fields, view_count: fields.view_count ?? 0 }
+        result[dokument_id] = {
+          ...fields,
+          view_count: fields.view_count ?? 0,
+          paminnelse_historik: fields.paminnelse_historik ?? [],
+        }
       }
     }
     return result

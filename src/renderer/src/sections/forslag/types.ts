@@ -8,6 +8,7 @@ export interface SignaturSummary {
   signerad_namn: string | null
   revoked_at: string | null
   view_count: number
+  paminnelse_historik: { at: string }[]
 }
 
 export interface ForslagStatusar {
