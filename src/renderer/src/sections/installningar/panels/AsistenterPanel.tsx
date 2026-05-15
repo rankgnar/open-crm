@@ -320,7 +320,7 @@ export function AsistenterPanel() {
   return (
     <div className="flex flex-1 min-h-0 h-full overflow-hidden">
       {/* Lista izquierda */}
-      <div className="w-64 shrink-0 border-r border-border flex flex-col overflow-hidden">
+      <div className="w-80 shrink-0 border-r border-border flex flex-col overflow-hidden">
         <div className="flex items-center justify-between px-4 py-3 border-b border-border shrink-0">
           <p className="text-xs text-muted uppercase tracking-widest">Asistentes</p>
           <button onClick={handleCreate} className="text-muted hover:text-fg transition-colors" title="Ny assistent">
@@ -344,6 +344,18 @@ export function AsistenterPanel() {
               <p className="text-[11px] text-subtle truncate mt-0.5">
                 {a.provider?.display_name ?? '—'} · {a.model_id}
               </p>
+              {(a.uppgifter ?? []).length > 0 && (
+                <div className="flex flex-wrap gap-1 mt-1.5">
+                  {(a.uppgifter ?? []).map((u) => {
+                    const label = UPPGIFTER.find((x) => x.value === u)?.label ?? u
+                    return (
+                      <span key={u} className="text-[10px] px-1.5 py-0.5 rounded bg-elevated border border-border text-subtle leading-none">
+                        {label}
+                      </span>
+                    )
+                  })}
+                </div>
+              )}
             </button>
           ))}
         </div>
