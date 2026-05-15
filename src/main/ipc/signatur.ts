@@ -411,6 +411,23 @@ export function registerSignaturHandlers(): void {
         andring_resumen_block:   buildAndringResumenBlock(lastReason),
       },
     })
+
+    if (opts.reminder) {
+      const now = new Date().toISOString()
+      const existing = (link.paminnelse_historik ?? []) as { at: string }[]
+      await supabase
+        .from('signatur_lankar')
+        .update({ paminnelse_historik: [...existing, { at: now }] })
+        .eq('id', id)
+
+      if (bundle.projekt_id) {
+        await supabase.from('projekt_aktivitet').insert({
+          projekt_id: bundle.projekt_id,
+          handelse:   'forslag_paminnelse_skickad',
+          text:       `Påminnelse skickad för Förslag ${bundle.doc_nummer ?? ''}`,
+        })
+      }
+    }
   })
 
   // ── Render the OFFICIAL document PDF (forslag/order template) and upload ──

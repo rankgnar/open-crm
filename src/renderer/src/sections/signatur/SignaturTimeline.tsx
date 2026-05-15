@@ -1,4 +1,4 @@
-import { CheckCircle2, FileDown, Send, Eye, XCircle, MessageSquarePlus, RefreshCw } from 'lucide-react'
+import { CheckCircle2, FileDown, Send, Eye, XCircle, MessageSquarePlus, RefreshCw, Bell } from 'lucide-react'
 
 export interface SignaturTimelineLink {
   skapad_at:            string
@@ -10,6 +10,7 @@ export interface SignaturTimelineLink {
   andring_begard_at:    string | null
   andring_historik?:    { at: string; reason: string }[]
   revisioner_historik?: { at: string }[]
+  paminnelse_historik?: { at: string }[]
 }
 
 interface Props {
@@ -101,9 +102,11 @@ export function SignaturTimeline({ docStatus, acceptedStatuses, rejectedStatuses
           type Evt =
             | { at: string; kind: 'andring'; reason: string }
             | { at: string; kind: 'revision' }
+            | { at: string; kind: 'paminnelse' }
           const events: Evt[] = [
             ...(latestLink.andring_historik ?? []).map((e): Evt => ({ at: e.at, kind: 'andring', reason: e.reason })),
             ...(latestLink.revisioner_historik ?? []).map((e): Evt => ({ at: e.at, kind: 'revision' })),
+            ...(latestLink.paminnelse_historik ?? []).map((e): Evt => ({ at: e.at, kind: 'paminnelse' })),
           ].sort((a, b) => new Date(a.at).getTime() - new Date(b.at).getTime())
 
           return events.map((e, i) =>
@@ -116,12 +119,20 @@ export function SignaturTimeline({ docStatus, acceptedStatuses, rejectedStatuses
                 datetime={fmtDt(e.at)}
                 sub={e.reason}
               />
-            ) : (
+            ) : e.kind === 'revision' ? (
               <TimelineEvent
                 key={`revision-${i}`}
                 color="blue"
                 icon={<RefreshCw size={11} />}
                 label="Skickat uppdaterad version"
+                datetime={fmtDt(e.at)}
+              />
+            ) : (
+              <TimelineEvent
+                key={`paminnelse-${i}`}
+                color="amber"
+                icon={<Bell size={11} />}
+                label="Påminnelse skickad"
                 datetime={fmtDt(e.at)}
               />
             )

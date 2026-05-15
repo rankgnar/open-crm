@@ -30,9 +30,10 @@ export interface SignaturLank {
   revoked_at:       string | null
   document_pdf_url: string | null
   signed_pdf_url:   string | null
-  andring_begard_at:   string | null
-  andring_historik:    AndringEntry[]
-  revisioner_historik: { at: string }[]
+  andring_begard_at:    string | null
+  andring_historik:     AndringEntry[]
+  revisioner_historik:  { at: string }[]
+  paminnelse_historik:  { at: string }[]
 }
 
 export interface EpostMall { id: string; namn: string; kategori: string; system_kod: string | null; meddelande_standard: string | null }
