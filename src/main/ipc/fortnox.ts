@@ -3,6 +3,7 @@ import http from 'http'
 import { writeFileSync } from 'fs'
 import { join } from 'path'
 import { URLSearchParams } from 'url'
+import { randomBytes } from 'crypto'
 import { supabase } from '../supabase'
 
 const FORTNOX_TOKEN_URL = 'https://apps.fortnox.se/oauth-v1/token'
@@ -188,6 +189,7 @@ function fortnoxPost(path: string, body: unknown): Promise<unknown> {
 // ── OAuth callback server ─────────────────────────────────────────────────────
 
 let callbackServer: http.Server | null = null
+let oauthState = ''
 
 function startCallbackServer(clientId: string, clientSecret: string): Promise<void> {
   return new Promise((resolve, reject) => {
@@ -207,7 +209,7 @@ function startCallbackServer(clientId: string, clientSecret: string): Promise<vo
       const code = url.searchParams.get('code')
       const state = url.searchParams.get('state')
 
-      if (!code || state !== 'crm') {
+      if (!code || !state || state !== oauthState) {
         res.writeHead(400, { 'Content-Type': 'text/html; charset=utf-8' })
         res.end('<html><body><p>Ogiltig callback.</p></body></html>')
         callbackServer?.close()
@@ -286,7 +288,8 @@ export function registerFortnoxHandlers(): void {
   ipcMain.handle('fortnox:auth:start', async (_, clientId: string, clientSecret: string) => {
     await startCallbackServer(clientId, clientSecret)
     const { shell } = await import('electron')
-    const authUrl = `https://apps.fortnox.se/oauth-v1/auth?client_id=${encodeURIComponent(clientId)}&redirect_uri=${encodeURIComponent(REDIRECT_URI)}&scope=${encodeURIComponent(SCOPES)}&response_type=code&access_type=offline&state=crm`
+    oauthState = randomBytes(16).toString('hex')
+    const authUrl = `https://apps.fortnox.se/oauth-v1/auth?client_id=${encodeURIComponent(clientId)}&redirect_uri=${encodeURIComponent(REDIRECT_URI)}&scope=${encodeURIComponent(SCOPES)}&response_type=code&access_type=offline&state=${oauthState}`
     await shell.openExternal(authUrl)
   })
 

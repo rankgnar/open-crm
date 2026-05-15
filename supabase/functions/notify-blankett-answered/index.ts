@@ -2,6 +2,7 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
+const FORM_APP_URL = Deno.env.get('FORM_APP_URL') ?? 'https://form.hedberh.se'
 
 interface Inst {
   id: string
@@ -84,8 +85,13 @@ async function sendZoho(inst: Inst, alias: Alias, till: string, amne: string, kr
 Deno.serve(async (req) => {
   if (req.method !== 'POST') return new Response('Method not allowed', { status: 405 })
 
+  const authHeader = req.headers.get('Authorization')
+  if (!authHeader?.startsWith('Bearer ')) {
+    return new Response('Unauthorized', { status: 401 })
+  }
+
   try {
-    const { token, formulär_url } = await req.json() as { token: string; formulär_url?: string }
+    const { token } = await req.json() as { token: string }
 
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY)
 
@@ -160,7 +166,7 @@ Deno.serve(async (req) => {
       kund_namn: (kund as { namn: string } | null)?.namn ?? '',
       projekt_namn: (projekt as { namn: string } | null)?.namn ?? '',
       blankett_titel: (blankett as { titel: string }).titel ?? '',
-      'formulär_länk': formulär_url ?? '',
+      'formulär_länk': `${FORM_APP_URL}/f/${token}`,
       foretag_namn: instTyped.foretag_namn ?? '',
       datum: new Date().toLocaleDateString('sv-SE'),
     }
