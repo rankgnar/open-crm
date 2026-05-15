@@ -35,7 +35,7 @@ export interface SignaturLank {
   revisioner_historik: { at: string }[]
 }
 
-export interface EpostMall { id: string; namn: string; kategori: string; system_kod: string | null }
+export interface EpostMall { id: string; namn: string; kategori: string; system_kod: string | null; meddelande_standard: string | null }
 
 export type LankStatus = 'väntar' | 'öppnad' | 'ändring begärd' | 'signerad' | 'utgången' | 'återkallad'
 

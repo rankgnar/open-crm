@@ -20,6 +20,7 @@ interface Props {
   dokument_typ:   DokumentTyp
   dokument_id:    string
   initialEmail?:  string
+  kund_namn?:     string
   bifogaOptions?: BifogaOption[]
   titelOptions?:  TitelOptions
   onClose:        () => void
@@ -34,7 +35,7 @@ const EXPIRY_OPTIONS = [
   { label: 'Ingen utgång', days: 0 },
 ]
 
-export function SkickaForSignaturModal({ dokument_typ, dokument_id, initialEmail, bifogaOptions, titelOptions, onClose, onSent }: Props) {
+export function SkickaForSignaturModal({ dokument_typ, dokument_id, initialEmail, kund_namn, bifogaOptions, titelOptions, onClose, onSent }: Props) {
   const [email, setEmail] = useState(initialEmail ?? '')
   const [days, setDays] = useState(30)
   const [mallar, setMallar] = useState<EpostMall[]>([])
@@ -57,9 +58,14 @@ export function SkickaForSignaturModal({ dokument_typ, dokument_id, initialEmail
       )
       setMallar(filtered)
       const def = await window.api.invoke('db:signatur-lank:get-default-mall', dokument_typ) as string | null
-      setMallId(def ?? filtered[0]?.id ?? null)
+      const resolvedId = def ?? filtered[0]?.id ?? null
+      setMallId(resolvedId)
+      const mall = filtered.find(m => m.id === resolvedId)
+      if (mall?.meddelande_standard) {
+        setMeddelande(mall.meddelande_standard.replace(/\{\{kund_namn\}\}/g, kund_namn ?? ''))
+      }
     })()
-  }, [dokument_typ])
+  }, [dokument_typ, kund_namn])
 
   async function handleSend() {
     setError('')
@@ -156,7 +162,15 @@ export function SkickaForSignaturModal({ dokument_typ, dokument_id, initialEmail
               <label className="text-[11px] uppercase tracking-wider text-muted">E-post-mall</label>
               <SelectField
                 value={mallId ?? ''}
-                onChange={(v) => setMallId(v || null)}
+                onChange={(v) => {
+                  setMallId(v || null)
+                  const mall = mallar.find(m => m.id === v)
+                  if (mall?.meddelande_standard) {
+                    setMeddelande(mall.meddelande_standard.replace(/\{\{kund_namn\}\}/g, kund_namn ?? ''))
+                  } else {
+                    setMeddelande('')
+                  }
+                }}
                 placeholder={mallar.length === 0 ? '— ingen tillgänglig —' : undefined}
                 options={mallar.map((m) => ({ value: m.id, label: m.namn }))}
               />

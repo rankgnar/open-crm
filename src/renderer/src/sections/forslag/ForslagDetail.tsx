@@ -1666,6 +1666,7 @@ export function ForslagDetail({ forslag: forslagProp, statusar, allProjekt, onBa
           dokument_typ="forslag"
           dokument_id={forslag.id}
           initialEmail={forslag.projekt?.kunder?.email ?? ''}
+          kund_namn={forslag.projekt.kunder.namn}
           titelOptions={signaturTitelOptions ?? undefined}
           bifogaOptions={[
             {
