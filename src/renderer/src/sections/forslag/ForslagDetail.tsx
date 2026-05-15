@@ -80,6 +80,7 @@ export function ForslagDetail({ forslag: forslagProp, statusar, allProjekt, onBa
   const [showPaminnelseModal, setShowPaminnelseModal] = useState(false)
   const [sendingPaminnelse, setSendingPaminnelse]     = useState(false)
   const [paminnelseFeedback, setPaminnelseFeedback]   = useState<{ kind: 'success' | 'error'; message: string } | null>(null)
+  const [paminnelseDefaultMsg, setPaminnelseDefaultMsg] = useState('')
   const [rightTab, setRightTab] = useState<'signering' | 'uppgifter' | 'projekt' | 'kostnad' | 'epost' | 'villkor'>('signering')
   const [kundFull, setKundFull] = useState<Kund | null>(null)
   const [epostRefs, setEpostRefs] = useState<ForslagEpostRef[]>([])
@@ -133,6 +134,17 @@ export function ForslagDetail({ forslag: forslagProp, statusar, allProjekt, onBa
       if (mall?.accent_farg) setAccentFarg(mall.accent_farg)
     }).catch(() => {})
   }, [])
+
+  useEffect(() => {
+    window.api.invoke('db:epost-mallar:list').then((mallar) => {
+      const mall = (mallar as { system_kod: string | null; meddelande_standard: string | null }[])
+        .find(m => m.system_kod === 'signatur_paminnelse_forslag')
+      if (mall?.meddelande_standard) {
+        const kundNamn = forslag.projekt.kunder.namn
+        setPaminnelseDefaultMsg(mall.meddelande_standard.replace(/\{\{kund_namn\}\}/g, kundNamn))
+      }
+    }).catch(() => {})
+  }, [forslag.projekt.kunder.namn])
 
   // Faser
   const [faser, setFaser] = useState<ForslagFas[]>([])
@@ -858,6 +870,7 @@ export function ForslagDetail({ forslag: forslagProp, statusar, allProjekt, onBa
           onClose={() => setShowPaminnelseModal(false)}
           onSubmit={handleSendPaminnelse}
           kund_email={latestLink.kund_email}
+          defaultMeddelande={paminnelseDefaultMsg}
         />
       )}
 

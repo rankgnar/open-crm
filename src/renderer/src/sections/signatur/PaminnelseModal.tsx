@@ -6,20 +6,21 @@ interface Props {
   onClose:   () => void
   onSubmit:  (meddelande: string) => Promise<void>
   kund_email: string
+  defaultMeddelande?: string
 }
 
-export function PaminnelseModal({ isOpen, onClose, onSubmit, kund_email }: Props) {
+export function PaminnelseModal({ isOpen, onClose, onSubmit, kund_email, defaultMeddelande }: Props) {
   const [meddelande, setMeddelande] = useState('')
   const [submitting, setSubmitting] = useState(false)
   const [error, setError]           = useState<string | null>(null)
 
   useEffect(() => {
     if (isOpen) {
-      setMeddelande('')
+      setMeddelande(defaultMeddelande ?? '')
       setError(null)
       setSubmitting(false)
     }
-  }, [isOpen])
+  }, [isOpen, defaultMeddelande])
 
   if (!isOpen) return null
 

@@ -13,6 +13,7 @@ const EMPTY_FORM: Omit<EpostMall, 'id' | 'skapad_at' | 'uppdaterad_at'> = {
   kategori: 'Allmänt',
   system_kod: null,
   alias_id: null,
+  meddelande_standard: null,
   aktiv: true,
   sortering: 0,
 }
@@ -72,6 +73,7 @@ export function EpostMallarPanel() {
       kategori: mall.kategori,
       system_kod: mall.system_kod,
       alias_id: mall.alias_id,
+      meddelande_standard: mall.meddelande_standard,
       aktiv: mall.aktiv,
       sortering: mall.sortering,
     })
@@ -236,6 +238,20 @@ export function EpostMallarPanel() {
                 className="w-48"
                 options={aliasar.map((a) => ({ value: a.id, label: a.etikett || a.fran_adress }))}
               />
+            </div>
+
+            <div className="flex flex-col gap-1.5 col-span-2">
+              <label className="text-[11px] uppercase tracking-widest text-muted">Standardmeddelande (valfritt)</label>
+              <textarea
+                value={form.meddelande_standard ?? ''}
+                onChange={e => setForm(f => ({ ...f, meddelande_standard: e.target.value || null }))}
+                placeholder={'T.ex. "Hej {{kund_namn}}! Vi ville bara höra om du fått chansen att titta på offerten…"'}
+                rows={4}
+                className="bg-elevated border border-border rounded-lg px-3 py-2 text-sm text-muted outline-none focus:border-fg/30 placeholder:text-subtle resize-none"
+              />
+              <p className="text-[11px] text-subtle">
+                Förfylls i fältet "Personligt meddelande" när mallen används. Kan redigeras innan utskick. Stödjer <code className="text-fg/70">{'{{kund_namn}}'}</code>.
+              </p>
             </div>
 
             <div className="flex flex-col gap-1.5 col-span-2">

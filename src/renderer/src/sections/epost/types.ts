@@ -69,6 +69,7 @@ export interface EpostMall {
   kategori: string
   system_kod: string | null
   alias_id: string | null
+  meddelande_standard: string | null
   aktiv: boolean
   sortering: number
   skapad_at: string
