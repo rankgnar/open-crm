@@ -3,7 +3,7 @@
 -- the offer. Reuses the same existing signing link — no new link is created.
 
 INSERT INTO epost_mallar (system_kod, namn, kategori, amne, kropp_html, sortering, aktiv)
-VALUES (
+SELECT
   'signatur_paminnelse_forslag',
   'Förslag — Påminnelse',
   'Förslag',
@@ -22,5 +22,6 @@ VALUES (
 <div style="margin-top:32px">{{alias_signatur}}</div>$mall$,
   15,
   true
-)
-ON CONFLICT (system_kod) DO NOTHING;
+WHERE NOT EXISTS (
+  SELECT 1 FROM epost_mallar WHERE system_kod = 'signatur_paminnelse_forslag'
+);

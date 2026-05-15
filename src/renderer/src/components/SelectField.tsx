@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from 'react'
+import { createPortal } from 'react-dom'
 import { ChevronDown } from 'lucide-react'
 
 export interface SelectOption {
@@ -27,16 +28,36 @@ export function SelectField({
 }: SelectFieldProps) {
   const [open, setOpen] = useState(false)
   const [query, setQuery] = useState('')
-  const ref = useRef<HTMLDivElement>(null)
+  const [dropRect, setDropRect] = useState<DOMRect | null>(null)
+  const containerRef = useRef<HTMLDivElement>(null)
+  const btnRef = useRef<HTMLButtonElement>(null)
 
   useEffect(() => {
     if (!open) { setQuery(''); return }
     const handler = (e: MouseEvent) => {
-      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false)
+      if (containerRef.current && !containerRef.current.contains(e.target as Node)) setOpen(false)
     }
     document.addEventListener('mousedown', handler)
     return () => document.removeEventListener('mousedown', handler)
   }, [open])
+
+  // Close on scroll/resize to avoid floating dropdown misalignment
+  useEffect(() => {
+    if (!open) return
+    const close = () => setOpen(false)
+    window.addEventListener('scroll', close, true)
+    window.addEventListener('resize', close)
+    return () => {
+      window.removeEventListener('scroll', close, true)
+      window.removeEventListener('resize', close)
+    }
+  }, [open])
+
+  function handleToggle() {
+    if (disabled) return
+    if (!open && btnRef.current) setDropRect(btnRef.current.getBoundingClientRect())
+    setOpen(v => !v)
+  }
 
   const selected = options.find(o => o.value === value)
   const filtered = searchable && query
@@ -44,11 +65,12 @@ export function SelectField({
     : options
 
   return (
-    <div ref={ref} className={`relative ${className}`}>
+    <div ref={containerRef} className={`relative ${className}`}>
       <button
+        ref={btnRef}
         type="button"
         disabled={disabled}
-        onClick={() => !disabled && setOpen(v => !v)}
+        onClick={handleToggle}
         className="w-full flex items-center justify-between gap-2 bg-elevated border border-border rounded-lg px-3 py-2 text-sm outline-none hover:border-fg/30 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
       >
         <span className={`truncate ${selected ? 'text-fg' : 'text-subtle'}`}>
@@ -57,8 +79,17 @@ export function SelectField({
         <ChevronDown size={12} className="text-muted shrink-0" />
       </button>
 
-      {open && !disabled && (
-        <div className="absolute left-0 right-0 top-full mt-1 z-50 bg-elevated border border-border rounded-lg shadow-xl flex flex-col overflow-hidden">
+      {open && !disabled && dropRect && createPortal(
+        <div
+          style={{
+            position: 'fixed',
+            top: dropRect.bottom + 4,
+            left: dropRect.left,
+            width: dropRect.width,
+            zIndex: 9999,
+          }}
+          className="bg-elevated border border-border rounded-lg shadow-xl flex flex-col overflow-hidden"
+        >
           {searchable && (
             <div className="px-3 py-2 border-b border-border">
               <input
@@ -85,7 +116,8 @@ export function SelectField({
               <p className="px-3 py-2 text-xs text-subtle">Inga träffar</p>
             )}
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   )
