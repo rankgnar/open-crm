@@ -31,11 +31,15 @@ export function SelectField({
   const [dropRect, setDropRect] = useState<DOMRect | null>(null)
   const containerRef = useRef<HTMLDivElement>(null)
   const btnRef = useRef<HTMLButtonElement>(null)
+  const dropRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     if (!open) { setQuery(''); return }
     const handler = (e: MouseEvent) => {
-      if (containerRef.current && !containerRef.current.contains(e.target as Node)) setOpen(false)
+      const t = e.target as Node
+      const insideBtn = containerRef.current?.contains(t) ?? false
+      const insideDrop = dropRef.current?.contains(t) ?? false
+      if (!insideBtn && !insideDrop) setOpen(false)
     }
     document.addEventListener('mousedown', handler)
     return () => document.removeEventListener('mousedown', handler)
@@ -81,6 +85,7 @@ export function SelectField({
 
       {open && !disabled && dropRect && createPortal(
         <div
+          ref={dropRef}
           style={{
             position: 'fixed',
             top: dropRect.bottom + 4,
