@@ -158,7 +158,7 @@ export default function App() {
       )}
       {activeSection === 'tidplan' && (
         <TidplanSection
-          initialForslagId={tidplanReturnForslagId}
+          initialForslagId={isPopout ? popoutQueryParam('forslag_id') : tidplanReturnForslagId}
           navigateBackLabel={tidplanReturnMode === 'direct' ? 'Tillbaka till förslag' : 'Tillbaka — fortsätt skicka för signatur'}
           onNavigateBack={tidplanReturnForslagId ? () => {
             if (tidplanReturnMode === 'send') {

@@ -712,7 +712,7 @@ export function ForslagDetail({ forslag: forslagProp, statusar, allProjekt, onBa
               <button onClick={handleExportPdf} disabled={exportingPdf} className="inline-flex items-center gap-1.5 px-3 py-2.5 text-[10px] font-semibold uppercase tracking-wider text-muted hover:text-fg transition-colors disabled:opacity-40">
                 <FileDown size={11} />{exportingPdf ? 'Genererar...' : 'PDF'}
               </button>
-              <button onClick={() => onNavigateTidplan?.('direct')} className="inline-flex items-center gap-1.5 px-3 py-2.5 text-[10px] font-semibold uppercase tracking-wider text-muted hover:text-fg transition-colors">
+              <button onClick={() => onNavigateTidplan ? onNavigateTidplan('direct') : window.api.invoke('window:open-tidplan', forslag.id)} className="inline-flex items-center gap-1.5 px-3 py-2.5 text-[10px] font-semibold uppercase tracking-wider text-muted hover:text-fg transition-colors">
                 <CalendarDays size={11} />Tidplan
               </button>
               <button onClick={() => setShowVilkorReminder(true)} className="inline-flex items-center gap-1.5 px-3 py-2.5 text-[10px] font-semibold uppercase tracking-wider text-muted hover:text-emerald-400 transition-colors">
