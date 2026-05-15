@@ -38,6 +38,7 @@ interface CreateInput {
 interface ResendOpts {
   mall_id?:    string | null
   revised?:    boolean
+  reminder?:   boolean
   meddelande?: string
 }
 
@@ -370,10 +371,16 @@ export function registerSignaturHandlers(): void {
     // For revised resends prefer the type-specific "uppdaterad version"
     // template, falling back to the generic 'dokument' one so fritt and
     // any future doc type works out of the box.
-    const systemKod = opts.revised
-      ? `signatur_uppdaterad_version_kund_${dokTyp === 'fritt' ? 'dokument' : dokTyp}`
-      : null
-    const fallbackKod = opts.revised ? 'signatur_uppdaterad_version_kund_dokument' : null
+    const systemKod = opts.reminder
+      ? `signatur_paminnelse_${dokTyp === 'fritt' ? 'dokument' : dokTyp}`
+      : opts.revised
+        ? `signatur_uppdaterad_version_kund_${dokTyp === 'fritt' ? 'dokument' : dokTyp}`
+        : null
+    const fallbackKod = opts.reminder
+      ? 'signatur_paminnelse_forslag'
+      : opts.revised
+        ? 'signatur_uppdaterad_version_kund_dokument'
+        : null
 
     const meddelande = (opts.meddelande?.trim() || link.meddelande || '') as string
     const andringHistorik = (link.andring_historik ?? []) as { reason: string }[]

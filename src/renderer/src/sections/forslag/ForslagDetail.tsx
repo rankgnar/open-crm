@@ -1,8 +1,9 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
-import { ArrowLeft, ArrowUp, ArrowDown, Pencil, Trash2, Plus, X as XIcon, Check, ChevronRight, ChevronDown, CalendarDays, FileDown, Send, Mail, RefreshCw, FolderOpen, ChevronsUpDown, StickyNote, Eye, EyeOff, Sparkles, Loader2 } from 'lucide-react'
+import { ArrowLeft, ArrowUp, ArrowDown, Pencil, Trash2, Plus, X as XIcon, Check, ChevronRight, ChevronDown, CalendarDays, FileDown, Send, Mail, RefreshCw, FolderOpen, ChevronsUpDown, StickyNote, Eye, EyeOff, Sparkles, Loader2, Bell } from 'lucide-react'
 import { WorkflowTriggerBar } from '@/components/WorkflowTriggerBar'
 import { SkickaForSignaturModal } from '@/sections/signatur/SkickaForSignaturModal'
 import { SkickaUppdateradVersionModal } from '@/sections/signatur/SkickaUppdateradVersionModal'
+import { PaminnelseModal } from '@/sections/signatur/PaminnelseModal'
 import { VilkorReminderModal } from './VilkorReminderModal'
 import { TidplanReminderModal } from './TidplanReminderModal'
 import { SignaturLankarPanel } from '@/sections/signatur/SignaturLankarPanel'
@@ -76,6 +77,9 @@ export function ForslagDetail({ forslag: forslagProp, statusar, allProjekt, onBa
   const [revisedFeedback, setRevisedFeedback] = useState<{ kind: 'success' | 'error'; message: string } | null>(null)
   const [showAndringHistorik, setShowAndringHistorik] = useState(false)
   const [showRevisedModal, setShowRevisedModal] = useState(false)
+  const [showPaminnelseModal, setShowPaminnelseModal] = useState(false)
+  const [sendingPaminnelse, setSendingPaminnelse]     = useState(false)
+  const [paminnelseFeedback, setPaminnelseFeedback]   = useState<{ kind: 'success' | 'error'; message: string } | null>(null)
   const [rightTab, setRightTab] = useState<'signering' | 'uppgifter' | 'projekt' | 'kostnad' | 'epost' | 'villkor'>('signering')
   const [kundFull, setKundFull] = useState<Kund | null>(null)
   const [epostRefs, setEpostRefs] = useState<ForslagEpostRef[]>([])
@@ -663,6 +667,23 @@ export function ForslagDetail({ forslag: forslagProp, statusar, allProjekt, onBa
     }
   }
 
+  async function handleSendPaminnelse(meddelande: string): Promise<void> {
+    if (!latestLink) return
+    setSendingPaminnelse(true)
+    setPaminnelseFeedback(null)
+    try {
+      await window.api.invoke('db:signatur-lank:resend', latestLink.id, { reminder: true, meddelande })
+      setShowPaminnelseModal(false)
+      setPaminnelseFeedback({ kind: 'success', message: 'Påminnelse skickad till kunden. E-postet hamnar i kön och skickas inom en minut.' })
+    } catch (e) {
+      const msg = (e as Error).message ?? String(e)
+      setPaminnelseFeedback({ kind: 'error', message: `Kunde inte skicka påminnelse: ${msg}` })
+      throw e
+    } finally {
+      setSendingPaminnelse(false)
+    }
+  }
+
   if (editing) {
     return (
       <ForslagForm
@@ -718,6 +739,15 @@ export function ForslagDetail({ forslag: forslagProp, statusar, allProjekt, onBa
               <button onClick={() => setShowVilkorReminder(true)} className="inline-flex items-center gap-1.5 px-3 py-2.5 text-[10px] font-semibold uppercase tracking-wider text-muted hover:text-emerald-400 transition-colors">
                 <Send size={11} />Skicka för signatur
               </button>
+              {latestLink && !latestLink.signerad_at && !latestLink.revoked_at && new Date(latestLink.gar_ut_at) > new Date() && forslag.status?.toLowerCase() === 'skickat' && (
+                <button
+                  onClick={() => setShowPaminnelseModal(true)}
+                  disabled={sendingPaminnelse}
+                  className="inline-flex items-center gap-1.5 px-3 py-2.5 text-[10px] font-semibold uppercase tracking-wider text-muted hover:text-amber-400 transition-colors disabled:opacity-40"
+                >
+                  <Bell size={11} />Påminnelse
+                </button>
+              )}
               <button onClick={() => setEditing(true)} className="inline-flex items-center gap-1.5 px-3 py-2.5 text-[10px] font-semibold uppercase tracking-wider text-muted hover:text-fg transition-colors">
                 <Pencil size={11} />Redigera
               </button>
@@ -795,6 +825,19 @@ export function ForslagDetail({ forslag: forslagProp, statusar, allProjekt, onBa
         </div>
       )}
 
+      {paminnelseFeedback && (
+        <div className={`border-b px-6 py-2.5 text-xs flex items-center justify-between gap-3 ${
+          paminnelseFeedback.kind === 'success'
+            ? 'bg-emerald-400/10 border-emerald-400/30 text-emerald-400'
+            : 'bg-red-400/10 border-red-400/30 text-red-400'
+        }`}>
+          <span>{paminnelseFeedback.message}</span>
+          <button onClick={() => setPaminnelseFeedback(null)} className="opacity-60 hover:opacity-100">
+            <XIcon size={12} />
+          </button>
+        </div>
+      )}
+
       {latestLink && (
         <SkickaUppdateradVersionModal
           isOpen={showRevisedModal}
@@ -806,6 +849,15 @@ export function ForslagDetail({ forslag: forslagProp, statusar, allProjekt, onBa
               : undefined
           }
           reRendersPdf
+        />
+      )}
+
+      {latestLink && (
+        <PaminnelseModal
+          isOpen={showPaminnelseModal}
+          onClose={() => setShowPaminnelseModal(false)}
+          onSubmit={handleSendPaminnelse}
+          kund_email={latestLink.kund_email}
         />
       )}
 
