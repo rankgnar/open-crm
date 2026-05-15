@@ -2,7 +2,7 @@
 -- Sent when the admin wants to nudge a client who has not yet reviewed/signed
 -- the offer. Reuses the same existing signing link — no new link is created.
 
-INSERT INTO epost_mallar (system_kod, namn, kategori, amne, kropp_html, meddelande_standard, sortering, aktiv)
+INSERT INTO epost_mallar (system_kod, namn, kategori, amne, kropp_html, sortering, aktiv)
 SELECT
   'signatur_paminnelse_forslag',
   'Förslag — Påminnelse',
@@ -20,7 +20,6 @@ SELECT
   <p style="font-size:13px;color:#888;margin:24px 0 0;padding-top:20px;border-top:1px solid #eaeaea">Har du redan svarat eller har frågor? Svara direkt på detta mail.</p>
 </div>
 <div style="margin-top:32px">{{alias_signatur}}</div>$mall$,
-  'Hej {{kund_namn}}! Vi ville bara höra om du fått chansen att titta på offerten vi skickade. Hör gärna av dig om du har frågor eller funderingar. Vi hjälper gärna till! 😊',
   15,
   true
 WHERE NOT EXISTS (
