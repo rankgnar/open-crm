@@ -272,7 +272,6 @@ export function ForslagTable({ forslag, statusar, signingEvents, onSelect, onNew
                     </div>
                   </th>
                 ))}
-                <th className="px-4 py-2.5 text-[11px] font-medium uppercase tracking-wider text-muted select-none">Moms</th>
                 <th onClick={() => handleSort('skapad_at')}
                   className="px-4 py-2.5 text-[11px] font-medium uppercase tracking-wider text-muted cursor-pointer select-none hover:text-fg transition-colors group/th">
                   <div className="flex items-center gap-1">
@@ -319,7 +318,6 @@ export function ForslagTable({ forslag, statusar, signingEvents, onSelect, onNew
                   <td className="px-4 py-3 text-muted text-xs whitespace-nowrap">
                     {f.giltig_till ? new Date(f.giltig_till).toLocaleDateString('sv-SE') : '—'}
                   </td>
-                  <td className="px-4 py-3 text-muted text-xs whitespace-nowrap">{f.moms_procent}%</td>
                   <td className="px-4 py-3 text-muted text-xs whitespace-nowrap">
                     {new Date(f.skapad_at).toLocaleDateString('sv-SE')}
                   </td>
