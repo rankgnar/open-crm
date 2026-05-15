@@ -159,15 +159,25 @@ export default function App() {
       {activeSection === 'tidplan' && (
         <TidplanSection
           initialForslagId={isPopout ? popoutQueryParam('forslag_id') : tidplanReturnForslagId}
-          navigateBackLabel={tidplanReturnMode === 'direct' ? 'Tillbaka till förslag' : 'Tillbaka — fortsätt skicka för signatur'}
-          onNavigateBack={tidplanReturnForslagId ? () => {
-            if (tidplanReturnMode === 'send') {
-              setOpenTidplanReminderForForslagId(tidplanReturnForslagId)
-            } else {
-              setForslagDirectReturnId(tidplanReturnForslagId)
-            }
-            handleNavigate('forslag')
-          } : undefined}
+          navigateBackLabel={
+            isPopout
+              ? 'Tillbaka till förslag'
+              : tidplanReturnMode === 'direct' ? 'Tillbaka till förslag' : 'Tillbaka — fortsätt skicka för signatur'
+          }
+          onNavigateBack={
+            isPopout && popoutQueryParam('forslag_id')
+              ? () => void window.api.invoke('window:close')
+              : tidplanReturnForslagId
+                ? () => {
+                    if (tidplanReturnMode === 'send') {
+                      setOpenTidplanReminderForForslagId(tidplanReturnForslagId)
+                    } else {
+                      setForslagDirectReturnId(tidplanReturnForslagId)
+                    }
+                    handleNavigate('forslag')
+                  }
+                : undefined
+          }
         />
       )}
       {activeSection === 'ekonomi' && <EkonomiSection />}
