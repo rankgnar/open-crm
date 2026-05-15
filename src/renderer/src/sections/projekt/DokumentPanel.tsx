@@ -1,6 +1,6 @@
 import { createPortal } from 'react-dom'
-import { useEffect, useState } from 'react'
-import { Upload, File, FileText, Image, ExternalLink, Trash2, Loader2, Eye, EyeOff, Folder, FolderOpen, Plus, X, Pencil, Check } from 'lucide-react'
+import { useEffect, useRef, useState } from 'react'
+import { Upload, File, FileText, Image, ExternalLink, Trash2, Loader2, Eye, EyeOff, Folder, FolderOpen, Plus, X, Pencil, Check, FilePlus } from 'lucide-react'
 import type { ProjektDokument } from './types'
 import { WorkflowTriggerInline } from '@/components/WorkflowTriggerInline'
 
@@ -12,6 +12,7 @@ interface Props {
   dokument: ProjektDokument[]
   projektId: string
   onUpload: (carpeta: string | null) => Promise<void>
+  onCreateText: (fileName: string, content: string, carpeta: string | null) => Promise<void>
   onDelete: (id: string, storagePath: string) => Promise<void>
   onOpen: (storagePath: string) => Promise<void>
   onToggleVisibility: (id: string, synlig: boolean) => Promise<void>
@@ -33,12 +34,19 @@ function FileIcon({ mimeType }: { mimeType: string }) {
   return <File size={14} className="text-muted shrink-0" />
 }
 
-export function DokumentPanel({ dokument, projektId, onUpload, onDelete, onOpen, onToggleVisibility, onMoveCarpeta, onDeleteCarpeta, onRename, uploadProgress }: Props) {
+export function DokumentPanel({ dokument, projektId, onUpload, onCreateText, onDelete, onOpen, onToggleVisibility, onMoveCarpeta, onDeleteCarpeta, onRename, uploadProgress }: Props) {
   const [uploading, setUploading] = useState(false)
   const [deletingId, setDeletingId] = useState<string | null>(null)
   const [openingId, setOpeningId] = useState<string | null>(null)
   const [togglingId, setTogglingId] = useState<string | null>(null)
   const [thumbs, setThumbs] = useState<Record<string, string>>({})
+
+  // New text file modal state
+  const [newTextOpen, setNewTextOpen] = useState(false)
+  const [newTextName, setNewTextName] = useState('')
+  const [newTextContent, setNewTextContent] = useState('')
+  const [creatingText, setCreatingText] = useState(false)
+  const newTextNameRef = useRef<HTMLInputElement>(null)
 
   // Folder bar state
   const [activeCarpeta, setActiveCarpeta] = useState<string>('__alla__')
@@ -109,6 +117,32 @@ export function DokumentPanel({ dokument, projektId, onUpload, onDelete, onOpen,
     const carpeta = activeCarpeta === '__alla__' || activeCarpeta === '__ingen__' ? null : activeCarpeta
     setUploading(true)
     try { await onUpload(carpeta) } finally { setUploading(false) }
+  }
+
+  function openNewText() {
+    setNewTextName('')
+    setNewTextContent('')
+    setNewTextOpen(true)
+    setTimeout(() => newTextNameRef.current?.focus(), 50)
+  }
+
+  function closeNewText() {
+    setNewTextOpen(false)
+    setNewTextName('')
+    setNewTextContent('')
+  }
+
+  async function handleCreateText() {
+    const name = newTextName.trim()
+    if (!name) return
+    const carpeta = activeCarpeta === '__alla__' || activeCarpeta === '__ingen__' ? null : activeCarpeta
+    setCreatingText(true)
+    try {
+      await onCreateText(name, newTextContent, carpeta)
+      closeNewText()
+    } finally {
+      setCreatingText(false)
+    }
   }
 
   async function handleDelete(d: ProjektDokument) {
@@ -197,21 +231,31 @@ export function DokumentPanel({ dokument, projektId, onUpload, onDelete, onOpen,
   return (
     <div className="flex flex-col h-full">
       {/* Header */}
-      <div className="flex items-center justify-between px-5 py-3 border-b border-border shrink-0">
-        <h3 className="text-xs font-semibold uppercase tracking-wider text-muted">Dokument</h3>
-        <div className="flex items-center gap-2">
-          {activeCarpeta !== '__alla__' && activeCarpeta !== '__ingen__' && (
-            <span className="flex items-center gap-0.5 text-[10px] text-muted">
-              <Folder size={9} /> {activeCarpeta}
-            </span>
-          )}
+      <div className="flex items-center justify-between px-4 py-2 border-b border-border shrink-0">
+        {activeCarpeta !== '__alla__' && activeCarpeta !== '__ingen__' ? (
+          <span className="flex items-center gap-1 text-[10px] text-muted">
+            <Folder size={9} /> {activeCarpeta}
+          </span>
+        ) : (
+          <span />
+        )}
+        <div className="flex items-center gap-1">
+          <button
+            onClick={openNewText}
+            className="flex items-center gap-1.5 rounded-lg border border-border bg-elevated px-2.5 py-1.5 text-[11px] text-fg hover:bg-hover transition-colors whitespace-nowrap"
+            title="Skapa ny textfil"
+          >
+            <FilePlus size={12} />
+            Ny textfil
+          </button>
           <button
             onClick={handleUpload}
             disabled={isUploading}
-            className="flex items-center gap-1.5 rounded-lg border border-border bg-elevated px-2.5 py-1 text-[11px] text-fg hover:bg-hover disabled:opacity-40 transition-colors"
+            className="flex items-center gap-1.5 rounded-lg border border-border bg-elevated px-2.5 py-1.5 text-[11px] text-fg hover:bg-hover disabled:opacity-40 transition-colors whitespace-nowrap"
+            title={isUploading ? uploadLabel : 'Ladda upp fil'}
           >
-            {isUploading ? <Loader2 size={11} className="animate-spin" /> : <Upload size={11} />}
-            {uploadLabel}
+            {isUploading ? <Loader2 size={12} className="animate-spin" /> : <Upload size={12} />}
+            {isUploading ? uploadLabel : 'Ladda upp'}
           </button>
           <WorkflowTriggerInline seccion="projekt:dokument" context={{ projekt_id: projektId }} />
         </div>
@@ -397,6 +441,61 @@ export function DokumentPanel({ dokument, projektId, onUpload, onDelete, onOpen,
           </div>
         )}
       </div>
+
+      {/* New text file modal */}
+      {newTextOpen && createPortal(
+        <>
+          <div className="fixed inset-0 z-40 bg-black/40" onClick={closeNewText} />
+          <div className="fixed z-50 top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-elevated border border-border rounded-xl shadow-xl w-[480px] flex flex-col">
+            <div className="flex items-center justify-between px-4 py-3 border-b border-border">
+              <span className="text-xs font-semibold text-fg uppercase tracking-wider">Ny textfil</span>
+              <button onClick={closeNewText} className="p-1 text-subtle hover:text-fg transition-colors">
+                <X size={14} />
+              </button>
+            </div>
+            <div className="px-4 py-4 flex flex-col gap-3">
+              <div className="flex flex-col gap-1">
+                <label className="text-[11px] text-muted">Filnamn</label>
+                <div className="flex items-center gap-1">
+                  <input
+                    ref={newTextNameRef}
+                    value={newTextName}
+                    onChange={(e) => setNewTextName(e.target.value)}
+                    onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); void handleCreateText() } if (e.key === 'Escape') closeNewText() }}
+                    placeholder="mitt-dokument"
+                    className="flex-1 text-sm bg-bg border border-border rounded px-2.5 py-1.5 text-fg outline-none focus:border-blue-400 transition-colors"
+                  />
+                  <span className="text-[11px] text-muted shrink-0">.txt</span>
+                </div>
+              </div>
+              <div className="flex flex-col gap-1">
+                <label className="text-[11px] text-muted">Innehåll (valfritt)</label>
+                <textarea
+                  value={newTextContent}
+                  onChange={(e) => setNewTextContent(e.target.value)}
+                  rows={8}
+                  placeholder="Skriv innehållet här..."
+                  className="text-sm bg-bg border border-border rounded px-2.5 py-1.5 text-fg outline-none focus:border-blue-400 transition-colors resize-none font-mono"
+                />
+              </div>
+            </div>
+            <div className="flex items-center justify-end gap-2 px-4 py-3 border-t border-border">
+              <button onClick={closeNewText} className="px-3 py-1.5 text-[11px] text-muted hover:text-fg transition-colors">
+                Avbryt
+              </button>
+              <button
+                onClick={() => void handleCreateText()}
+                disabled={!newTextName.trim() || creatingText}
+                className="flex items-center gap-1.5 px-3 py-1.5 text-[11px] bg-blue-500 hover:bg-blue-400 text-white rounded-lg disabled:opacity-40 transition-colors"
+              >
+                {creatingText ? <Loader2 size={11} className="animate-spin" /> : <FilePlus size={11} />}
+                Skapa fil
+              </button>
+            </div>
+          </div>
+        </>,
+        document.body
+      )}
 
       {/* Move-to-folder dropdown via portal — escapes scroll container clipping */}
       {movingId && movingAnchor && createPortal(

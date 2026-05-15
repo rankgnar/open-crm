@@ -31,6 +31,7 @@ interface Props {
   onChangeAnteckningFarg: (id: string, farg: string) => Promise<void>
   aktiviteter: ProjektAktivitet[]
   onUploadDokument: (kategori?: DokumentKategori, carpeta?: string | null) => Promise<void>
+  onCreateTextDokument: (fileName: string, content: string, carpeta: string | null) => Promise<void>
   onDeleteDokument: (id: string, storagePath: string) => Promise<void>
   onOpenDokument: (storagePath: string) => Promise<void>
   onToggleDokumentVisibility: (id: string, synlig: boolean) => Promise<void>
@@ -58,7 +59,7 @@ type TimelineItem =
   | { kind: 'anteckning'; data: ProjektAnteckning }
   | { kind: 'aktivitet'; data: ProjektAktivitet }
 
-export function ProjektDetail({ projekt, kunder, statusar, anteckningar, snapshots, dokument, aktiviteter, onBack, onEdit, onChangeStatus, onDelete, onAddAnteckning, onUpdateAnteckning, onDeleteAnteckning, onChangeAnteckningFarg, onUploadDokument, onDeleteDokument, onOpenDokument, onToggleDokumentVisibility, onMoveCarpeta, onDeleteCarpeta, onRenameDokument, uploadProgress, frageblanktter, onGenerateFromText, onCreateBlankett, onDeleteBlankett, onGetBlanktLink, onSaveBlanktAsDoc, onRefreshBlankett, onGetBlanktEpostDraft, onSendBlanktEpost }: Props) {
+export function ProjektDetail({ projekt, kunder, statusar, anteckningar, snapshots, dokument, aktiviteter, onBack, onEdit, onChangeStatus, onDelete, onAddAnteckning, onUpdateAnteckning, onDeleteAnteckning, onChangeAnteckningFarg, onUploadDokument, onCreateTextDokument, onDeleteDokument, onOpenDokument, onToggleDokumentVisibility, onMoveCarpeta, onDeleteCarpeta, onRenameDokument, uploadProgress, frageblanktter, onGenerateFromText, onCreateBlankett, onDeleteBlankett, onGetBlanktLink, onSaveBlanktAsDoc, onRefreshBlankett, onGetBlanktEpostDraft, onSendBlanktEpost }: Props) {
   const { formatCurrency } = useAppConfig()
   const [editing, setEditing] = useState(false)
   const [confirmDelete, setConfirmDelete] = useState(false)
@@ -289,7 +290,7 @@ export function ProjektDetail({ projekt, kunder, statusar, anteckningar, snapsho
         </div>
 
         {/* Panel derecho con tabs */}
-        <div className="w-[480px] border-l border-border flex flex-col shrink-0">
+        <div className="w-[560px] border-l border-border flex flex-col shrink-0">
 
           {(() => {
             const dokumentList = dokument.filter((d) => (d.kategori ?? 'dokument') === 'dokument')
@@ -332,6 +333,7 @@ export function ProjektDetail({ projekt, kunder, statusar, anteckningar, snapsho
                     dokument={dokumentList}
                     projektId={projekt.id}
                     onUpload={(carpeta) => onUploadDokument('dokument', carpeta)}
+                    onCreateText={onCreateTextDokument}
                     onDelete={onDeleteDokument}
                     onOpen={onOpenDokument}
                     onToggleVisibility={onToggleDokumentVisibility}

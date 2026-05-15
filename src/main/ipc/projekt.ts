@@ -418,6 +418,24 @@ export function registerProjektHandlers(): void {
     return data
   })
 
+  ipcMain.handle('db:projekt-dokument:create-text', async (_, input: { projektId: string; fileName: string; content: string; carpeta?: string | null }) => {
+    const rawName = input.fileName.endsWith('.txt') ? input.fileName : `${input.fileName}.txt`
+    const safeName = rawName.normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-zA-Z0-9._-]/g, '_')
+    const buffer = Buffer.from(input.content, 'utf8')
+    const storagePath = `${input.projektId}/${Date.now()}_${safeName}`
+    const { error: storageError } = await supabase.storage
+      .from('projekt-dokument')
+      .upload(storagePath, buffer, { contentType: 'text/plain', upsert: false })
+    if (storageError) throw new Error(storageError.message)
+    const { data, error: dbError } = await supabase
+      .from('projekt_dokument')
+      .insert({ projekt_id: input.projektId, filnamn: rawName, mime_type: 'text/plain', storlek: buffer.length, storage_path: storagePath, kategori: 'dokument', carpeta: input.carpeta ?? null })
+      .select('*')
+      .single()
+    if (dbError) throw new Error(dbError.message)
+    return data
+  })
+
   ipcMain.handle('db:projekt-dokument:clear-carpeta', async (_, { projektId, carpeta }: { projektId: string; carpeta: string }) => {
     const { error } = await supabase
       .from('projekt_dokument')

@@ -202,6 +202,15 @@ export function ProjektSection({ initialProjektId }: Props = {}) {
     setAktiviteter(aktivData)
   }
 
+  async function handleCreateTextDokument(fileName: string, content: string, carpeta: string | null) {
+    if (!selectedProjekt) return
+    const doc = await window.api.invoke('db:projekt-dokument:create-text', { projektId: selectedProjekt.id, fileName, content, carpeta }) as ProjektDokument
+    setDokument((prev) => [doc, ...prev])
+    await logActivity(selectedProjekt.id, 'dokument_uppladdat', `Textfil skapad: ${doc.filnamn}`)
+    const aktivData = await window.api.invoke('db:projekt-aktivitet:list', selectedProjekt.id) as ProjektAktivitet[]
+    setAktiviteter(aktivData)
+  }
+
   async function handleMoveCarpeta(id: string, carpeta: string | null) {
     const updated = await window.api.invoke('db:projekt-dokument:move-carpeta', { id, carpeta }) as ProjektDokument
     setDokument((prev) => prev.map((d) => (d.id === id ? updated : d)))
@@ -335,6 +344,7 @@ export function ProjektSection({ initialProjektId }: Props = {}) {
         aktiviteter={aktiviteter}
         dokument={dokument}
         onUploadDokument={handleUploadDokument}
+        onCreateTextDokument={handleCreateTextDokument}
         onDeleteDokument={handleDeleteDokument}
         onOpenDokument={handleOpenDokument}
         onToggleDokumentVisibility={handleToggleDokumentVisibility}
