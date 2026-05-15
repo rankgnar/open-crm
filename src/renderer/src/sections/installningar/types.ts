@@ -158,7 +158,7 @@ export interface MaterialKatalog {
 
 export type AiProviderSlug = 'anthropic' | 'openai' | 'google' | 'openrouter'
 
-export type AiUppgift = 'forslag' | 'sammanfattning' | 'epost' | 'analys' | 'allman' | 'frageblankett'
+export type AiUppgift = 'forslag' | 'sammanfattning' | 'epost' | 'analys' | 'allman' | 'frageblankett' | 'villkor-beskrivning'
 
 export interface AiProvider {
   id: string

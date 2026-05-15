@@ -9,7 +9,8 @@ const UPPGIFTER: { value: AiUppgift; label: string }[] = [
   { value: 'epost', label: 'E-post' },
   { value: 'analys', label: 'Analys' },
   { value: 'allman', label: 'Allmän' },
-  { value: 'frageblankett', label: 'Formulärgenerator' }
+  { value: 'frageblankett', label: 'Formulärgenerator' },
+  { value: 'villkor-beskrivning', label: 'Villkor-beskrivning' }
 ]
 
 const FALLBACK_MODELS: Record<AiProviderSlug, string[]> = {

@@ -321,7 +321,7 @@ export function FasMallarPanel() {
       <div className="flex flex-1 min-h-0">
 
         {/* Col 1: Mallar */}
-        <div className="w-48 shrink-0 border-r border-border flex flex-col">
+        <div className="w-96 shrink-0 border-r border-border flex flex-col">
           <div className="flex items-center justify-between px-4 py-3 border-b border-border">
             <p className="text-[10px] uppercase tracking-wider text-muted">Mallar</p>
             <button onClick={handleAddMall} className="text-muted hover:text-fg transition-colors"><Plus size={13} /></button>
@@ -346,7 +346,7 @@ export function FasMallarPanel() {
         </div>
 
         {/* Col 2: Faser */}
-        <div className="w-72 shrink-0 border-r border-border flex flex-col">
+        <div className="w-96 shrink-0 border-r border-border flex flex-col">
           <div className="flex items-center justify-between px-4 py-3 border-b border-border">
             <p className="text-[10px] uppercase tracking-wider text-muted">Faser</p>
             <div className="flex items-center gap-2">

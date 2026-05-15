@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
-import { ArrowLeft, ArrowUp, ArrowDown, Pencil, Trash2, Plus, X as XIcon, Check, ChevronRight, ChevronDown, CalendarDays, FileDown, Send, Mail, RefreshCw, FolderOpen, ChevronsUpDown, StickyNote, Eye, EyeOff } from 'lucide-react'
+import { ArrowLeft, ArrowUp, ArrowDown, Pencil, Trash2, Plus, X as XIcon, Check, ChevronRight, ChevronDown, CalendarDays, FileDown, Send, Mail, RefreshCw, FolderOpen, ChevronsUpDown, StickyNote, Eye, EyeOff, Sparkles, Loader2 } from 'lucide-react'
 import { WorkflowTriggerBar } from '@/components/WorkflowTriggerBar'
 import { SkickaForSignaturModal } from '@/sections/signatur/SkickaForSignaturModal'
 import { SkickaUppdateradVersionModal } from '@/sections/signatur/SkickaUppdateradVersionModal'
@@ -20,7 +20,7 @@ import type {
 } from './types'
 import type { ProjektWithKund } from '@/sections/projekt/types'
 import type { Kund } from '@/sections/kunder/types'
-import type { ArbetsRoll, PdfMall } from '@/sections/installningar/types'
+import type { AiAssistent, ArbetsRoll, PdfMall } from '@/sections/installningar/types'
 import { useAppConfig } from '@/context/AppConfig'
 import { buildForslagDesglose } from '@/pdf/buildForslagDesglose'
 import { DEFAULT_FORSLAG_HTML } from '@/pdf/defaultTemplates'
@@ -76,17 +76,30 @@ export function ForslagDetail({ forslag: forslagProp, statusar, allProjekt, onBa
   const [revisedFeedback, setRevisedFeedback] = useState<{ kind: 'success' | 'error'; message: string } | null>(null)
   const [showAndringHistorik, setShowAndringHistorik] = useState(false)
   const [showRevisedModal, setShowRevisedModal] = useState(false)
-  const [rightTab, setRightTab] = useState<'signering' | 'uppgifter' | 'projekt' | 'kostnad' | 'epost'>('signering')
+  const [rightTab, setRightTab] = useState<'signering' | 'uppgifter' | 'projekt' | 'kostnad' | 'epost' | 'villkor'>('signering')
   const [kundFull, setKundFull] = useState<Kund | null>(null)
   const [epostRefs, setEpostRefs] = useState<ForslagEpostRef[]>([])
   const [epostKo, setEpostKo] = useState<EpostKoRef[]>([])
   const [epostLoading, setEpostLoading] = useState(false)
   const [epostOpenHint, setEpostOpenHint] = useState(false)
+  const [villkorEditing, setVillkorEditing] = useState(false)
+  const [villkorDraft, setVillkorDraft] = useState('')
+  const [villkorSaving, setVillkorSaving] = useState(false)
+  const [villkorAssistentId, setVillkorAssistentId] = useState<string | null>(null)
+  const [villkorGenerating, setVillkorGenerating] = useState(false)
 
   useEffect(() => {
     if (rightTab !== 'uppgifter') return
     window.api.invoke('db:kunder:get', forslag.projekt.kund_id).then(k => setKundFull(k as Kund))
   }, [rightTab, forslag.projekt.kund_id])
+
+  useEffect(() => {
+    if (rightTab !== 'villkor') return
+    window.api.invoke('ai:asistenter:list').then((list) => {
+      const found = (list as AiAssistent[]).find(a => a.aktiv && a.uppgifter.includes('villkor-beskrivning'))
+      setVillkorAssistentId(found?.id ?? null)
+    })
+  }, [rightTab])
 
   useEffect(() => {
     if (rightTab !== 'epost') return
@@ -391,6 +404,35 @@ export function ForslagDetail({ forslag: forslagProp, statusar, allProjekt, onBa
   async function handleApplyRot() {
     await window.api.invoke('db:forslag-arbete:apply-rot', forslag.id)
     await loadAll()
+  }
+
+  async function handleGenerateBeskrivning() {
+    if (!villkorAssistentId) return
+    setVillkorGenerating(true)
+    try {
+      const projektInfo = [
+        `Projekt: ${forslag.projekt.namn}`,
+        forslag.projekt.beskrivning ? `Beskrivning: ${forslag.projekt.beskrivning}` : '',
+        forslag.projekt.arbetsplats_adress ? `Adress: ${forslag.projekt.arbetsplats_adress}, ${forslag.projekt.arbetsplats_stad ?? ''}` : '',
+        `Kund: ${forslag.projekt.kunder.namn}`,
+        `Förslag: ${forslag.titel}`,
+        forslag.sammanfattning ? `Sammanfattning: ${forslag.sammanfattning}` : '',
+        faser.length ? `Faser: ${faser.map(f => f.namn).join(', ')}` : '',
+      ].filter(Boolean).join('\n')
+
+      const result = await window.api.invoke('ai:chat', {
+        assistent_id: villkorAssistentId,
+        messages: [{ role: 'user', content: projektInfo }],
+      }) as string
+
+      const current = villkorEditing ? villkorDraft : (forslag.projekt?.villkor ?? '')
+      setVillkorDraft(result.trim() + (current.trim() ? '\n\n' + current : ''))
+      setVillkorEditing(true)
+    } catch {
+      // silently fail — user can retry
+    } finally {
+      setVillkorGenerating(false)
+    }
   }
 
   // --- Delete proposal ---
@@ -1094,17 +1136,17 @@ export function ForslagDetail({ forslag: forslagProp, statusar, allProjekt, onBa
         </div>
 
         {/* Right — Signering / Uppgifter / Kostnad tabs */}
-        <div className="w-96 shrink-0 border-l border-border overflow-hidden flex flex-col">
+        <div className="w-[480px] shrink-0 border-l border-border overflow-hidden flex flex-col">
 
           {/* Tab bar */}
           <div className="flex border-b border-border shrink-0 bg-sidebar">
-            {(['signering', 'uppgifter', 'projekt', 'kostnad', 'epost'] as const).map((tab) => (
+            {(['signering', 'uppgifter', 'projekt', 'kostnad', 'epost', 'villkor'] as const).map((tab) => (
               <button
                 key={tab}
                 onClick={() => setRightTab(tab)}
                 className={`flex-1 py-2.5 text-[10px] font-semibold uppercase tracking-wider transition-colors ${rightTab === tab ? 'text-fg border-b-2 border-emerald-400' : 'text-muted hover:text-fg'}`}
               >
-                {tab === 'signering' ? 'Sign' : tab === 'uppgifter' ? 'Kund' : tab === 'projekt' ? 'Projekt' : tab === 'kostnad' ? 'Kostnad' : 'E-post'}
+                {tab === 'signering' ? 'Sign' : tab === 'uppgifter' ? 'Kund' : tab === 'projekt' ? 'Projekt' : tab === 'kostnad' ? 'Kostnad' : tab === 'epost' ? 'E-post' : 'Villkor'}
               </button>
             ))}
           </div>
@@ -1430,6 +1472,84 @@ export function ForslagDetail({ forslag: forslagProp, statusar, allProjekt, onBa
                   <p className="text-[11px] text-blue-400">Navigera till E-post i menyn för att se meddelandet</p>
                 </div>
               )}
+            </div>
+          )}
+
+          {/* Villkor */}
+          {rightTab === 'villkor' && (
+            <div className="flex-1 flex flex-col overflow-auto">
+              <div className="px-5 py-3 border-b border-border flex items-center justify-between shrink-0">
+                <p className="text-[10px] uppercase tracking-widest text-muted">Villkor</p>
+                <div className="flex items-center gap-3">
+                  <button
+                    onClick={handleGenerateBeskrivning}
+                    disabled={!villkorAssistentId || villkorGenerating}
+                    title={!villkorAssistentId ? 'Ingen assistent konfigurerad för villkor-beskrivning' : 'Generera projektbeskrivning'}
+                    className="flex items-center gap-1 text-[11px] text-muted hover:text-fg transition-colors disabled:opacity-40"
+                  >
+                    {villkorGenerating ? <Loader2 size={11} className="animate-spin" /> : <Sparkles size={11} />}
+                    Beskrivning
+                  </button>
+                  {!villkorEditing && (
+                    <button
+                      onClick={() => {
+                        setVillkorDraft(forslag.projekt?.villkor ?? '')
+                        setVillkorEditing(true)
+                      }}
+                      className="flex items-center gap-1 text-[11px] text-muted hover:text-fg transition-colors"
+                    >
+                      <Pencil size={11} />
+                      Redigera
+                    </button>
+                  )}
+                </div>
+              </div>
+              <div className="flex-1 flex flex-col px-5 py-4 gap-3">
+                {villkorEditing ? (
+                  <>
+                    <textarea
+                      value={villkorDraft}
+                      onChange={(e) => setVillkorDraft(e.target.value)}
+                      rows={12}
+                      className="bg-elevated border border-border rounded-sm px-3 py-2 text-xs text-fg outline-none resize-y leading-relaxed placeholder:text-subtle w-full"
+                      placeholder="Projektspecifika villkor..."
+                      autoFocus
+                    />
+                    <div className="flex items-center justify-end gap-2">
+                      <button
+                        onClick={() => setVillkorEditing(false)}
+                        disabled={villkorSaving}
+                        className="text-xs text-muted hover:text-fg transition-colors px-3 py-1.5"
+                      >
+                        Avbryt
+                      </button>
+                      <button
+                        onClick={async () => {
+                          setVillkorSaving(true)
+                          try {
+                            await window.api.invoke('db:projekt:update', forslag.projekt_id, { villkor: villkorDraft })
+                            setForslag((prev) => ({ ...prev, projekt: { ...prev.projekt!, villkor: villkorDraft } }))
+                            setVillkorEditing(false)
+                          } finally {
+                            setVillkorSaving(false)
+                          }
+                        }}
+                        disabled={villkorSaving}
+                        className="rounded-md border border-emerald-400 text-emerald-400 px-4 py-1.5 text-xs font-medium hover:bg-emerald-400/10 transition-colors disabled:opacity-50"
+                      >
+                        {villkorSaving ? 'Sparar…' : 'Spara'}
+                      </button>
+                    </div>
+                  </>
+                ) : (
+                  <div className="bg-elevated border border-border rounded-md px-3 py-2 flex-1 overflow-auto">
+                    {(forslag.projekt?.villkor ?? '').trim()
+                      ? <pre className="text-xs text-fg whitespace-pre-wrap font-sans">{forslag.projekt?.villkor}</pre>
+                      : <p className="text-xs text-subtle italic">Inga villkor satta — standardtext används vid PDF-export.</p>
+                    }
+                  </div>
+                )}
+              </div>
             </div>
           )}
 
