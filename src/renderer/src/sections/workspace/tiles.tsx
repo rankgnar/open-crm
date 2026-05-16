@@ -16,7 +16,10 @@ interface NavProps { onNavigate: (s: WorkspaceTarget) => void }
 
 // ── KUNDER ─────────────────────────────────────────────────
 export function KunderTile({ data, onNavigate, index }: { data: WorkspaceOverview['kunder'] } & NavProps & { index: number }) {
-  const series = data.sparkline_30d.map((b) => b.count)
+  const series = data.sparkline_30d.reduce((acc, b) => {
+    acc.push((acc[acc.length - 1] ?? 0) + b.count)
+    return acc
+  }, [] as number[])
   const delta = data.nya_senaste_vecka
   return (
     <Tile title="Kunder" onClick={() => onNavigate('kunder')} index={index} className="col-span-3 row-span-2">
@@ -39,29 +42,37 @@ export function KunderTile({ data, onNavigate, index }: { data: WorkspaceOvervie
 export function ProjektPipelineTile({ data, onNavigate, index }: { data: WorkspaceOverview['projekt'] } & NavProps & { index: number }) {
   const total = data.total || 1
   const sorted = [...data.per_status].sort((a, b) => b.count - a.count).slice(0, 6)
-  const colors = ['bg-emerald-400/80', 'bg-blue-400/70', 'bg-amber-400/70', 'bg-fg/50', 'bg-muted/60', 'bg-subtle']
+  const barColors = ['bg-emerald-400/80', 'bg-blue-400/70', 'bg-amber-400/70', 'bg-fg/50', 'bg-muted/60', 'bg-subtle']
+  const textColors = ['text-emerald-400', 'text-blue-400', 'text-amber-400', 'text-fg/70', 'text-muted', 'text-subtle']
+  const maxCount = sorted[0]?.count || 1
   return (
     <Tile title="Projekt — pipeline" onClick={() => onNavigate('projekt')} index={index} className="col-span-6 row-span-2">
       <div className="flex items-baseline gap-3">
         <span className="text-[40px] font-semibold text-fg ws-tabular leading-none">{fmt.format(data.total)}</span>
         <span className="text-xs text-muted">totalt</span>
       </div>
-      <div className="flex w-full h-2 mt-4 overflow-hidden rounded-sm">
+      <div className="flex w-full h-1.5 mt-3 overflow-hidden rounded-sm">
         {sorted.map((s, i) => (
           <div
             key={s.status}
-            className={colors[i % colors.length]}
+            className={barColors[i % barColors.length]}
             style={{ width: `${(s.count / total) * 100}%` }}
             title={`${s.status}: ${s.count}`}
           />
         ))}
       </div>
-      <div className="grid grid-cols-3 gap-x-6 gap-y-2 mt-4">
+      <div className="flex-1 flex flex-col justify-center gap-2.5 mt-4">
         {sorted.map((s, i) => (
-          <div key={s.status} className="flex items-center gap-2 min-w-0">
-            <span className={`w-2 h-2 shrink-0 rounded-sm ${colors[i % colors.length]}`} />
-            <span className="text-xs text-fg ws-tabular">{s.count}</span>
-            <span className="text-xs text-muted truncate">{s.status}</span>
+          <div key={s.status} className="flex items-center gap-3 min-w-0">
+            <span className="text-[11px] text-muted w-28 shrink-0 truncate uppercase tracking-wide">{s.status}</span>
+            <div className="flex-1 h-1.5 bg-fg/10 rounded-sm overflow-hidden">
+              <div
+                className={`h-full rounded-sm transition-all ${barColors[i % barColors.length]}`}
+                style={{ width: `${(s.count / maxCount) * 100}%` }}
+              />
+            </div>
+            <span className={`text-sm font-semibold ws-tabular shrink-0 w-6 text-right ${textColors[i % textColors.length]}`}>{s.count}</span>
+            <span className="text-[11px] text-subtle shrink-0 w-8 text-right ws-tabular">{Math.round((s.count / total) * 100)}%</span>
           </div>
         ))}
       </div>
