@@ -152,7 +152,7 @@ export function registerKundAvslutHandlers(): void {
     const { data: mall } = await supabase
       .from('epost_mallar')
       .select('amne, kropp_html, alias_id, questions_json')
-      .eq('system_kod', 'projekt_avslut_feedback')
+      .eq('system_kod', 'kund_avslut_feedback_manual')
       .eq('aktiv', true)
       .limit(1)
       .maybeSingle()
