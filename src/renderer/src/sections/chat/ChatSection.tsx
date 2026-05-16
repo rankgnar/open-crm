@@ -58,7 +58,7 @@ export function ChatSection() {
         prev.map((t) => (t.personal_id === personalId ? { ...t, unread_count: 0 } : t)),
       )
     } catch {
-      // mark-read no es crítico
+      // mark-read is non-critical
     }
   }
 

@@ -73,7 +73,7 @@ export function ProjektDetail({ projekt, kunder, statusar, anteckningar, snapsho
   const [nyFarg, setNyFarg] = useState<AnteckningFarg>('muted')
   const [savingNote, setSavingNote] = useState(false)
 
-  // Estado por nota
+  // State per note
   const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set())
   const [editingNoteId, setEditingNoteId] = useState<string | null>(null)
   const [editTitel, setEditTitel] = useState('')
@@ -183,7 +183,7 @@ export function ProjektDetail({ projekt, kunder, statusar, anteckningar, snapsho
 
       <div className="flex flex-1 min-h-0">
 
-        {/* Info del proyecto */}
+        {/* Project info */}
         <div className="flex-1 overflow-auto flex flex-col">
           <div className="px-8 py-6 border-b border-border">
             <p className="text-[11px] uppercase tracking-widest text-muted mb-0.5">{projekt.projekt_nummer}</p>
@@ -289,7 +289,7 @@ export function ProjektDetail({ projekt, kunder, statusar, anteckningar, snapsho
           </div>
         </div>
 
-        {/* Panel derecho con tabs */}
+        {/* Right panel with tabs */}
         <div className="w-[560px] border-l border-border flex flex-col shrink-0">
 
           {(() => {

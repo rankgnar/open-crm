@@ -307,7 +307,7 @@ export function FaktureringWizard({ onDone, onCancel }: Props) {
           {/* ── Desglose completo ─────────────────────────────────────────── */}
           <div className="border-t border-border pt-6 flex flex-col gap-6">
 
-            {/* Base del förslag */}
+            {/* Förslag base data */}
             <div>
               <p className="text-[10px] uppercase tracking-widest text-muted font-medium mb-3">Underlag från förslaget</p>
               <div className="grid grid-cols-2 gap-x-16 gap-y-1.5 text-xs max-w-lg">

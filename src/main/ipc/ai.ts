@@ -80,7 +80,7 @@ export function registerAiHandlers(): void {
 
   ipcMain.handle('ai:providers:test', async (_, { provider_slug }: { provider_slug: AiProviderSlug }): Promise<AiTestResult> => {
     const raw = await getProviderRaw(provider_slug)
-    if (!raw) return { ok: false, latency_ms: 0, error: 'Proveedor no encontrado' }
+    if (!raw) return { ok: false, latency_ms: 0, error: 'Leverantör hittades inte' }
 
     const start = Date.now()
     try {

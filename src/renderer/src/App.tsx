@@ -211,12 +211,12 @@ export default function App() {
       <TitleBar onNavigate={sidebarCollapsed ? handleNavigate as (s: string) => void : undefined} />
       {updateReady && (
         <div className="flex items-center justify-between px-4 py-2 bg-emerald-500/10 border-b border-emerald-500/30 shrink-0">
-          <span className="text-sm text-emerald-400">Nueva versión descargada y lista para instalar.</span>
+          <span className="text-sm text-emerald-400">Ny version nedladdad och klar att installera.</span>
           <button
             onClick={() => window.api.invoke('app:install-update')}
             className="text-xs font-medium text-emerald-400 border border-emerald-500/40 rounded px-3 py-1 hover:bg-emerald-500/20 transition-colors"
           >
-            Reiniciar y actualizar
+            Starta om och uppdatera
           </button>
         </div>
       )}
