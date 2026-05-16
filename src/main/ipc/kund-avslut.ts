@@ -99,4 +99,9 @@ export function registerKundAvslutHandlers(): void {
     if (error) throw new Error(error.message)
     return data
   })
+
+  ipcMain.handle('db:kund-avslut:delete', async (_, id: string) => {
+    const { error } = await supabase.from('kund_avslutsfeedback').delete().eq('id', id)
+    if (error) throw new Error(error.message)
+  })
 }

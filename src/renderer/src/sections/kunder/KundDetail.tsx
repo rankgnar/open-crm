@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { ArrowLeft, Pencil, Trash2, Send, KeyRound, X } from 'lucide-react'
+import { ArrowLeft, Pencil, Trash2, Send, KeyRound, X, ChevronDown, ChevronUp } from 'lucide-react'
 import { KundForm } from './KundForm'
 import { WorkflowTriggerBar } from '@/components/WorkflowTriggerBar'
 import type { Kund, CreateKundInput, KundStatusar, KundAvslutsfeedback } from './types'
@@ -292,7 +292,15 @@ export function KundDetail({ kund, statusar, onBack, onEdit, onDelete }: Props) 
             </div>
             <div className="flex-1 overflow-auto flex flex-col divide-y divide-border">
               {feedbackList.map((f) => (
-                <FeedbackItem key={f.id} feedback={f} />
+                <FeedbackItem
+                  key={f.id}
+                  feedback={f}
+                  onDelete={(id) => {
+                    const next = feedbackList.filter((x) => x.id !== id)
+                    setFeedbackList(next)
+                    if (next.length === 0) setFeedbackOpen(false)
+                  }}
+                />
               ))}
             </div>
           </div>
@@ -303,22 +311,53 @@ export function KundDetail({ kund, statusar, onBack, onEdit, onDelete }: Props) 
   )
 }
 
-function FeedbackItem({ feedback }: { feedback: KundAvslutsfeedback }) {
+function FeedbackItem({ feedback, onDelete }: { feedback: KundAvslutsfeedback; onDelete: (id: string) => void }) {
   const [open, setOpen] = useState(false)
+  const [confirmDelete, setConfirmDelete] = useState(false)
+  const [deleting, setDeleting] = useState(false)
+
+  async function handleDelete() {
+    setDeleting(true)
+    try {
+      await window.api.invoke('db:kund-avslut:delete', feedback.id)
+      onDelete(feedback.id)
+    } finally {
+      setDeleting(false)
+    }
+  }
+
   return (
     <div className="flex flex-col">
-      <button
-        onClick={() => setOpen((v) => !v)}
-        className="flex flex-col gap-0.5 px-5 py-4 text-left hover:bg-hover transition-colors"
-      >
-        <span className="text-sm font-medium text-fg truncate">{feedback.projekt_namn}</span>
-        <div className="flex items-center gap-2 mt-0.5">
-          <span className={`text-[10px] font-semibold uppercase tracking-wider ${feedback.status === 'besvarat' ? 'text-emerald-400' : 'text-amber-400'}`}>
-            {feedback.status === 'besvarat' ? 'Besvarat' : 'Väntar på svar'}
-          </span>
-          <span className="text-[10px] text-subtle">{new Date(feedback.skapad_at).toLocaleDateString('sv-SE')}</span>
+      <div className="flex items-center justify-between px-5 py-4 hover:bg-hover transition-colors">
+        <button onClick={() => setOpen((v) => !v)} className="flex flex-col gap-0.5 text-left flex-1 min-w-0">
+          <span className="text-sm font-medium text-fg truncate">{feedback.projekt_namn}</span>
+          <div className="flex items-center gap-2 mt-0.5">
+            <span className={`text-[10px] font-semibold uppercase tracking-wider ${feedback.status === 'besvarat' ? 'text-emerald-400' : 'text-amber-400'}`}>
+              {feedback.status === 'besvarat' ? 'Besvarat' : 'Väntar på svar'}
+            </span>
+            <span className="text-[10px] text-subtle">{new Date(feedback.skapad_at).toLocaleDateString('sv-SE')}</span>
+          </div>
+        </button>
+        <div className="flex items-center gap-1 shrink-0 ml-2">
+          {confirmDelete ? (
+            <>
+              <button onClick={handleDelete} disabled={deleting} className="text-[10px] text-red-400 hover:text-red-300 font-semibold uppercase tracking-wider disabled:opacity-40 transition-colors">
+                {deleting ? '...' : 'Ja'}
+              </button>
+              <button onClick={() => setConfirmDelete(false)} className="text-[10px] text-muted hover:text-fg uppercase tracking-wider transition-colors ml-2">
+                Nej
+              </button>
+            </>
+          ) : (
+            <button onClick={() => setConfirmDelete(true)} className="text-subtle hover:text-red-400 transition-colors p-1">
+              <Trash2 size={11} />
+            </button>
+          )}
+          <button onClick={() => setOpen((v) => !v)} className="text-subtle hover:text-fg transition-colors p-1">
+            {open ? <ChevronUp size={11} /> : <ChevronDown size={11} />}
+          </button>
         </div>
-      </button>
+      </div>
       {open && feedback.status === 'besvarat' && feedback.answers_json && (
         <div className="px-5 pb-4 flex flex-col gap-3">
           {feedback.questions_json.map((q) => (
