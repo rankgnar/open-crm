@@ -343,7 +343,7 @@ export function KundDetail({ kund, statusar, onBack, onEdit, onDelete }: Props) 
                   <p className="text-[11px] uppercase tracking-widest text-muted">Frågemall</p>
                   <div className="flex items-center gap-2">
                     <label className="flex items-center gap-1.5 cursor-pointer">
-                      <span className="text-[10px] text-subtle">Anpassad</span>
+                      <span className="text-[10px] text-subtle">Redigera form</span>
                       <input
                         type="checkbox"
                         checked={customActive}
