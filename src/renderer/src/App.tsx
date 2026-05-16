@@ -24,13 +24,11 @@ import { PersonalSection } from '@/sections/personal/PersonalSection'
 import { ChatSection } from '@/sections/chat/ChatSection'
 import { LeverantorSection } from '@/sections/leverantor/LeverantorSection'
 import { InventarierSection } from '@/sections/inventarier/InventarierSection'
-import { TranslatorSection } from '@/sections/translator/TranslatorSection'
-import { KalkylatorsSection } from '@/sections/kalkylator/KalkylatorsSection'
 import type { InstallningarPanel } from '@/sections/installningar/types'
 
-type Section = 'workspace' | 'kunder' | 'projekt' | 'forslag' | 'signera' | 'tidplan' | 'ekonomi' | 'fakturering' | 'kvitto' | 'order' | 'ata' | 'fortnox' | 'epost' | 'kalender' | 'revisor' | 'personal' | 'leverantor' | 'chat' | 'installningar' | 'avancerat' | 'inventarier' | 'translator' | 'kalkylator'
+type Section = 'workspace' | 'kunder' | 'projekt' | 'forslag' | 'signera' | 'tidplan' | 'ekonomi' | 'fakturering' | 'kvitto' | 'order' | 'ata' | 'fortnox' | 'epost' | 'kalender' | 'revisor' | 'personal' | 'leverantor' | 'chat' | 'installningar' | 'avancerat' | 'inventarier'
 
-const VALID_SECTIONS: Section[] = ['workspace', 'kunder', 'projekt', 'forslag', 'signera', 'tidplan', 'ekonomi', 'fakturering', 'kvitto', 'order', 'ata', 'fortnox', 'epost', 'kalender', 'revisor', 'personal', 'leverantor', 'chat', 'installningar', 'avancerat', 'inventarier', 'translator', 'kalkylator']
+const VALID_SECTIONS: Section[] = ['workspace', 'kunder', 'projekt', 'forslag', 'signera', 'tidplan', 'ekonomi', 'fakturering', 'kvitto', 'order', 'ata', 'fortnox', 'epost', 'kalender', 'revisor', 'personal', 'leverantor', 'chat', 'installningar', 'avancerat', 'inventarier']
 
 function sectionFromHash(): Section {
   const raw = window.location.hash.replace(/^#\/?/, '').split('?')[0]
@@ -193,8 +191,6 @@ export default function App() {
       {activeSection === 'personal' && <PersonalSection />}
       {activeSection === 'leverantor' && <LeverantorSection />}
       {activeSection === 'inventarier' && <InventarierSection />}
-      {activeSection === 'translator' && <TranslatorSection />}
-      {activeSection === 'kalkylator' && <KalkylatorsSection onNavigate={s => handleNavigate(s as Parameters<typeof handleNavigate>[0])} />}
       {activeSection === 'chat' && <ChatSection />}
       {activeSection === 'installningar' && <InställningarSection key={installningarPanel} initialPanel={installningarPanel} />}
       {activeSection === 'avancerat' && <AvanceratSection />}

@@ -440,6 +440,11 @@ const NODE_EXECUTORS: Partial<Record<WorkflowNodeType, NodeExecutorFn>> = {
       const parsed = tryParseJson(data.varde)
       if (parsed !== undefined) varde = parsed
     }
+    // Empty string means the save-context node was skipped — treat as not found
+    if (varde === '' || varde === null) {
+      if (optional) return { [nyckel]: '' }
+      throw new Error(`Ingen kontext hittad för nyckel: "${nyckel}"`)
+    }
     return { [nyckel]: varde }
   },
 

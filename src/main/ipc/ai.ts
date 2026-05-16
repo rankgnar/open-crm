@@ -8,17 +8,6 @@ import type { AiProviderSlug, AiProvider, AiAssistent, AiTestResult, AiChatMessa
 
 const OPENROUTER_DEFAULT_BASE = 'https://openrouter.ai/api/v1'
 
-interface TranslatorConfig {
-  slug: AiProviderSlug
-  apiKey: string
-  baseUrl: string
-  modelId: string
-  systemPrompt: string
-  maxTokens: number
-  temperature: number
-}
-let translatorCache: TranslatorConfig | null = null
-
 const MODELS: Record<AiProviderSlug, string[]> = {
   anthropic: ['claude-opus-4-5', 'claude-sonnet-4-6', 'claude-haiku-3-5'],
   openai: ['gpt-4o', 'gpt-4o-mini', 'o3', 'o3-mini'],
@@ -192,14 +181,12 @@ export function registerAiHandlers(): void {
       .select('*, provider:ai_providers(provider_slug, display_name)')
       .single()
     if (error) throw new Error(error.message)
-    translatorCache = null
     return data as AiAssistent
   })
 
   ipcMain.handle('ai:asistenter:delete', async (_, id: string) => {
     const { error } = await supabase.from('ai_asistenter').delete().eq('id', id)
     if (error) throw new Error(error.message)
-    translatorCache = null
   })
 
   ipcMain.handle('ai:asistenter:set-standard', async (_, id: string) => {
@@ -214,74 +201,4 @@ export function registerAiHandlers(): void {
     return executeChatWithAssistent(assistent_id, messages)
   })
 
-  // ── Translate ──────────────────────────────────────────────────────────────
-
-  ipcMain.handle('ai:translate', async (_, { text, direction }: { text: string; direction: 'sv-es' | 'es-sv' }): Promise<string> => {
-    if (!translatorCache) {
-      const { data, error } = await supabase
-        .from('ai_asistenter')
-        .select('model_id, system_prompt, max_tokens, temperature, provider:ai_providers(provider_slug, api_key, base_url)')
-        .eq('namn', 'Translator')
-        .eq('aktiv', true)
-        .single()
-      if (error || !data) throw new Error('Assistant "Translator" not found. Create it in Avancerat → IA-Assistent.')
-      const p = data.provider as unknown as { provider_slug: AiProviderSlug; api_key: string; base_url: string }
-      translatorCache = {
-        slug: p.provider_slug,
-        apiKey: p.api_key,
-        baseUrl: p.base_url,
-        modelId: data.model_id,
-        systemPrompt: data.system_prompt,
-        maxTokens: data.max_tokens,
-        temperature: Number(data.temperature)
-      }
-    }
-
-    const { slug, apiKey, baseUrl, modelId, systemPrompt, maxTokens, temperature } = translatorCache
-    const userMessage = direction === 'sv-es'
-      ? `Translate to Spanish:\n\n${text}`
-      : `Translate to Swedish:\n\n${text}`
-
-    if (slug === 'anthropic') {
-      const client = new Anthropic({ apiKey })
-      const res = await client.messages.create({
-        model: modelId,
-        max_tokens: maxTokens,
-        system: systemPrompt || undefined,
-        messages: [{ role: 'user', content: userMessage }]
-      })
-      const block = res.content[0]
-      return block.type === 'text' ? block.text : ''
-    }
-
-    if (slug === 'openai' || slug === 'openrouter') {
-      const client = new OpenAI({
-        apiKey,
-        baseURL: baseUrl || (slug === 'openrouter' ? OPENROUTER_DEFAULT_BASE : undefined),
-        ...(slug === 'openrouter' ? { defaultHeaders: { 'HTTP-Referer': 'https://open-crm.local', 'X-Title': 'open-crm' } } : {})
-      })
-      const res = await client.chat.completions.create({
-        model: modelId,
-        max_tokens: maxTokens,
-        temperature,
-        messages: [
-          ...(systemPrompt ? [{ role: 'system' as const, content: systemPrompt }] : []),
-          { role: 'user', content: userMessage }
-        ]
-      })
-      return res.choices[0]?.message?.content ?? ''
-    }
-
-    if (slug === 'google') {
-      const client = new GoogleGenAI({ apiKey })
-      const res = await client.models.generateContent({
-        model: modelId,
-        contents: [{ role: 'user', parts: [{ text: userMessage }] }],
-        ...(systemPrompt ? { systemInstruction: systemPrompt } : {})
-      })
-      return res.text ?? ''
-    }
-
-    throw new Error(`Provider not supported: ${slug}`)
-  })
 }
