@@ -41,6 +41,7 @@ import { registerChatHandlers } from './ipc/chat'
 import { registerKvittoHandlers } from './ipc/kvitto'
 import { registerInventarierHandlers } from './ipc/inventarier'
 import { registerFrageblanktterHandlers } from './ipc/frageblankett'
+import { registerKundAvslutHandlers } from './ipc/kund-avslut'
 import appIcon from '../../resources/icon.png?asset'
 
 function createWindow(): void {
@@ -333,6 +334,7 @@ app.whenReady().then(() => {
   registerKvittoHandlers()
   registerInventarierHandlers()
   registerFrageblanktterHandlers()
+  registerKundAvslutHandlers()
   createWindow()
 
   ipcMain.handle('window:minimize', () => BrowserWindow.getFocusedWindow()?.minimize())

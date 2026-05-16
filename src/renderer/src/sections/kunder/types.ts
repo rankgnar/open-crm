@@ -76,3 +76,16 @@ export type UpdateKundInput = Partial<CreateKundInput>
 
 export type KundProjektCounts = Record<string, number>
 export type KundForslagCounts = Record<string, Record<string, number>>
+
+export interface KundAvslutsfeedback {
+  id: string
+  kund_id: string
+  projekt_namn: string
+  token: string
+  questions_json: Array<{ id: string; label: string; type: string; required: boolean; options: string[] | null }>
+  answers_json: Record<string, string> | null
+  status: 'skickat' | 'besvarat'
+  skickat_at: string
+  besvarat_at: string | null
+  skapad_at: string
+}

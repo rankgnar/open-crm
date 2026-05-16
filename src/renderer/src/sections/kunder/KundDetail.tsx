@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react'
-import { ArrowLeft, Pencil, Trash2, Send, KeyRound } from 'lucide-react'
+import { ArrowLeft, Pencil, Trash2, Send, KeyRound, MessageSquare, X } from 'lucide-react'
 import { KundForm } from './KundForm'
 import { WorkflowTriggerBar } from '@/components/WorkflowTriggerBar'
-import type { Kund, CreateKundInput, KundStatusar } from './types'
+import type { Kund, CreateKundInput, KundStatusar, KundAvslutsfeedback } from './types'
 
 interface KundUserRow {
   id: string
@@ -38,6 +38,8 @@ export function KundDetail({ kund, statusar, onBack, onEdit, onDelete }: Props) 
   const [inviting, setInviting] = useState(false)
   const [resetting, setResetting] = useState(false)
   const [inviteFeedback, setInviteFeedback] = useState<{ kind: 'ok' | 'err'; msg: string } | null>(null)
+  const [feedbackList, setFeedbackList] = useState<KundAvslutsfeedback[]>([])
+  const [feedbackOpen, setFeedbackOpen] = useState(false)
 
   const currentStatus = statusar.find((s) => s.namn === kund.status)
 
@@ -49,6 +51,19 @@ export function KundDetail({ kund, statusar, onBack, onEdit, onDelete }: Props) 
         if (!cancelled) setKundUser(rows[0] ?? null)
       } catch {
         if (!cancelled) setKundUser(null)
+      }
+    })()
+    return () => { cancelled = true }
+  }, [kund.id])
+
+  useEffect(() => {
+    let cancelled = false
+    void (async () => {
+      try {
+        const rows = await window.api.invoke('db:kund-avslut:list-by-kund', kund.id) as KundAvslutsfeedback[]
+        if (!cancelled) setFeedbackList(rows)
+      } catch {
+        if (!cancelled) setFeedbackList([])
       }
     })()
     return () => { cancelled = true }
@@ -107,6 +122,9 @@ export function KundDetail({ kund, statusar, onBack, onEdit, onDelete }: Props) 
     await onDelete()
   }
 
+  const hasFeedback = feedbackList.length > 0
+  const hasBesvarat = feedbackList.some((f) => f.status === 'besvarat')
+
   return (
     <div className="flex flex-col h-full">
 
@@ -143,6 +161,16 @@ export function KundDetail({ kund, statusar, onBack, onEdit, onDelete }: Props) 
               <span className="size-1.5 rounded-full bg-red-400" />
               Ej tillgång
             </span>
+          )}
+          {hasFeedback && (
+            <button
+              onClick={() => setFeedbackOpen((v) => !v)}
+              title="Visa feedback från avslutade projekt"
+              className={`relative inline-flex items-center gap-1.5 px-3 py-2.5 text-[10px] font-semibold uppercase tracking-wider transition-colors ${feedbackOpen ? 'text-fg' : 'text-muted hover:text-fg'}`}
+            >
+              <MessageSquare size={13} className={hasBesvarat ? 'text-emerald-400' : 'text-amber-400'} />
+              <span className={`text-[9px] font-bold ${hasBesvarat ? 'text-emerald-400' : 'text-amber-400'}`}>{feedbackList.length}</span>
+            </button>
           )}
           {kundUser?.accepted_at ? (
             <button
@@ -184,74 +212,127 @@ export function KundDetail({ kund, statusar, onBack, onEdit, onDelete }: Props) 
         </div>
       </div>
 
-      <div className="flex-1 overflow-auto flex flex-col">
+      <div className="flex flex-1 min-h-0">
 
-        <div className="px-8 py-6 border-b border-border">
-          <p className="text-[11px] uppercase tracking-widest text-muted mb-0.5">{kund.kundnummer}</p>
-          <h2 className="text-xl font-semibold text-fg uppercase">{kund.namn}</h2>
-        </div>
+        <div className="flex-1 overflow-auto flex flex-col">
 
-        <WorkflowTriggerBar seccion="kunder" context={{ kund_id: kund.id }} />
-
-        <DetailSection title="Grunduppgifter">
-          <DetailField label="Kundnummer" value={kund.kundnummer} />
-          <DetailField label="Org-nummer" value={kund.org_nummer} />
-          <DetailField label="Login" value={kund.login_anteckning} />
-        </DetailSection>
-
-        <DetailSection title="Kontaktuppgifter">
-          <DetailField label="E-post" value={kund.email} />
-          <DetailField label="Url" value={kund.webbadress} />
-          <DetailField label="Telefon" value={kund.telefon} />
-          <DetailField label="Telefon 2" value={kund.telefon_2} />
-          <DetailField label="Fax" value={kund.fax} />
-          <DetailField label="Personnummer" value={kund.personnummer} />
-        </DetailSection>
-
-        <DetailSection title="Fakturaadress">
-          <DetailField label="Adress" value={kund.adress} />
-          <DetailField label="Adress 2" value={kund.adress_2} />
-          <DetailField label="Postnummer" value={kund.postnummer} />
-          <DetailField label="Ort" value={kund.stad} />
-          <DetailField label="Land" value={kund.land} />
-          <DetailField label="Landskod" value={kund.landskod} />
-        </DetailSection>
-
-        <DetailSection title="Fastighet & husarbete" cols={4}>
-          <DetailField label="Fastighetsbeteckning / Lägenhetsnr" value={kund.fastighetsbeteckning} />
-          <DetailField label="BRF:s org.nr" value={kund.brf_org_nummer} />
-          <DetailField label="Namn för medsökande" value={kund.medsokande_namn} />
-          <DetailField label="Personnummer för medsökande" value={kund.medsokande_personnummer} />
-        </DetailSection>
-
-        <div className="px-8 py-6 border-b border-border flex flex-col gap-3">
-          <p className="text-[11px] uppercase tracking-widest text-muted">Standardvillkor för extraarbeten (Order)</p>
-          <div className="bg-elevated border border-border rounded-sm px-4 py-3 text-sm leading-relaxed min-h-[80px]">
-            {kund.order_std_villkor?.trim()
-              ? <p className="text-muted whitespace-pre-wrap">{kund.order_std_villkor}</p>
-              : <p className="text-subtle italic">Inga standardvillkor angivna.</p>
-            }
+          <div className="px-8 py-6 border-b border-border">
+            <p className="text-[11px] uppercase tracking-widest text-muted mb-0.5">{kund.kundnummer}</p>
+            <h2 className="text-xl font-semibold text-fg uppercase">{kund.namn}</h2>
           </div>
-          <p className="text-[11px] text-subtle">Snapshot — kopieras till varje ny order. Ändringar påverkar inte redan skapade orders.</p>
-        </div>
 
-        <div className="px-8 py-6 border-b border-border flex flex-col gap-3">
-          <p className="text-[11px] uppercase tracking-widest text-muted">Standardvillkor för ÄTA</p>
-          <div className="bg-elevated border border-border rounded-sm px-4 py-3 text-sm leading-relaxed min-h-[80px]">
-            {kund.ata_std_villkor?.trim()
-              ? <p className="text-muted whitespace-pre-wrap">{kund.ata_std_villkor}</p>
-              : <p className="text-subtle italic">Inga ÄTA-villkor angivna.</p>
-            }
+          <WorkflowTriggerBar seccion="kunder" context={{ kund_id: kund.id }} />
+
+          <DetailSection title="Grunduppgifter">
+            <DetailField label="Kundnummer" value={kund.kundnummer} />
+            <DetailField label="Org-nummer" value={kund.org_nummer} />
+            <DetailField label="Login" value={kund.login_anteckning} />
+          </DetailSection>
+
+          <DetailSection title="Kontaktuppgifter">
+            <DetailField label="E-post" value={kund.email} />
+            <DetailField label="Url" value={kund.webbadress} />
+            <DetailField label="Telefon" value={kund.telefon} />
+            <DetailField label="Telefon 2" value={kund.telefon_2} />
+            <DetailField label="Fax" value={kund.fax} />
+            <DetailField label="Personnummer" value={kund.personnummer} />
+          </DetailSection>
+
+          <DetailSection title="Fakturaadress">
+            <DetailField label="Adress" value={kund.adress} />
+            <DetailField label="Adress 2" value={kund.adress_2} />
+            <DetailField label="Postnummer" value={kund.postnummer} />
+            <DetailField label="Ort" value={kund.stad} />
+            <DetailField label="Land" value={kund.land} />
+            <DetailField label="Landskod" value={kund.landskod} />
+          </DetailSection>
+
+          <DetailSection title="Fastighet & husarbete" cols={4}>
+            <DetailField label="Fastighetsbeteckning / Lägenhetsnr" value={kund.fastighetsbeteckning} />
+            <DetailField label="BRF:s org.nr" value={kund.brf_org_nummer} />
+            <DetailField label="Namn för medsökande" value={kund.medsokande_namn} />
+            <DetailField label="Personnummer för medsökande" value={kund.medsokande_personnummer} />
+          </DetailSection>
+
+          <div className="px-8 py-6 border-b border-border flex flex-col gap-3">
+            <p className="text-[11px] uppercase tracking-widest text-muted">Standardvillkor för extraarbeten (Order)</p>
+            <div className="bg-elevated border border-border rounded-sm px-4 py-3 text-sm leading-relaxed min-h-[80px]">
+              {kund.order_std_villkor?.trim()
+                ? <p className="text-muted whitespace-pre-wrap">{kund.order_std_villkor}</p>
+                : <p className="text-subtle italic">Inga standardvillkor angivna.</p>
+              }
+            </div>
+            <p className="text-[11px] text-subtle">Snapshot — kopieras till varje ny order. Ändringar påverkar inte redan skapade orders.</p>
           </div>
-          <p className="text-[11px] text-subtle">Snapshot — kopieras till varje ny ÄTA. Ändringar påverkar inte redan skapade ÄTA-arbeten.</p>
+
+          <div className="px-8 py-6 border-b border-border flex flex-col gap-3">
+            <p className="text-[11px] uppercase tracking-widest text-muted">Standardvillkor för ÄTA</p>
+            <div className="bg-elevated border border-border rounded-sm px-4 py-3 text-sm leading-relaxed min-h-[80px]">
+              {kund.ata_std_villkor?.trim()
+                ? <p className="text-muted whitespace-pre-wrap">{kund.ata_std_villkor}</p>
+                : <p className="text-subtle italic">Inga ÄTA-villkor angivna.</p>
+              }
+            </div>
+            <p className="text-[11px] text-subtle">Snapshot — kopieras till varje ny ÄTA. Ändringar påverkar inte redan skapade ÄTA-arbeten.</p>
+          </div>
+
+          <div className="px-8 py-4 mt-auto border-t border-border flex items-center gap-6">
+            <MetaField label="Skapad" value={new Date(kund.skapad_at).toLocaleDateString('sv-SE')} />
+            <MetaField label="Uppdaterad" value={new Date(kund.uppdaterad_at).toLocaleDateString('sv-SE')} />
+          </div>
+
         </div>
 
-        <div className="px-8 py-4 mt-auto border-t border-border flex items-center gap-6">
-          <MetaField label="Skapad" value={new Date(kund.skapad_at).toLocaleDateString('sv-SE')} />
-          <MetaField label="Uppdaterad" value={new Date(kund.uppdaterad_at).toLocaleDateString('sv-SE')} />
-        </div>
+        {feedbackOpen && (
+          <div className="w-80 border-l border-border flex flex-col shrink-0 overflow-hidden">
+            <div className="flex items-center justify-between px-5 py-3 border-b border-border shrink-0">
+              <p className="text-[11px] uppercase tracking-widest text-muted">Feedback projektavslut</p>
+              <button onClick={() => setFeedbackOpen(false)} className="text-subtle hover:text-fg transition-colors">
+                <X size={13} />
+              </button>
+            </div>
+            <div className="flex-1 overflow-auto flex flex-col divide-y divide-border">
+              {feedbackList.map((f) => (
+                <FeedbackItem key={f.id} feedback={f} />
+              ))}
+            </div>
+          </div>
+        )}
 
       </div>
+    </div>
+  )
+}
+
+function FeedbackItem({ feedback }: { feedback: KundAvslutsfeedback }) {
+  const [open, setOpen] = useState(false)
+  return (
+    <div className="flex flex-col">
+      <button
+        onClick={() => setOpen((v) => !v)}
+        className="flex flex-col gap-0.5 px-5 py-4 text-left hover:bg-hover transition-colors"
+      >
+        <span className="text-sm font-medium text-fg truncate">{feedback.projekt_namn}</span>
+        <div className="flex items-center gap-2 mt-0.5">
+          <span className={`text-[10px] font-semibold uppercase tracking-wider ${feedback.status === 'besvarat' ? 'text-emerald-400' : 'text-amber-400'}`}>
+            {feedback.status === 'besvarat' ? 'Besvarat' : 'Väntar på svar'}
+          </span>
+          <span className="text-[10px] text-subtle">{new Date(feedback.skapad_at).toLocaleDateString('sv-SE')}</span>
+        </div>
+      </button>
+      {open && feedback.status === 'besvarat' && feedback.answers_json && (
+        <div className="px-5 pb-4 flex flex-col gap-3">
+          {feedback.questions_json.map((q) => (
+            <div key={q.id} className="flex flex-col gap-1">
+              <span className="text-[10px] uppercase tracking-wider text-muted">{q.label}</span>
+              <span className="text-xs text-fg">{feedback.answers_json![q.id] ?? '—'}</span>
+            </div>
+          ))}
+        </div>
+      )}
+      {open && feedback.status === 'skickat' && (
+        <p className="px-5 pb-4 text-xs text-subtle italic">Formuläret har inte besvarats än.</p>
+      )}
     </div>
   )
 }

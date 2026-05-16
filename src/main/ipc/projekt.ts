@@ -3,6 +3,7 @@ import fs from 'node:fs/promises'
 import path from 'node:path'
 import os from 'node:os'
 import { supabase } from '../supabase'
+import { triggerAvslutFeedback } from './kund-avslut'
 
 const CHANNELS = [
   'db:projekt:list',
@@ -184,6 +185,20 @@ export function registerProjektHandlers(): void {
   })
 
   ipcMain.handle('db:projekt:delete', async (_, id: string) => {
+    const { data: projekt } = await supabase
+      .from('projekt')
+      .select('namn, kund_id')
+      .eq('id', id)
+      .single()
+
+    if (projekt?.kund_id && projekt?.namn) {
+      try {
+        await triggerAvslutFeedback(projekt.kund_id, projekt.namn)
+      } catch {
+        // Email failure must not block the delete
+      }
+    }
+
     const { error } = await supabase.from('projekt').delete().eq('id', id)
     if (error) throw new Error(error.message)
   })

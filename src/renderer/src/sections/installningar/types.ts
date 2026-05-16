@@ -66,6 +66,8 @@ export interface AppInstallningar {
   ai_api_key: string
   // Klientportal
   kund_portal_auto_invite: boolean
+  // Projektavslut feedback
+  avslut_feedback_aktiv: boolean
   skapad_at: string
   uppdaterad_at: string
 }

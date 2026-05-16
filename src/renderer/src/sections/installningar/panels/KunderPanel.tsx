@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { Plus, Trash2, Lock } from 'lucide-react'
+import { Plus, Trash2, Lock, ToggleRight, ToggleLeft } from 'lucide-react'
 import { ConfigField } from './ConfigField'
 import { useAppConfig } from '@/context/AppConfig'
 import type { KundStatusar } from '@/sections/kunder/types'
@@ -152,6 +152,25 @@ export function KunderPanel() {
         </div>
 
         <KlientportalSection />
+
+        <div className="px-8 py-6 border-b border-border">
+          <p className="text-[11px] uppercase tracking-widest text-muted mb-5">Projektavslut</p>
+          <div className="flex items-start justify-between gap-4">
+            <div className="flex flex-col gap-1">
+              <span className="text-sm text-fg">Skicka feedback-formulär vid projektradering</span>
+              <span className="text-xs text-muted">Skickar automatiskt ett formulär till kunden när ett projekt raderas.</span>
+            </div>
+            <button
+              onClick={() => updateConfig({ avslut_feedback_aktiv: !config?.avslut_feedback_aktiv })}
+              className="shrink-0 text-muted hover:text-fg transition-colors"
+            >
+              {config?.avslut_feedback_aktiv
+                ? <ToggleRight size={22} className="text-emerald-400" />
+                : <ToggleLeft size={22} />
+              }
+            </button>
+          </div>
+        </div>
 
       </div>
 
