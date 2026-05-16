@@ -7,30 +7,23 @@ import { sendEpost, loadAlias } from './epost'
 const AVSLUT_QUESTIONS = [
   {
     id: 'q1',
-    label: 'Varför valde ni inte att gå vidare med oss?',
+    label: 'Vad påverkade ert beslut mest?',
     type: 'select' as const,
     required: true,
-    options: ['Priset var för högt', 'Valde en annan leverantör', 'Projektet är pausat', 'Annan anledning'],
+    options: ['Priset passade inte oss', 'Vi valde en annan leverantör', 'Projektet är pausat tillfälligt', 'Vi fick ett bättre erbjudande', 'Annat'],
   },
   {
     id: 'q2',
-    label: 'Vad var den viktigaste faktorn i ert beslut?',
-    type: 'textarea' as const,
+    label: 'Hur upplevde ni kontakten med oss?',
+    type: 'select' as const,
     required: false,
-    options: null,
+    options: ['Mycket bra', 'Bra', 'Det gick bra', 'Kunde vara bättre'],
   },
   {
     id: 'q3',
-    label: 'Skulle ni kunna tänka er att anlita oss i framtiden?',
+    label: 'Får vi hålla kontakt och skicka er erbjudanden i framtiden?',
     type: 'boolean' as const,
     required: true,
-    options: null,
-  },
-  {
-    id: 'q4',
-    label: 'Har ni något övrigt att dela med er?',
-    type: 'textarea' as const,
-    required: false,
     options: null,
   },
 ]
@@ -84,7 +77,7 @@ export async function triggerAvslutFeedback(kund_id: string, projekt_namn: strin
   const interpolate = (s: string) =>
     s.replace(/\{\{([\wÄÖÅäöå_]+)\}\}/g, (_, k: string) => vars[k] ?? `{{${k}}}`)
 
-  const amne = mall ? interpolate(mall.amne) : `Vi beklagar att vi inte fick möjligheten – ${projekt_namn}`
+  const amne = mall ? interpolate(mall.amne) : `Hur kan vi bli bättre? – ${projekt_namn}`
   const kropp_html = mall
     ? interpolate(mall.kropp_html)
     : `<p>Hej ${kund.namn},</p><p>Klicka <a href="${formulärLänk}">här</a> för att besvara ett kort formulär.</p>`

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { ArrowLeft, Pencil, Trash2, Send, KeyRound, MessageSquare, X } from 'lucide-react'
+import { ArrowLeft, Pencil, Trash2, Send, KeyRound, X } from 'lucide-react'
 import { KundForm } from './KundForm'
 import { WorkflowTriggerBar } from '@/components/WorkflowTriggerBar'
 import type { Kund, CreateKundInput, KundStatusar, KundAvslutsfeedback } from './types'
@@ -165,11 +165,10 @@ export function KundDetail({ kund, statusar, onBack, onEdit, onDelete }: Props) 
           {hasFeedback && (
             <button
               onClick={() => setFeedbackOpen((v) => !v)}
-              title="Visa feedback från avslutade projekt"
-              className={`relative inline-flex items-center gap-1.5 px-3 py-2.5 text-[10px] font-semibold uppercase tracking-wider transition-colors ${feedbackOpen ? 'text-fg' : 'text-muted hover:text-fg'}`}
+              className={`inline-flex items-center gap-1.5 px-3 py-2.5 text-[10px] font-semibold uppercase tracking-wider transition-colors ${feedbackOpen ? 'text-fg' : 'text-muted hover:text-fg'}`}
             >
-              <MessageSquare size={13} className={hasBesvarat ? 'text-emerald-400' : 'text-amber-400'} />
-              <span className={`text-[9px] font-bold ${hasBesvarat ? 'text-emerald-400' : 'text-amber-400'}`}>{feedbackList.length}</span>
+              <span className={`size-1.5 rounded-full ${hasBesvarat ? 'bg-emerald-400' : 'bg-amber-400'}`} />
+              Feedback
             </button>
           )}
           {kundUser?.accepted_at ? (
