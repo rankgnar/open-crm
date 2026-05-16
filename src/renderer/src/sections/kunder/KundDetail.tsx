@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react'
-import { ArrowLeft, Pencil, Trash2, Send, KeyRound, X, ChevronDown, ChevronUp } from 'lucide-react'
+import { ArrowLeft, Pencil, Trash2, Send, KeyRound, X, ChevronDown, ChevronUp, Plus } from 'lucide-react'
 import { KundForm } from './KundForm'
 import { WorkflowTriggerBar } from '@/components/WorkflowTriggerBar'
-import type { Kund, CreateKundInput, KundStatusar, KundAvslutsfeedback } from './types'
+import type { Kund, CreateKundInput, KundStatusar, KundAvslutsfeedback, AvslutFragaFalt, FragaTyp } from './types'
 
 interface KundUserRow {
   id: string
@@ -40,6 +40,10 @@ export function KundDetail({ kund, statusar, onBack, onEdit, onDelete }: Props) 
   const [inviteFeedback, setInviteFeedback] = useState<{ kind: 'ok' | 'err'; msg: string } | null>(null)
   const [feedbackList, setFeedbackList] = useState<KundAvslutsfeedback[]>([])
   const [feedbackOpen, setFeedbackOpen] = useState(false)
+  const [questionTemplate, setQuestionTemplate] = useState<AvslutFragaFalt[]>([])
+  const [templateDirty, setTemplateDirty] = useState(false)
+  const [templateSaving, setTemplateSaving] = useState(false)
+  const [expandedQ, setExpandedQ] = useState<string | null>(null)
 
   const currentStatus = statusar.find((s) => s.namn === kund.status)
 
@@ -68,6 +72,27 @@ export function KundDetail({ kund, statusar, onBack, onEdit, onDelete }: Props) 
     })()
     return () => { cancelled = true }
   }, [kund.id])
+
+  useEffect(() => {
+    void (async () => {
+      try {
+        const rows = await window.api.invoke('db:kund-avslut:get-questions-template') as AvslutFragaFalt[]
+        setQuestionTemplate(rows)
+      } catch {
+        setQuestionTemplate([])
+      }
+    })()
+  }, [])
+
+  async function handleSaveTemplate() {
+    setTemplateSaving(true)
+    try {
+      await window.api.invoke('db:kund-avslut:save-questions-template', questionTemplate)
+      setTemplateDirty(false)
+    } finally {
+      setTemplateSaving(false)
+    }
+  }
 
   async function handleInvite() {
     if (!kund.email?.trim()) {
@@ -162,15 +187,13 @@ export function KundDetail({ kund, statusar, onBack, onEdit, onDelete }: Props) 
               Ej tillgång
             </span>
           )}
-          {hasFeedback && (
-            <button
-              onClick={() => setFeedbackOpen((v) => !v)}
-              className={`inline-flex items-center gap-1.5 px-3 py-2.5 text-[10px] font-semibold uppercase tracking-wider transition-colors ${feedbackOpen ? 'text-fg' : 'text-muted hover:text-fg'}`}
-            >
-              <span className={`size-1.5 rounded-full ${hasBesvarat ? 'bg-emerald-400' : 'bg-amber-400'}`} />
-              Feedback
-            </button>
-          )}
+          <button
+            onClick={() => setFeedbackOpen((v) => !v)}
+            className={`inline-flex items-center gap-1.5 px-3 py-2.5 text-[10px] font-semibold uppercase tracking-wider transition-colors ${feedbackOpen ? 'text-fg' : 'text-muted hover:text-fg'}`}
+          >
+            <span className={`size-1.5 rounded-full ${hasBesvarat ? 'bg-emerald-400' : hasFeedback ? 'bg-amber-400' : 'bg-muted'}`} />
+            Feedback
+          </button>
           {kundUser?.accepted_at ? (
             <button
               onClick={handlePasswordReset}
@@ -290,18 +313,66 @@ export function KundDetail({ kund, statusar, onBack, onEdit, onDelete }: Props) 
                 <X size={13} />
               </button>
             </div>
-            <div className="flex-1 overflow-auto flex flex-col divide-y divide-border">
-              {feedbackList.map((f) => (
-                <FeedbackItem
-                  key={f.id}
-                  feedback={f}
-                  onDelete={(id) => {
-                    const next = feedbackList.filter((x) => x.id !== id)
-                    setFeedbackList(next)
-                    if (next.length === 0) setFeedbackOpen(false)
-                  }}
-                />
-              ))}
+
+            <div className="flex-1 flex flex-col min-h-0">
+
+              <div className="flex-1 overflow-auto flex flex-col divide-y divide-border min-h-0">
+                {feedbackList.length === 0
+                  ? <p className="px-5 py-4 text-xs text-subtle italic">Inga feedback-förfrågningar ännu.</p>
+                  : feedbackList.map((f) => (
+                      <FeedbackItem
+                        key={f.id}
+                        feedback={f}
+                        onDelete={(id) => setFeedbackList((prev) => prev.filter((x) => x.id !== id))}
+                      />
+                    ))
+                }
+              </div>
+
+              <div className="border-t border-border shrink-0" />
+
+              <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
+                <div className="flex items-center justify-between px-5 py-2 border-b border-border shrink-0">
+                  <p className="text-[11px] uppercase tracking-widest text-muted">Frågemall</p>
+                  <button
+                    onClick={handleSaveTemplate}
+                    disabled={!templateDirty || templateSaving}
+                    className="text-[10px] font-semibold uppercase tracking-wider text-emerald-400 hover:text-emerald-300 disabled:opacity-30 transition-colors"
+                  >
+                    {templateSaving ? 'Sparar...' : 'Spara'}
+                  </button>
+                </div>
+                <div className="flex-1 overflow-auto flex flex-col divide-y divide-border">
+                  {questionTemplate.map((q, idx) => (
+                    <QuestionEditor
+                      key={q.id}
+                      question={q}
+                      expanded={expandedQ === q.id}
+                      onToggle={() => setExpandedQ((v) => v === q.id ? null : q.id)}
+                      onChange={(updated) => {
+                        setQuestionTemplate((prev) => prev.map((x, i) => i === idx ? updated : x))
+                        setTemplateDirty(true)
+                      }}
+                      onDelete={() => {
+                        setQuestionTemplate((prev) => prev.filter((_, i) => i !== idx))
+                        setTemplateDirty(true)
+                      }}
+                    />
+                  ))}
+                  <button
+                    onClick={() => {
+                      const id = `q${Date.now()}`
+                      setQuestionTemplate((prev) => [...prev, { id, label: '', type: 'text', required: false, options: null }])
+                      setExpandedQ(id)
+                      setTemplateDirty(true)
+                    }}
+                    className="flex items-center gap-1.5 px-5 py-3 text-[11px] text-muted hover:text-fg transition-colors"
+                  >
+                    <Plus size={11} /> Lägg till fråga
+                  </button>
+                </div>
+              </div>
+
             </div>
           </div>
         )}
@@ -370,6 +441,84 @@ function FeedbackItem({ feedback, onDelete }: { feedback: KundAvslutsfeedback; o
       )}
       {open && feedback.status === 'skickat' && (
         <p className="px-5 pb-4 text-xs text-subtle italic">Formuläret har inte besvarats än.</p>
+      )}
+    </div>
+  )
+}
+
+function QuestionEditor({
+  question, expanded, onToggle, onChange, onDelete,
+}: {
+  question: AvslutFragaFalt
+  expanded: boolean
+  onToggle: () => void
+  onChange: (q: AvslutFragaFalt) => void
+  onDelete: () => void
+}) {
+  return (
+    <div className="flex flex-col">
+      <div className="flex items-center justify-between px-5 py-3 hover:bg-hover transition-colors">
+        <button onClick={onToggle} className="flex-1 text-left min-w-0 pr-2">
+          <span className="text-xs text-fg truncate block">{question.label || 'Ny fråga'}</span>
+          <span className="text-[10px] text-subtle">{question.type}{question.required ? ' · krävs' : ''}</span>
+        </button>
+        <div className="flex items-center gap-1 shrink-0">
+          <button onClick={onDelete} className="text-subtle hover:text-red-400 transition-colors p-1">
+            <Trash2 size={11} />
+          </button>
+          <button onClick={onToggle} className="text-subtle hover:text-fg transition-colors p-1">
+            {expanded ? <ChevronUp size={11} /> : <ChevronDown size={11} />}
+          </button>
+        </div>
+      </div>
+      {expanded && (
+        <div className="px-5 pb-4 flex flex-col gap-3">
+          <div className="flex flex-col gap-1">
+            <span className="text-[10px] uppercase tracking-wider text-muted">Label</span>
+            <input
+              value={question.label}
+              onChange={(e) => onChange({ ...question, label: e.target.value })}
+              className="w-full bg-elevated border border-border rounded-sm px-2 py-1 text-xs text-fg outline-none focus:border-subtle"
+            />
+          </div>
+          <div className="flex items-end gap-3">
+            <div className="flex flex-col gap-1 flex-1">
+              <span className="text-[10px] uppercase tracking-wider text-muted">Typ</span>
+              <select
+                value={question.type}
+                onChange={(e) => {
+                  const type = e.target.value as FragaTyp
+                  onChange({ ...question, type, options: type === 'select' ? (question.options ?? []) : null })
+                }}
+                className="w-full bg-elevated border border-border rounded-sm px-2 py-1 text-xs text-fg outline-none"
+              >
+                {(['text', 'textarea', 'number', 'select', 'date', 'boolean'] as FragaTyp[]).map((t) => (
+                  <option key={t} value={t}>{t}</option>
+                ))}
+              </select>
+            </div>
+            <label className="flex flex-col gap-1 items-center pb-1 cursor-pointer">
+              <span className="text-[10px] uppercase tracking-wider text-muted">Krävs</span>
+              <input
+                type="checkbox"
+                checked={question.required}
+                onChange={(e) => onChange({ ...question, required: e.target.checked })}
+                className="accent-emerald-400"
+              />
+            </label>
+          </div>
+          {question.type === 'select' && (
+            <div className="flex flex-col gap-1">
+              <span className="text-[10px] uppercase tracking-wider text-muted">Alternativ (en per rad)</span>
+              <textarea
+                value={(question.options ?? []).join('\n')}
+                onChange={(e) => onChange({ ...question, options: e.target.value.split('\n') })}
+                rows={4}
+                className="w-full bg-elevated border border-border rounded-sm px-2 py-1 text-xs text-fg font-mono resize-none outline-none focus:border-subtle"
+              />
+            </div>
+          )}
+        </div>
       )}
     </div>
   )

@@ -89,3 +89,13 @@ export interface KundAvslutsfeedback {
   besvarat_at: string | null
   skapad_at: string
 }
+
+export type FragaTyp = 'text' | 'textarea' | 'number' | 'select' | 'date' | 'boolean'
+
+export interface AvslutFragaFalt {
+  id: string
+  label: string
+  type: FragaTyp
+  required: boolean
+  options: string[] | null
+}
