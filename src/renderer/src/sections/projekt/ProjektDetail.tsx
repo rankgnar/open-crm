@@ -166,13 +166,13 @@ export function ProjektDetail({ projekt, kunder, statusar, anteckningar, snapsho
           </button>
           {!confirmDelete ? (
             <button onClick={() => setConfirmDelete(true)} className="inline-flex items-center gap-1.5 px-3 py-2.5 text-[10px] font-semibold uppercase tracking-wider text-muted hover:text-red-400 transition-colors">
-              <Trash2 size={11} />Ta bort
+              <Trash2 size={11} />Radera projekt
             </button>
           ) : (
             <div className="flex items-center gap-2">
               <span className="text-[10px] text-red-400 uppercase tracking-wider font-semibold">Är du säker?</span>
               <button onClick={handleDelete} disabled={deleting} className="inline-flex items-center gap-1.5 px-3 py-2.5 text-[10px] font-semibold uppercase tracking-wider text-red-400 hover:text-red-300 transition-colors disabled:opacity-40">
-                {deleting ? 'Tar bort...' : 'Ja, ta bort'}
+                {deleting ? 'Raderar...' : 'Ja, radera'}
               </button>
               <button onClick={() => setConfirmDelete(false)} className="inline-flex items-center gap-1.5 px-3 py-2.5 text-[10px] font-semibold uppercase tracking-wider text-muted hover:text-fg transition-colors">Avbryt</button>
             </div>
