@@ -33,6 +33,7 @@ export function EpostMallarPanel() {
   const [fel, setFel] = useState<string | null>(null)
   const [forhandsvy, setForhandsvy] = useState(false)
   const [expandedMallQ, setExpandedMallQ] = useState<string | null>(null)
+  const [collapsedKat, setCollapsedKat] = useState<Set<string>>(() => new Set(KATEGORIER.concat(['Övrigt'])))
 
   useEffect(() => {
     void hamtaMallar()
@@ -148,40 +149,70 @@ export function EpostMallarPanel() {
           ) : mallar.length === 0 ? (
             <p className="px-4 py-6 text-sm text-muted text-center">Inga mallar ännu</p>
           ) : (
-            mallar.map(mall => (
-              <div
-                key={mall.id}
-                className={`group w-full flex items-center border-b border-border/50 transition-colors hover:bg-hover ${vald?.id === mall.id && redigerar ? 'bg-hover' : ''}`}
-              >
-                <button
-                  onClick={() => handleRedigera(mall)}
-                  className="flex-1 text-left px-4 py-3 min-w-0"
-                >
-                  <div className="flex items-center gap-1.5 min-w-0">
-                    <p className={`text-sm truncate ${mall.aktiv ? 'text-fg' : 'text-muted line-through'}`}>{mall.namn}</p>
-                    {mall.system_kod && (
-                      <span className="shrink-0 text-[9px] uppercase tracking-wider text-subtle border border-border rounded px-1">sys</span>
-                    )}
-                  </div>
-                  <p className="text-[11px] text-subtle truncate">{mall.kategori}</p>
-                </button>
-                <div className="flex items-center gap-0.5 px-2 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
+            (() => {
+              const grouped = KATEGORIER.reduce<Record<string, EpostMall[]>>((acc, kat) => {
+                const items = mallar.filter(m => m.kategori === kat)
+                if (items.length > 0) acc[kat] = items
+                return acc
+              }, {})
+              const uncategorized = mallar.filter(m => !KATEGORIER.includes(m.kategori))
+              if (uncategorized.length > 0) grouped['Övrigt'] = uncategorized
+              return Object.entries(grouped).map(([kat, items]) => {
+                const collapsed = collapsedKat.has(kat)
+                return (
+                <div key={kat}>
                   <button
-                    onClick={() => void handleToggleAktiv(mall)}
-                    title={mall.aktiv ? 'Avaktivera' : 'Aktivera'}
-                    className={`p-1 rounded transition-colors ${mall.aktiv ? 'text-emerald-400 hover:text-emerald-300' : 'text-subtle hover:text-fg'}`}
+                    onClick={() => setCollapsedKat(prev => {
+                      const next = new Set(prev)
+                      if (next.has(kat)) next.delete(kat); else next.add(kat)
+                      return next
+                    })}
+                    className="w-full flex items-center justify-between px-4 py-1.5 border-b border-border/50 bg-sidebar/50 sticky top-0 hover:bg-hover transition-colors"
                   >
-                    {mall.aktiv ? <ToggleRight size={15} /> : <ToggleLeft size={15} />}
+                    <span className="text-[10px] uppercase tracking-widest text-subtle">{kat}</span>
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-[10px] text-subtle/60">{items.length}</span>
+                      {collapsed ? <ChevronDown size={11} className="text-subtle" /> : <ChevronUp size={11} className="text-subtle" />}
+                    </div>
                   </button>
-                  <button
-                    onClick={() => void handleTabort(mall.id)}
-                    className="p-1 rounded text-subtle hover:text-red-400 hover:bg-hover"
-                  >
-                    <Trash2 size={11} />
-                  </button>
+                  {!collapsed && items.map(mall => (
+                    <div
+                      key={mall.id}
+                      className={`group w-full flex items-center border-b border-border/50 transition-colors hover:bg-hover ${vald?.id === mall.id && redigerar ? 'bg-hover' : ''}`}
+                    >
+                      <button
+                        onClick={() => handleRedigera(mall)}
+                        className="flex-1 text-left px-4 py-3 min-w-0"
+                      >
+                        <div className="flex items-center gap-1.5 min-w-0">
+                          <p className={`text-sm truncate ${mall.aktiv ? 'text-fg' : 'text-muted line-through'}`}>{mall.namn}</p>
+                          {mall.system_kod && (
+                            <span className="shrink-0 text-[9px] uppercase tracking-wider text-subtle border border-border rounded px-1">sys</span>
+                          )}
+                        </div>
+                      </button>
+                      <div className="flex items-center gap-0.5 px-2 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <button
+                          onClick={() => void handleToggleAktiv(mall)}
+                          title={mall.aktiv ? 'Avaktivera' : 'Aktivera'}
+                          className={`p-1 rounded transition-colors ${mall.aktiv ? 'text-emerald-400 hover:text-emerald-300' : 'text-subtle hover:text-fg'}`}
+                        >
+                          {mall.aktiv ? <ToggleRight size={15} /> : <ToggleLeft size={15} />}
+                        </button>
+                        {!mall.system_kod && (
+                          <button
+                            onClick={() => void handleTabort(mall.id)}
+                            className="p-1 rounded text-subtle hover:text-red-400 hover:bg-hover"
+                          >
+                            <Trash2 size={11} />
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  ))}
                 </div>
-              </div>
-            ))
+              )})
+            })()
           )}
         </div>
       </div>

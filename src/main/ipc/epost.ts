@@ -730,6 +730,12 @@ export function registerEpostHandlers(): void {
   })
 
   ipcMain.handle('db:epost-mallar:delete', async (_, id: string) => {
+    const { data: existing } = await supabase
+      .from('epost_mallar')
+      .select('system_kod')
+      .eq('id', id)
+      .single()
+    if (existing?.system_kod) throw new Error('Systemmallar kan inte tas bort')
     const { error } = await supabase.from('epost_mallar').delete().eq('id', id)
     if (error) throw new Error(error.message)
     return { ok: true }
