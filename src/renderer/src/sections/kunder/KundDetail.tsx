@@ -38,6 +38,8 @@ export function KundDetail({ kund, statusar, onBack, onEdit, onDelete }: Props) 
   const [inviting, setInviting] = useState(false)
   const [resetting, setResetting] = useState(false)
   const [inviteFeedback, setInviteFeedback] = useState<{ kind: 'ok' | 'err'; msg: string } | null>(null)
+  const [confirmInvite, setConfirmInvite] = useState(false)
+  const [confirmReset, setConfirmReset] = useState(false)
   const [feedbackList, setFeedbackList] = useState<KundAvslutsfeedback[]>([])
   const [feedbackOpen, setFeedbackOpen] = useState(false)
   const [globalTemplate, setGlobalTemplate] = useState<AvslutFragaFalt[]>([])
@@ -46,6 +48,8 @@ export function KundDetail({ kund, statusar, onBack, onEdit, onDelete }: Props) 
   const [customDirty, setCustomDirty] = useState(false)
   const [customSaving, setCustomSaving] = useState(false)
   const [expandedQ, setExpandedQ] = useState<string | null>(null)
+  const [sendingManual, setSendingManual] = useState(false)
+  const [manualMsg, setManualMsg] = useState<{ kind: 'ok' | 'err'; text: string } | null>(null)
 
   const currentStatus = statusar.find((s) => s.namn === kund.status)
 
@@ -90,6 +94,21 @@ export function KundDetail({ kund, statusar, onBack, onEdit, onDelete }: Props) 
       }
     })()
   }, [kund.id])
+
+  async function handleSendManualFeedback() {
+    setSendingManual(true)
+    setManualMsg(null)
+    try {
+      await window.api.invoke('db:kund-avslut:send-manual', kund.id, kund.email)
+      setManualMsg({ kind: 'ok', text: 'Skickat!' })
+      const list = await window.api.invoke('db:kund-avslut:list-by-kund', kund.id) as KundAvslutsfeedback[]
+      setFeedbackList(list)
+    } catch (e) {
+      setManualMsg({ kind: 'err', text: e instanceof Error ? e.message : 'Fel vid utskick' })
+    } finally {
+      setSendingManual(false)
+    }
+  }
 
   async function handleSaveKundTemplate(questions: AvslutFragaFalt[] | null) {
     setCustomSaving(true)
@@ -202,23 +221,55 @@ export function KundDetail({ kund, statusar, onBack, onEdit, onDelete }: Props) 
             Feedback
           </button>
           {kundUser?.accepted_at ? (
-            <button
-              onClick={handlePasswordReset}
-              disabled={resetting || inviting || !kund.email?.trim()}
-              title={kund.email?.trim() ? undefined : 'Kunden saknar e-postadress'}
-              className="inline-flex items-center gap-1.5 px-3 py-2.5 text-[10px] font-semibold uppercase tracking-wider text-muted hover:text-fg transition-colors disabled:opacity-40"
-            >
-              <KeyRound size={11} />{resetting ? 'Skickar...' : 'Återställ lösenord'}
-            </button>
+            confirmReset ? (
+              <div className="flex items-center gap-2">
+                <span className="text-[10px] text-muted uppercase tracking-wider font-semibold">Skicka återställning?</span>
+                <button
+                  onClick={() => { setConfirmReset(false); void handlePasswordReset() }}
+                  disabled={resetting}
+                  className="inline-flex items-center px-3 py-2.5 text-[10px] font-semibold uppercase tracking-wider text-fg hover:text-emerald-400 transition-colors disabled:opacity-40"
+                >
+                  Ja
+                </button>
+                <button onClick={() => setConfirmReset(false)} className="inline-flex items-center px-3 py-2.5 text-[10px] font-semibold uppercase tracking-wider text-muted hover:text-fg transition-colors">
+                  Avbryt
+                </button>
+              </div>
+            ) : (
+              <button
+                onClick={() => setConfirmReset(true)}
+                disabled={resetting || inviting || !kund.email?.trim()}
+                title={kund.email?.trim() ? undefined : 'Kunden saknar e-postadress'}
+                className="inline-flex items-center gap-1.5 px-3 py-2.5 text-[10px] font-semibold uppercase tracking-wider text-muted hover:text-fg transition-colors disabled:opacity-40"
+              >
+                <KeyRound size={11} />{resetting ? 'Skickar...' : 'Återställ lösenord'}
+              </button>
+            )
           ) : (
-            <button
-              onClick={handleInvite}
-              disabled={inviting || resetting || !kund.email?.trim()}
-              title={kund.email?.trim() ? undefined : 'Kunden saknar e-postadress'}
-              className="inline-flex items-center gap-1.5 px-3 py-2.5 text-[10px] font-semibold uppercase tracking-wider text-muted hover:text-fg transition-colors disabled:opacity-40"
-            >
-              <Send size={11} />{inviting ? 'Skickar...' : kundUser ? 'Skicka påminnelse' : 'Bjud in'}
-            </button>
+            confirmInvite ? (
+              <div className="flex items-center gap-2">
+                <span className="text-[10px] text-muted uppercase tracking-wider font-semibold">Skicka till {kund.email}?</span>
+                <button
+                  onClick={() => { setConfirmInvite(false); void handleInvite() }}
+                  disabled={inviting}
+                  className="inline-flex items-center px-3 py-2.5 text-[10px] font-semibold uppercase tracking-wider text-fg hover:text-emerald-400 transition-colors disabled:opacity-40"
+                >
+                  Ja
+                </button>
+                <button onClick={() => setConfirmInvite(false)} className="inline-flex items-center px-3 py-2.5 text-[10px] font-semibold uppercase tracking-wider text-muted hover:text-fg transition-colors">
+                  Avbryt
+                </button>
+              </div>
+            ) : (
+              <button
+                onClick={() => setConfirmInvite(true)}
+                disabled={inviting || resetting || !kund.email?.trim()}
+                title={kund.email?.trim() ? undefined : 'Kunden saknar e-postadress'}
+                className="inline-flex items-center gap-1.5 px-3 py-2.5 text-[10px] font-semibold uppercase tracking-wider text-muted hover:text-fg transition-colors disabled:opacity-40"
+              >
+                <Send size={11} />{inviting ? 'Skickar...' : kundUser ? 'Skicka påminnelse' : 'Bjud in'}
+              </button>
+            )
           )}
           <button onClick={() => setEditing(true)} className="inline-flex items-center gap-1.5 px-3 py-2.5 text-[10px] font-semibold uppercase tracking-wider text-muted hover:text-fg transition-colors">
             <Pencil size={11} />Redigera
@@ -316,9 +367,25 @@ export function KundDetail({ kund, statusar, onBack, onEdit, onDelete }: Props) 
           <div className="w-80 border-l border-border flex flex-col shrink-0 overflow-hidden">
             <div className="flex items-center justify-between px-5 py-3 border-b border-border shrink-0">
               <p className="text-[11px] uppercase tracking-widest text-muted">Feedback projektavslut</p>
-              <button onClick={() => setFeedbackOpen(false)} className="text-subtle hover:text-fg transition-colors">
-                <X size={13} />
-              </button>
+              <div className="flex items-center gap-3">
+                {manualMsg && (
+                  <span className={`text-[10px] ${manualMsg.kind === 'ok' ? 'text-emerald-400' : 'text-red-400'}`}>
+                    {manualMsg.text}
+                  </span>
+                )}
+                <button
+                  onClick={() => void handleSendManualFeedback()}
+                  disabled={sendingManual || !kund.email?.trim()}
+                  title={!kund.email?.trim() ? 'Kunden saknar e-postadress' : 'Skicka feedback-formulär'}
+                  className="inline-flex items-center gap-1 text-[10px] font-semibold uppercase tracking-wider text-muted hover:text-fg transition-colors disabled:opacity-40"
+                >
+                  <Send size={11} />
+                  {sendingManual ? 'Skickar...' : 'Skicka'}
+                </button>
+                <button onClick={() => setFeedbackOpen(false)} className="text-subtle hover:text-fg transition-colors">
+                  <X size={13} />
+                </button>
+              </div>
             </div>
 
             <div className="flex-1 flex flex-col min-h-0">

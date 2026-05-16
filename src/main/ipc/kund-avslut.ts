@@ -136,4 +136,67 @@ export function registerKundAvslutHandlers(): void {
       .eq('id', kund_id)
     if (error) throw new Error(error.message)
   })
+
+  ipcMain.handle('db:kund-avslut:send-manual', async (_, kund_id: string, email: string) => {
+    if (!email?.trim()) throw new Error('Kunden saknar e-postadress')
+
+    const { data: kund } = await supabase
+      .from('kunder')
+      .select('namn, avslut_questions_template')
+      .eq('id', kund_id)
+      .maybeSingle()
+
+    const base = (readDbConfig().form_app_url ?? '').replace(/\/+$/, '')
+    if (!base) throw new Error('form_app_url inte konfigurerad')
+
+    const { data: mall } = await supabase
+      .from('epost_mallar')
+      .select('amne, kropp_html, alias_id, questions_json')
+      .eq('system_kod', 'projekt_avslut_feedback')
+      .eq('aktiv', true)
+      .limit(1)
+      .maybeSingle()
+
+    const questions =
+      (kund?.avslut_questions_template as typeof AVSLUT_QUESTIONS | null) ??
+      (mall?.questions_json as typeof AVSLUT_QUESTIONS | null) ??
+      AVSLUT_QUESTIONS
+
+    const token = randomBytes(32).toString('hex')
+
+    const { error: insertErr } = await supabase.from('kund_avslutsfeedback').insert({
+      kund_id,
+      projekt_namn: '',
+      token,
+      questions_json: questions,
+    })
+    if (insertErr) throw new Error(insertErr.message)
+
+    const { data: installningar } = await supabase
+      .from('app_installningar')
+      .select('foretag_namn')
+      .maybeSingle()
+
+    const formulärLänk = `${base}/avslut/${token}`
+    const namn = kund?.namn ?? ''
+    const vars: Record<string, string> = {
+      kund_namn: namn,
+      projekt_namn: '',
+      'formulär_länk': formulärLänk,
+      foretag_namn: installningar?.foretag_namn ?? '',
+      datum: new Date().toLocaleDateString('sv-SE'),
+    }
+    const interpolate = (s: string) =>
+      s.replace(/\{\{([\wÄÖÅäöå_]+)\}\}/g, (_, k: string) => vars[k] ?? `{{${k}}}`)
+
+    const amne = mall ? interpolate(mall.amne) : 'Hur kan vi bli bättre?'
+    const kropp_html = mall
+      ? interpolate(mall.kropp_html)
+      : `<p>Hej ${namn},</p><p>Klicka <a href="${formulärLänk}">här</a> för att besvara ett kort formulär.</p>`
+
+    const alias = await loadAlias(mall?.alias_id ?? null)
+    if (!alias) throw new Error('Ingen aktiv e-postalias konfigurerad')
+
+    await sendEpost({ alias, till: email.trim(), amne, kropp: kropp_html })
+  })
 }
