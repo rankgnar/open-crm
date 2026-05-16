@@ -1,7 +1,7 @@
 import {
   LayoutDashboard, Users, FolderKanban, FileText, TrendingUp, Receipt, ReceiptText,
   CalendarRange, Mail, Calendar, Building2, MessageCircle,
-  UserCheck, Users2, ClipboardSignature, ClipboardPlus, Signature, Truck, Upload, Package, BarChart2, type LucideIcon,
+  UserCheck, Users2, ClipboardSignature, ClipboardPlus, Signature, Truck, Upload, Package, type LucideIcon,
 } from 'lucide-react'
 
 export interface NavSection {
@@ -47,7 +47,6 @@ export const NAV_GROUPS: NavGroup[] = [
   {
     label: 'Ekonomi',
     items: [
-      { id: 'kassaflode',  label: 'Kassaflöde',  icon: BarChart2,  popout: true },
       { id: 'ekonomi',     label: 'Kostnader',   icon: TrendingUp, popout: true },
       { id: 'fakturering', label: 'Fakturering', icon: Receipt,    popout: true },
       { id: 'kvitto',      label: 'Kvitto',      icon: ReceiptText, popout: true },
