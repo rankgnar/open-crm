@@ -40,6 +40,14 @@ const PALETTE = [
   '#f97316', '#ec4899', '#84cc16', '#14b8a6', '#a855f7', '#fb923c',
 ]
 
+const TIME_BANDS = [
+  { id: 'natt',  label: 'Natt',   start: 0,  end: 6,  color: '#818cf8' },
+  { id: 'morg',  label: 'Morgon', start: 6,  end: 12, color: '#fbbf24' },
+  { id: 'midd',  label: 'Middag', start: 12, end: 14, color: '#34d399' },
+  { id: 'eftm',  label: 'Eftm',   start: 14, end: 20, color: '#fb923c' },
+  { id: 'kvall', label: 'Kväll',  start: 20, end: 24, color: '#a78bfa' },
+] as const
+
 function getProjektFarg(projektId: string, alleProjekt: ProjektRef[]): string {
   const projekt = alleProjekt.find(p => p.id === projektId)
   if (projekt?.kalender_farg) return projekt.kalender_farg
@@ -240,10 +248,35 @@ function MultiVeckaGrid({
                   className={`border-r border-border/40 p-1 flex flex-col gap-0.5 cursor-pointer transition-colors min-h-[80px] ${erVald ? 'bg-hover' : 'hover:bg-hover/40'}`}
                 >
                   <span className={`text-[11px] font-medium self-start ${erIdag ? 'text-emerald-400' : 'text-muted'}`}>{dag.getDate()}</span>
-                  {dagEvents.slice(0, 12).map(e => (
-                    <EventPill key={e.id} event={e} onClick={onValjEvent} onDragStart={onDragStart} selected={selectedIds.has(e.id)} />
-                  ))}
-                  {dagEvents.length > 12 && <span className="text-[10px] text-muted">+{dagEvents.length - 12}</span>}
+                  {(() => {
+                    const helDag = dagEvents.filter(e => e.hel_dag)
+                    const timed = dagEvents.filter(e => !e.hel_dag).sort(
+                      (a, b) => new Date(a.start).getTime() - new Date(b.start).getTime()
+                    )
+                    const groups = TIME_BANDS.map(band => ({
+                      band,
+                      events: timed.filter(e => {
+                        const h = new Date(e.start).getHours()
+                        return h >= band.start && h < band.end
+                      }),
+                    })).filter(g => g.events.length > 0)
+                    return (
+                      <>
+                        {helDag.map(e => (
+                          <EventPill key={e.id} event={e} onClick={onValjEvent} onDragStart={onDragStart} selected={selectedIds.has(e.id)} />
+                        ))}
+                        {groups.map(({ band, events }) => (
+                          <div key={band.id} className="flex flex-col gap-0.5 mt-0.5">
+                            <span className="text-[8px] uppercase tracking-widest leading-none px-0.5" style={{ color: band.color }}>{band.label}</span>
+                            {events.slice(0, 3).map(e => (
+                              <EventPill key={e.id} event={e} onClick={onValjEvent} onDragStart={onDragStart} selected={selectedIds.has(e.id)} />
+                            ))}
+                            {events.length > 3 && <span className="text-[10px] text-muted px-0.5">+{events.length - 3}</span>}
+                          </div>
+                        ))}
+                      </>
+                    )
+                  })()}
                 </div>
               )
             })}
