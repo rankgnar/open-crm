@@ -19,7 +19,9 @@ import type {
   ForslagFas, ForslagSubfas, ForslagArbete, ForslagMaterial, ForslagUnderentreprenor,
   ForslagEpostRef,
 } from './types'
-import type { ProjektWithKund } from '@/sections/projekt/types'
+import type { ProjektWithKund, ProjektAnteckning, ProjektDokument, AnteckningFarg } from '@/sections/projekt/types'
+import { ANTECKNING_FARG_DOT } from '@/sections/projekt/types'
+import { DokumentPanel } from '@/sections/projekt/DokumentPanel'
 import type { Kund } from '@/sections/kunder/types'
 import type { AiAssistent, ArbetsRoll, PdfMall } from '@/sections/installningar/types'
 import { useAppConfig } from '@/context/AppConfig'
@@ -30,6 +32,24 @@ import { aggregateForslag, computeForslagTotals } from '@/utils/forslag-totals'
 
 const FARG_DOT: Record<string, string> = {
   emerald: 'bg-emerald-400', blue: 'bg-blue-400', amber: 'bg-amber-400', red: 'bg-red-400', muted: 'bg-muted',
+}
+
+const ANT_FARG_OPTIONS: { value: AnteckningFarg; dot: string }[] = [
+  { value: 'muted',   dot: 'bg-subtle border-subtle' },
+  { value: 'emerald', dot: 'bg-emerald-400 border-emerald-400' },
+  { value: 'amber',   dot: 'bg-amber-400 border-amber-400' },
+  { value: 'red',     dot: 'bg-red-400 border-red-400' },
+  { value: 'blue',    dot: 'bg-blue-400 border-blue-400' },
+]
+
+function AntFargPicker({ value, onChange }: { value: AnteckningFarg; onChange: (f: AnteckningFarg) => void }) {
+  return (
+    <div className="flex items-center gap-1.5">
+      {ANT_FARG_OPTIONS.map((o) => (
+        <button key={o.value} type="button" onClick={() => onChange(o.value)} className={`size-3 rounded-full border-2 transition-transform ${o.dot} ${value === o.value ? 'scale-125' : 'opacity-50 hover:opacity-100'}`} />
+      ))}
+    </div>
+  )
 }
 
 interface EpostKoRef {
@@ -81,7 +101,7 @@ export function ForslagDetail({ forslag: forslagProp, statusar, allProjekt, onBa
   const [sendingPaminnelse, setSendingPaminnelse]     = useState(false)
   const [paminnelseFeedback, setPaminnelseFeedback]   = useState<{ kind: 'success' | 'error'; message: string } | null>(null)
   const [paminnelseDefaultMsg, setPaminnelseDefaultMsg] = useState('')
-  const [rightTab, setRightTab] = useState<'signering' | 'uppgifter' | 'projekt' | 'kostnad' | 'epost' | 'villkor'>('signering')
+  const [rightTab, setRightTab] = useState<'signering' | 'uppgifter' | 'projekt' | 'kostnad' | 'epost' | 'villkor' | 'anteckningar' | 'dokument'>('signering')
   const [kundFull, setKundFull] = useState<Kund | null>(null)
   const [epostRefs, setEpostRefs] = useState<ForslagEpostRef[]>([])
   const [epostKo, setEpostKo] = useState<EpostKoRef[]>([])
@@ -92,6 +112,25 @@ export function ForslagDetail({ forslag: forslagProp, statusar, allProjekt, onBa
   const [villkorSaving, setVillkorSaving] = useState(false)
   const [villkorAssistentId, setVillkorAssistentId] = useState<string | null>(null)
   const [villkorGenerating, setVillkorGenerating] = useState(false)
+
+  // Anteckningar (project notes, shared with ProjektDetail)
+  const [anteckningar, setAnteckningar] = useState<ProjektAnteckning[]>([])
+  const [nyAntTitel, setNyAntTitel] = useState('')
+  const [nyAntInnehall, setNyAntInnehall] = useState('')
+  const [nyAntFarg, setNyAntFarg] = useState<AnteckningFarg>('muted')
+  const [savingNote, setSavingNote] = useState(false)
+  const [expandedAntIds, setExpandedAntIds] = useState<Set<string>>(new Set())
+  const [editingNoteId, setEditingNoteId] = useState<string | null>(null)
+  const [editAntTitel, setEditAntTitel] = useState('')
+  const [editAntInnehall, setEditAntInnehall] = useState('')
+  const [editAntFarg, setEditAntFarg] = useState<AnteckningFarg>('muted')
+  const [savingEditId, setSavingEditId] = useState<string | null>(null)
+  const [deletingNoteId, setDeletingNoteId] = useState<string | null>(null)
+  const [colorPickerId, setColorPickerId] = useState<string | null>(null)
+
+  // Dokument (project documents, shared with ProjektDetail)
+  const [dokument, setDokument] = useState<ProjektDokument[]>([])
+  const [uploadProgress, setUploadProgress] = useState<{ current: number; total: number } | null>(null)
 
   useEffect(() => {
     if (rightTab !== 'uppgifter') return
@@ -117,6 +156,19 @@ export function ForslagDetail({ forslag: forslagProp, statusar, allProjekt, onBa
       setEpostKo(ko)
     }).finally(() => setEpostLoading(false))
   }, [rightTab, forslag.id])
+
+  useEffect(() => {
+    if (rightTab !== 'anteckningar') return
+    window.api.invoke('db:projekt-anteckningar:list', forslag.projekt_id)
+      .then(d => setAnteckningar(d as ProjektAnteckning[]))
+  }, [rightTab, forslag.projekt_id])
+
+  useEffect(() => {
+    if (rightTab !== 'dokument') return
+    window.api.invoke('db:projekt-dokument:list', forslag.projekt_id)
+      .then(d => setDokument((d as ProjektDokument[]).filter(doc => (doc.kategori ?? 'dokument') === 'dokument')))
+  }, [rightTab, forslag.projekt_id])
+
   const [pdfTitelPicker, setPdfTitelPicker] = useState<{ titel1: string; titel2: string } | null>(null)
   // Selected title + tidplan-attach flag inside the export modal.
   const [pdfExportTitel, setPdfExportTitel] = useState<string>('')
@@ -696,6 +748,106 @@ export function ForslagDetail({ forslag: forslagProp, statusar, allProjekt, onBa
     }
   }
 
+  // Anteckningar handlers
+  async function handleAddNote(e: React.FormEvent) {
+    e.preventDefault()
+    if (!nyAntTitel.trim()) return
+    setSavingNote(true)
+    const created = await window.api.invoke('db:projekt-anteckningar:create', { projekt_id: forslag.projekt_id, titel: nyAntTitel.trim(), innehall: nyAntInnehall.trim(), farg: nyAntFarg }) as ProjektAnteckning
+    setAnteckningar(prev => [created, ...prev])
+    setNyAntTitel('')
+    setNyAntInnehall('')
+    setNyAntFarg('muted')
+    setSavingNote(false)
+  }
+
+  function toggleExpandAnt(id: string) {
+    setExpandedAntIds(prev => { const next = new Set(prev); next.has(id) ? next.delete(id) : next.add(id); return next })
+  }
+
+  function startEditAnt(a: ProjektAnteckning) {
+    setEditingNoteId(a.id)
+    setEditAntTitel(a.titel)
+    setEditAntInnehall(a.innehall)
+    setEditAntFarg(a.farg)
+    setExpandedAntIds(prev => new Set(prev).add(a.id))
+  }
+
+  async function saveEditAnt(id: string) {
+    if (!editAntTitel.trim()) return
+    setSavingEditId(id)
+    const updated = await window.api.invoke('db:projekt-anteckningar:update', id, { titel: editAntTitel.trim(), innehall: editAntInnehall.trim(), farg: editAntFarg }) as ProjektAnteckning
+    setAnteckningar(prev => prev.map(a => a.id === updated.id ? updated : a))
+    setEditingNoteId(null)
+    setSavingEditId(null)
+  }
+
+  function cancelEditAnt() { setEditingNoteId(null) }
+
+  async function handleDeleteNote(id: string) {
+    setDeletingNoteId(id)
+    await window.api.invoke('db:projekt-anteckningar:delete', id)
+    setAnteckningar(prev => prev.filter(a => a.id !== id))
+    setDeletingNoteId(null)
+  }
+
+  async function handleChangeAntFarg(id: string, farg: string) {
+    const a = anteckningar.find(n => n.id === id)
+    if (!a) return
+    const updated = await window.api.invoke('db:projekt-anteckningar:update', id, { titel: a.titel, innehall: a.innehall, farg }) as ProjektAnteckning
+    setAnteckningar(prev => prev.map(n => n.id === updated.id ? updated : n))
+  }
+
+  // Dokument handlers
+  async function handleUploadDokument(carpeta: string | null) {
+    const files = await window.api.invoke('dialog:open-files') as { filePath: string; fileName: string; mimeType: string; size: number }[]
+    if (!files.length) return
+    setUploadProgress({ current: 0, total: files.length })
+    for (let i = 0; i < files.length; i++) {
+      await window.api.invoke('db:projekt-dokument:upload', { projektId: forslag.projekt_id, ...files[i], kategori: 'dokument', carpeta })
+      setUploadProgress({ current: i + 1, total: files.length })
+    }
+    setUploadProgress(null)
+    const docs = await window.api.invoke('db:projekt-dokument:list', forslag.projekt_id) as ProjektDokument[]
+    setDokument(docs.filter(d => (d.kategori ?? 'dokument') === 'dokument'))
+  }
+
+  async function handleCreateTextDokument(fileName: string, content: string, carpeta: string | null) {
+    const doc = await window.api.invoke('db:projekt-dokument:create-text', { projektId: forslag.projekt_id, fileName, content, carpeta }) as ProjektDokument
+    setDokument(prev => [doc, ...prev])
+  }
+
+  async function handleDeleteDokument(id: string, storagePath: string) {
+    await window.api.invoke('db:projekt-dokument:delete', { id, storagePath })
+    setDokument(prev => prev.filter(d => d.id !== id))
+  }
+
+  async function handleOpenDokument(storagePath: string) {
+    const dok = dokument.find(d => d.storage_path === storagePath)
+    await window.api.invoke('db:projekt-dokument:get-data', { storagePath, mimeType: dok?.mime_type ?? 'application/octet-stream' })
+  }
+
+  async function handleToggleDokumentVisibility(id: string, synlig: boolean) {
+    const updated = await window.api.invoke('db:projekt-dokument:set-visibility', { id, synlig_for_kund: synlig }) as ProjektDokument
+    setDokument(prev => prev.map(d => d.id === id ? updated : d))
+  }
+
+  async function handleMoveCarpeta(id: string, carpeta: string | null) {
+    const updated = await window.api.invoke('db:projekt-dokument:move-carpeta', { id, carpeta }) as ProjektDokument
+    setDokument(prev => prev.map(d => d.id === id ? updated : d))
+  }
+
+  async function handleDeleteCarpeta(carpeta: string) {
+    await window.api.invoke('db:projekt-dokument:clear-carpeta', { projektId: forslag.projekt_id, carpeta })
+    const docs = await window.api.invoke('db:projekt-dokument:list', forslag.projekt_id) as ProjektDokument[]
+    setDokument(docs.filter(d => (d.kategori ?? 'dokument') === 'dokument'))
+  }
+
+  async function handleRenameDokument(id: string, filnamn: string) {
+    const updated = await window.api.invoke('db:projekt-dokument:rename', { id, filnamn }) as ProjektDokument
+    setDokument(prev => prev.map(d => d.id === id ? updated : d))
+  }
+
   if (editing) {
     return (
       <ForslagForm
@@ -1203,7 +1355,7 @@ export function ForslagDetail({ forslag: forslagProp, statusar, allProjekt, onBa
         {/* Right — Signering / Uppgifter / Kostnad tabs */}
         <div className="w-[480px] shrink-0 border-l border-border overflow-hidden flex flex-col">
 
-          {/* Tab bar */}
+          {/* Tab bar — row 1: proposal tabs */}
           <div className="flex border-b border-border shrink-0 bg-sidebar">
             {(['signering', 'uppgifter', 'projekt', 'kostnad', 'epost', 'villkor'] as const).map((tab) => (
               <button
@@ -1214,6 +1366,23 @@ export function ForslagDetail({ forslag: forslagProp, statusar, allProjekt, onBa
                 {tab === 'signering' ? 'Sign' : tab === 'uppgifter' ? 'Kund' : tab === 'projekt' ? 'Projekt' : tab === 'kostnad' ? 'Kostnad' : tab === 'epost' ? 'E-post' : 'Villkor'}
               </button>
             ))}
+          </div>
+          {/* Tab bar — row 2: project notes + documents */}
+          <div className="flex border-b border-border shrink-0 bg-sidebar">
+            <button
+              onClick={() => setRightTab('anteckningar')}
+              className={`flex items-center gap-1.5 px-4 py-2 text-[10px] font-semibold uppercase tracking-wider transition-colors ${rightTab === 'anteckningar' ? 'text-fg border-b-2 border-emerald-400' : 'text-muted hover:text-fg'}`}
+            >
+              Anteckningar
+              <span className="text-[10px] bg-elevated border border-border rounded-full px-1.5 py-0.5">{anteckningar.length}</span>
+            </button>
+            <button
+              onClick={() => setRightTab('dokument')}
+              className={`flex items-center gap-1.5 px-4 py-2 text-[10px] font-semibold uppercase tracking-wider transition-colors ${rightTab === 'dokument' ? 'text-fg border-b-2 border-emerald-400' : 'text-muted hover:text-fg'}`}
+            >
+              Dokument
+              <span className="text-[10px] bg-elevated border border-border rounded-full px-1.5 py-0.5">{dokument.length}</span>
+            </button>
           </div>
 
           {/* Signering */}
@@ -1616,6 +1785,109 @@ export function ForslagDetail({ forslag: forslagProp, statusar, allProjekt, onBa
                 )}
               </div>
             </div>
+          )}
+
+          {/* Anteckningar */}
+          {rightTab === 'anteckningar' && (
+            <div className="flex-1 flex flex-col min-h-0">
+              <div className="flex-1 overflow-auto">
+                {anteckningar.length === 0 ? (
+                  <div className="flex items-center justify-center h-full">
+                    <p className="text-subtle text-xs">Inga anteckningar ännu.</p>
+                  </div>
+                ) : (
+                  <div className="relative py-4">
+                    <div className="absolute left-[27px] top-0 bottom-0 w-px bg-border" />
+                    {anteckningar.map((a) => {
+                      const expanded = expandedAntIds.has(a.id)
+                      const isEditing = editingNoteId === a.id
+                      return (
+                        <div key={a.id} className="group relative flex gap-3 px-4 pb-5 last:pb-2">
+                          <div className="relative shrink-0 flex flex-col items-center mt-1">
+                            <button
+                              type="button"
+                              onClick={() => setColorPickerId(colorPickerId === a.id ? null : a.id)}
+                              className={`relative z-10 size-2.5 rounded-full border-2 transition-transform hover:scale-125 ${ANTECKNING_FARG_DOT[a.farg ?? 'muted']}`}
+                            />
+                            {colorPickerId === a.id && (
+                              <div className="absolute top-4 left-0 z-20 flex items-center gap-1 bg-sidebar border border-border rounded-lg px-2 py-1.5 shadow-lg">
+                                {ANT_FARG_OPTIONS.map((o) => (
+                                  <button
+                                    key={o.value}
+                                    type="button"
+                                    onClick={() => { void handleChangeAntFarg(a.id, o.value); setColorPickerId(null) }}
+                                    className={`size-3 rounded-full border-2 transition-transform hover:scale-125 ${o.dot} ${a.farg === o.value ? 'scale-125' : 'opacity-60'}`}
+                                  />
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-start justify-between gap-2">
+                              {isEditing ? (
+                                <input autoFocus className="input flex-1" value={editAntTitel} onChange={(e) => setEditAntTitel(e.target.value)} />
+                              ) : (
+                                <span className="text-xs font-semibold text-fg cursor-pointer hover:text-muted transition-colors leading-relaxed" onClick={() => toggleExpandAnt(a.id)}>
+                                  {a.titel || '(ingen titel)'}
+                                </span>
+                              )}
+                              <div className="flex items-center gap-0.5 shrink-0 mt-0.5">
+                                {isEditing ? (
+                                  <>
+                                    <button onClick={() => void saveEditAnt(a.id)} disabled={savingEditId === a.id} className="p-1 text-emerald-400 hover:text-emerald-300 disabled:opacity-40 transition-colors"><Check size={12} /></button>
+                                    <button onClick={cancelEditAnt} className="p-1 text-muted hover:text-fg transition-colors"><XIcon size={12} /></button>
+                                  </>
+                                ) : (
+                                  <>
+                                    <button onClick={() => startEditAnt(a)} className="p-1 text-subtle hover:text-fg opacity-0 group-hover:opacity-100 transition-all"><Pencil size={11} /></button>
+                                    <button onClick={() => void handleDeleteNote(a.id)} disabled={deletingNoteId === a.id} className="p-1 text-subtle hover:text-red-400 opacity-0 group-hover:opacity-100 disabled:opacity-40 transition-all"><Trash2 size={11} /></button>
+                                  </>
+                                )}
+                              </div>
+                            </div>
+                            <p className="text-[11px] text-subtle mt-0.5">{new Date(a.skapad_at).toLocaleString('sv-SE', { dateStyle: 'short', timeStyle: 'short' })}</p>
+                            {isEditing && <AntFargPicker value={editAntFarg} onChange={setEditAntFarg} />}
+                            {isEditing ? (
+                              <textarea className="input resize-none w-full mt-2" rows={5} value={editAntInnehall} onChange={(e) => setEditAntInnehall(e.target.value)} onKeyDown={(e) => { if (e.key === 'Escape') cancelEditAnt() }} placeholder="Innehåll..." />
+                            ) : a.innehall ? (
+                              <p className="text-xs text-muted mt-1.5 cursor-pointer leading-relaxed" onClick={() => toggleExpandAnt(a.id)}>
+                                {expanded ? a.innehall : a.innehall.length > 80 ? a.innehall.slice(0, 80) + '…' : a.innehall}
+                              </p>
+                            ) : null}
+                          </div>
+                        </div>
+                      )
+                    })}
+                  </div>
+                )}
+              </div>
+              <form onSubmit={(e) => void handleAddNote(e)} className="border-t border-border p-4 flex flex-col gap-2 shrink-0">
+                <input className="input text-xs" placeholder="Titel *" value={nyAntTitel} onChange={(e) => setNyAntTitel(e.target.value)} />
+                <AntFargPicker value={nyAntFarg} onChange={setNyAntFarg} />
+                <textarea className="input resize-none text-xs" rows={5} placeholder="Innehåll (valfritt)..." value={nyAntInnehall} onChange={(e) => setNyAntInnehall(e.target.value)} />
+                <button type="submit" disabled={savingNote || !nyAntTitel.trim()} className="flex items-center justify-center gap-1.5 rounded-lg bg-fg text-bg px-3 py-1.5 text-xs font-medium hover:opacity-90 transition-opacity disabled:opacity-30">
+                  <Send size={11} />
+                  {savingNote ? 'Sparar...' : 'Lägg till anteckning'}
+                </button>
+              </form>
+            </div>
+          )}
+
+          {/* Dokument */}
+          {rightTab === 'dokument' && (
+            <DokumentPanel
+              dokument={dokument}
+              projektId={forslag.projekt_id}
+              onUpload={(carpeta) => handleUploadDokument(carpeta)}
+              onCreateText={handleCreateTextDokument}
+              onDelete={handleDeleteDokument}
+              onOpen={handleOpenDokument}
+              onToggleVisibility={handleToggleDokumentVisibility}
+              onMoveCarpeta={handleMoveCarpeta}
+              onDeleteCarpeta={handleDeleteCarpeta}
+              onRename={handleRenameDokument}
+              uploadProgress={uploadProgress}
+            />
           )}
 
           {/* Always-mounted portal target for the FasEditor catalog */}
