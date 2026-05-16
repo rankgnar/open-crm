@@ -377,27 +377,24 @@ function StatusDot({ status }: { status: 'ok' | 'no_key' | 'inaktiv' }) {
   return <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${cls}`} title={title} />
 }
 
-function AiRow({ label, value }: { label: string; value: string | number }) {
-  return (
-    <div className="flex items-center justify-between py-1.5 border-b border-fg/10 last:border-b-0">
-      <span className="text-[11px] text-muted">{label}</span>
-      <span className="text-xs text-fg ws-tabular">{value}</span>
-    </div>
-  )
-}
-
 export function AiTile({ data, onNavigate, index }: { data: WorkspaceOverview['ai'] } & NavProps & { index: number }) {
+  const kpis = [
+    { label: 'Assistenter', value: data.assistenter_aktiva },
+    { label: 'Flöden', value: data.workflows_aktiva },
+    { label: 'Noder', value: data.noder_count },
+    { label: 'Kontext', value: data.kontext_count },
+  ]
   return (
     <Tile title="AI · Workflows" onClick={() => onNavigate('avancerat')} index={index} className="col-span-3 row-span-2">
       <div className="flex flex-col flex-1 min-h-0 gap-3">
-        <div className="flex flex-col gap-1.5">
-          <div className="text-[10px] uppercase tracking-[0.14em] text-subtle">Leverantörer</div>
+        <div>
+          <div className="text-[10px] uppercase tracking-[0.14em] text-subtle mb-2">Leverantörer</div>
           {data.leverantorer.length === 0 ? (
             <span className="text-xs text-subtle">—</span>
           ) : (
-            <div className="grid grid-cols-2 gap-x-3 gap-y-1">
+            <div className="grid grid-cols-2 gap-1.5">
               {data.leverantorer.map((p) => (
-                <div key={p.slug} className="flex items-center gap-1.5 min-w-0">
+                <div key={p.slug} className="flex items-center gap-2 px-2 py-1.5 rounded-sm bg-fg/5 border border-border min-w-0">
                   <StatusDot status={p.status} />
                   <span className="text-[11px] text-fg truncate">{p.namn}</span>
                 </div>
@@ -406,11 +403,13 @@ export function AiTile({ data, onNavigate, index }: { data: WorkspaceOverview['a
           )}
         </div>
 
-        <div className="mt-auto border-t border-fg/15 pt-1.5 flex flex-col">
-          <AiRow label="Assistenter" value={data.assistenter_aktiva} />
-          <AiRow label="Aktiva flöden" value={data.workflows_aktiva} />
-          <AiRow label="Noder" value={data.noder_count} />
-          <AiRow label="Kontext" value={data.kontext_count} />
+        <div className="flex-1 grid grid-cols-2 gap-1.5">
+          {kpis.map(({ label, value }) => (
+            <div key={label} className="flex flex-col justify-center px-3 py-2 rounded-sm bg-fg/5 border border-border">
+              <span className="text-xl font-semibold text-fg ws-tabular leading-none">{value}</span>
+              <span className="text-[10px] text-muted mt-1">{label}</span>
+            </div>
+          ))}
         </div>
       </div>
     </Tile>
