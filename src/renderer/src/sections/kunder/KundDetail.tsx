@@ -40,9 +40,11 @@ export function KundDetail({ kund, statusar, onBack, onEdit, onDelete }: Props) 
   const [inviteFeedback, setInviteFeedback] = useState<{ kind: 'ok' | 'err'; msg: string } | null>(null)
   const [feedbackList, setFeedbackList] = useState<KundAvslutsfeedback[]>([])
   const [feedbackOpen, setFeedbackOpen] = useState(false)
-  const [questionTemplate, setQuestionTemplate] = useState<AvslutFragaFalt[]>([])
-  const [templateDirty, setTemplateDirty] = useState(false)
-  const [templateSaving, setTemplateSaving] = useState(false)
+  const [globalTemplate, setGlobalTemplate] = useState<AvslutFragaFalt[]>([])
+  const [kundTemplate, setKundTemplate] = useState<AvslutFragaFalt[] | null>(null)
+  const [customActive, setCustomActive] = useState(false)
+  const [customDirty, setCustomDirty] = useState(false)
+  const [customSaving, setCustomSaving] = useState(false)
   const [expandedQ, setExpandedQ] = useState<string | null>(null)
 
   const currentStatus = statusar.find((s) => s.namn === kund.status)
@@ -76,21 +78,26 @@ export function KundDetail({ kund, statusar, onBack, onEdit, onDelete }: Props) 
   useEffect(() => {
     void (async () => {
       try {
-        const rows = await window.api.invoke('db:kund-avslut:get-questions-template') as AvslutFragaFalt[]
-        setQuestionTemplate(rows)
+        const [globalQ, kundQ] = await Promise.all([
+          window.api.invoke('db:kund-avslut:get-global-template') as Promise<AvslutFragaFalt[]>,
+          window.api.invoke('db:kund-avslut:get-kund-template', kund.id) as Promise<AvslutFragaFalt[] | null>,
+        ])
+        setGlobalTemplate(globalQ)
+        setKundTemplate(kundQ)
+        setCustomActive(kundQ !== null)
       } catch {
-        setQuestionTemplate([])
+        setGlobalTemplate([])
       }
     })()
-  }, [])
+  }, [kund.id])
 
-  async function handleSaveTemplate() {
-    setTemplateSaving(true)
+  async function handleSaveKundTemplate(questions: AvslutFragaFalt[] | null) {
+    setCustomSaving(true)
     try {
-      await window.api.invoke('db:kund-avslut:save-questions-template', questionTemplate)
-      setTemplateDirty(false)
+      await window.api.invoke('db:kund-avslut:save-kund-template', kund.id, questions)
+      setCustomDirty(false)
     } finally {
-      setTemplateSaving(false)
+      setCustomSaving(false)
     }
   }
 
@@ -334,42 +341,83 @@ export function KundDetail({ kund, statusar, onBack, onEdit, onDelete }: Props) 
               <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
                 <div className="flex items-center justify-between px-5 py-2 border-b border-border shrink-0">
                   <p className="text-[11px] uppercase tracking-widest text-muted">Frågemall</p>
-                  <button
-                    onClick={handleSaveTemplate}
-                    disabled={!templateDirty || templateSaving}
-                    className="text-[10px] font-semibold uppercase tracking-wider text-emerald-400 hover:text-emerald-300 disabled:opacity-30 transition-colors"
-                  >
-                    {templateSaving ? 'Sparar...' : 'Spara'}
-                  </button>
+                  <div className="flex items-center gap-2">
+                    <label className="flex items-center gap-1.5 cursor-pointer">
+                      <span className="text-[10px] text-subtle">Anpassad</span>
+                      <input
+                        type="checkbox"
+                        checked={customActive}
+                        onChange={async (e) => {
+                          if (e.target.checked) {
+                            const copy = globalTemplate.map((q) => ({ ...q }))
+                            setKundTemplate(copy)
+                            setCustomActive(true)
+                            setCustomDirty(true)
+                          } else {
+                            setCustomActive(false)
+                            setKundTemplate(null)
+                            setCustomDirty(false)
+                            await handleSaveKundTemplate(null)
+                          }
+                        }}
+                        className="accent-emerald-400"
+                      />
+                    </label>
+                    {customActive && (
+                      <button
+                        onClick={() => void handleSaveKundTemplate(kundTemplate)}
+                        disabled={!customDirty || customSaving}
+                        className="text-[10px] font-semibold uppercase tracking-wider text-emerald-400 hover:text-emerald-300 disabled:opacity-30 transition-colors"
+                      >
+                        {customSaving ? 'Sparar...' : 'Spara'}
+                      </button>
+                    )}
+                  </div>
                 </div>
                 <div className="flex-1 overflow-auto flex flex-col divide-y divide-border">
-                  {questionTemplate.map((q, idx) => (
-                    <QuestionEditor
-                      key={q.id}
-                      question={q}
-                      expanded={expandedQ === q.id}
-                      onToggle={() => setExpandedQ((v) => v === q.id ? null : q.id)}
-                      onChange={(updated) => {
-                        setQuestionTemplate((prev) => prev.map((x, i) => i === idx ? updated : x))
-                        setTemplateDirty(true)
-                      }}
-                      onDelete={() => {
-                        setQuestionTemplate((prev) => prev.filter((_, i) => i !== idx))
-                        setTemplateDirty(true)
-                      }}
-                    />
-                  ))}
-                  <button
-                    onClick={() => {
-                      const id = `q${Date.now()}`
-                      setQuestionTemplate((prev) => [...prev, { id, label: '', type: 'text', required: false, options: null }])
-                      setExpandedQ(id)
-                      setTemplateDirty(true)
-                    }}
-                    className="flex items-center gap-1.5 px-5 py-3 text-[11px] text-muted hover:text-fg transition-colors"
-                  >
-                    <Plus size={11} /> Lägg till fråga
-                  </button>
+                  {customActive && kundTemplate !== null ? (
+                    <>
+                      {kundTemplate.map((q, idx) => (
+                        <QuestionEditor
+                          key={q.id}
+                          question={q}
+                          expanded={expandedQ === q.id}
+                          onToggle={() => setExpandedQ((v) => v === q.id ? null : q.id)}
+                          onChange={(updated) => {
+                            setKundTemplate((prev) => prev ? prev.map((x, i) => i === idx ? updated : x) : prev)
+                            setCustomDirty(true)
+                          }}
+                          onDelete={() => {
+                            setKundTemplate((prev) => prev ? prev.filter((_, i) => i !== idx) : prev)
+                            setCustomDirty(true)
+                          }}
+                        />
+                      ))}
+                      <button
+                        onClick={() => {
+                          const id = `q${Date.now()}`
+                          setKundTemplate((prev) => prev ? [...prev, { id, label: '', type: 'text', required: false, options: null }] : prev)
+                          setExpandedQ(id)
+                          setCustomDirty(true)
+                        }}
+                        className="flex items-center gap-1.5 px-5 py-3 text-[11px] text-muted hover:text-fg transition-colors"
+                      >
+                        <Plus size={11} /> Lägg till fråga
+                      </button>
+                    </>
+                  ) : (
+                    <>
+                      {globalTemplate.map((q) => (
+                        <div key={q.id} className="px-5 py-3 opacity-50">
+                          <span className="text-xs text-fg truncate block">{q.label || '—'}</span>
+                          <span className="text-[10px] text-subtle">{q.type}{q.required ? ' · krävs' : ''}</span>
+                        </div>
+                      ))}
+                      <p className="px-5 py-3 text-[10px] text-subtle italic">
+                        Global mall · redigera i Installningar → E-post mallar
+                      </p>
+                    </>
+                  )}
                 </div>
               </div>
 

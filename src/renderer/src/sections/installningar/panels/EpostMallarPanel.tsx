@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
-import { Plus, Trash2, Check, X, ToggleLeft, ToggleRight } from 'lucide-react'
+import { Plus, Trash2, Check, X, ToggleLeft, ToggleRight, ChevronDown, ChevronUp } from 'lucide-react'
 import type { EpostMall, EpostAlias } from '@/sections/epost/types'
+import type { AvslutFragaFalt, FragaTyp } from '@/types/fraga'
 import { EmailBody } from '@/components/EmailBody'
 import { SelectField } from '@/components/SelectField'
 
@@ -14,6 +15,7 @@ const EMPTY_FORM: Omit<EpostMall, 'id' | 'skapad_at' | 'uppdaterad_at'> = {
   system_kod: null,
   alias_id: null,
   meddelande_standard: null,
+  questions_json: null,
   aktiv: true,
   sortering: 0,
 }
@@ -30,6 +32,7 @@ export function EpostMallarPanel() {
   const [sparar, setSparar] = useState(false)
   const [fel, setFel] = useState<string | null>(null)
   const [forhandsvy, setForhandsvy] = useState(false)
+  const [expandedMallQ, setExpandedMallQ] = useState<string | null>(null)
 
   useEffect(() => {
     void hamtaMallar()
@@ -66,6 +69,7 @@ export function EpostMallarPanel() {
 
   function handleRedigera(mall: EpostMall) {
     setVald(mall)
+    setExpandedMallQ(null)
     setForm({
       namn: mall.namn,
       amne: mall.amne,
@@ -74,6 +78,7 @@ export function EpostMallarPanel() {
       system_kod: mall.system_kod,
       alias_id: mall.alias_id,
       meddelande_standard: mall.meddelande_standard,
+      questions_json: mall.questions_json ?? null,
       aktiv: mall.aktiv,
       sortering: mall.sortering,
     })
@@ -299,6 +304,44 @@ export function EpostMallarPanel() {
               )}
             </div>
 
+            {form.system_kod === 'projekt_avslut_feedback' && (
+              <div className="flex flex-col gap-3 col-span-2">
+                <p className="text-[11px] uppercase tracking-widest text-muted">Frågemall</p>
+                <div className="flex flex-col divide-y divide-border border border-border rounded-lg overflow-hidden">
+                  {(form.questions_json ?? []).map((q, idx) => (
+                    <AvslutQuestionEditor
+                      key={q.id}
+                      question={q}
+                      expanded={expandedMallQ === q.id}
+                      onToggle={() => setExpandedMallQ((v) => v === q.id ? null : q.id)}
+                      onChange={(updated) => setForm((f) => ({
+                        ...f,
+                        questions_json: (f.questions_json ?? []).map((x, i) => i === idx ? updated : x),
+                      }))}
+                      onDelete={() => setForm((f) => ({
+                        ...f,
+                        questions_json: (f.questions_json ?? []).filter((_, i) => i !== idx),
+                      }))}
+                    />
+                  ))}
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const id = `q${Date.now()}`
+                    setForm((f) => ({
+                      ...f,
+                      questions_json: [...(f.questions_json ?? []), { id, label: '', type: 'text' as const, required: false, options: null }],
+                    }))
+                    setExpandedMallQ(id)
+                  }}
+                  className="flex items-center gap-1.5 text-xs text-muted hover:text-fg transition-colors"
+                >
+                  <Plus size={12} /> Lägg till fråga
+                </button>
+              </div>
+            )}
+
             <div className="flex items-center gap-2">
               <input
                 type="checkbox"
@@ -330,6 +373,84 @@ export function EpostMallarPanel() {
       ) : (
         <div className="flex-1 flex items-center justify-center text-muted text-sm">
           Välj en mall eller skapa en ny
+        </div>
+      )}
+    </div>
+  )
+}
+
+function AvslutQuestionEditor({
+  question, expanded, onToggle, onChange, onDelete,
+}: {
+  question: AvslutFragaFalt
+  expanded: boolean
+  onToggle: () => void
+  onChange: (q: AvslutFragaFalt) => void
+  onDelete: () => void
+}) {
+  return (
+    <div className="flex flex-col">
+      <div className="flex items-center justify-between px-4 py-3 hover:bg-hover transition-colors">
+        <button onClick={onToggle} className="flex-1 text-left min-w-0 pr-2">
+          <span className="text-xs text-fg truncate block">{question.label || 'Ny fråga'}</span>
+          <span className="text-[10px] text-subtle">{question.type}{question.required ? ' · krävs' : ''}</span>
+        </button>
+        <div className="flex items-center gap-1 shrink-0">
+          <button onClick={onDelete} className="text-subtle hover:text-red-400 transition-colors p-1">
+            <Trash2 size={11} />
+          </button>
+          <button onClick={onToggle} className="text-subtle hover:text-fg transition-colors p-1">
+            {expanded ? <ChevronUp size={11} /> : <ChevronDown size={11} />}
+          </button>
+        </div>
+      </div>
+      {expanded && (
+        <div className="px-4 pb-4 flex flex-col gap-3">
+          <div className="flex flex-col gap-1">
+            <span className="text-[10px] uppercase tracking-wider text-muted">Label</span>
+            <input
+              value={question.label}
+              onChange={(e) => onChange({ ...question, label: e.target.value })}
+              className="w-full bg-elevated border border-border rounded-lg px-3 py-1.5 text-sm text-fg outline-none focus:border-fg/30"
+            />
+          </div>
+          <div className="flex items-end gap-3">
+            <div className="flex flex-col gap-1 flex-1">
+              <span className="text-[10px] uppercase tracking-wider text-muted">Typ</span>
+              <select
+                value={question.type}
+                onChange={(e) => {
+                  const type = e.target.value as FragaTyp
+                  onChange({ ...question, type, options: type === 'select' ? (question.options ?? []) : null })
+                }}
+                className="w-full bg-elevated border border-border rounded-lg px-3 py-1.5 text-sm text-fg outline-none"
+              >
+                {(['text', 'textarea', 'number', 'select', 'date', 'boolean'] as FragaTyp[]).map((t) => (
+                  <option key={t} value={t}>{t}</option>
+                ))}
+              </select>
+            </div>
+            <label className="flex flex-col gap-1 items-center pb-1 cursor-pointer">
+              <span className="text-[10px] uppercase tracking-wider text-muted">Krävs</span>
+              <input
+                type="checkbox"
+                checked={question.required}
+                onChange={(e) => onChange({ ...question, required: e.target.checked })}
+                className="accent-emerald-400"
+              />
+            </label>
+          </div>
+          {question.type === 'select' && (
+            <div className="flex flex-col gap-1">
+              <span className="text-[10px] uppercase tracking-wider text-muted">Alternativ (en per rad)</span>
+              <textarea
+                value={(question.options ?? []).join('\n')}
+                onChange={(e) => onChange({ ...question, options: e.target.value.split('\n') })}
+                rows={4}
+                className="w-full bg-elevated border border-border rounded-lg px-3 py-2 text-sm text-fg font-mono resize-none outline-none focus:border-fg/30"
+              />
+            </div>
+          )}
         </div>
       )}
     </div>

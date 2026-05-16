@@ -61,6 +61,8 @@ export interface EpostAlias {
   uppdaterad_at: string
 }
 
+import type { AvslutFragaFalt } from '@/types/fraga'
+
 export interface EpostMall {
   id: string
   namn: string
@@ -70,6 +72,7 @@ export interface EpostMall {
   system_kod: string | null
   alias_id: string | null
   meddelande_standard: string | null
+  questions_json: AvslutFragaFalt[] | null
   aktiv: boolean
   sortering: number
   skapad_at: string

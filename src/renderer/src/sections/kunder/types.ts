@@ -90,12 +90,4 @@ export interface KundAvslutsfeedback {
   skapad_at: string
 }
 
-export type FragaTyp = 'text' | 'textarea' | 'number' | 'select' | 'date' | 'boolean'
-
-export interface AvslutFragaFalt {
-  id: string
-  label: string
-  type: FragaTyp
-  required: boolean
-  options: string[] | null
-}
+export type { FragaTyp, AvslutFragaFalt } from '@/types/fraga'

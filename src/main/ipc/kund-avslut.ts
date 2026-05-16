@@ -31,14 +31,14 @@ const AVSLUT_QUESTIONS = [
 export async function triggerAvslutFeedback(kund_id: string, projekt_namn: string): Promise<void> {
   const { data: installningar } = await supabase
     .from('app_installningar')
-    .select('avslut_feedback_aktiv, foretag_namn, avslut_questions_template')
+    .select('avslut_feedback_aktiv, foretag_namn')
     .single()
 
   if (!installningar?.avslut_feedback_aktiv) return
 
   const { data: kund } = await supabase
     .from('kunder')
-    .select('email, namn')
+    .select('email, namn, avslut_questions_template')
     .eq('id', kund_id)
     .single()
 
@@ -49,7 +49,18 @@ export async function triggerAvslutFeedback(kund_id: string, projekt_namn: strin
 
   const token = randomBytes(32).toString('hex')
 
-  const questions = (installningar.avslut_questions_template as typeof AVSLUT_QUESTIONS | null) ?? AVSLUT_QUESTIONS
+  const { data: mall } = await supabase
+    .from('epost_mallar')
+    .select('amne, kropp_html, alias_id, questions_json')
+    .eq('system_kod', 'projekt_avslut_feedback')
+    .eq('aktiv', true)
+    .limit(1)
+    .maybeSingle()
+
+  const questions =
+    (kund.avslut_questions_template as typeof AVSLUT_QUESTIONS | null) ??
+    (mall?.questions_json as typeof AVSLUT_QUESTIONS | null) ??
+    AVSLUT_QUESTIONS
 
   const { error: insertErr } = await supabase.from('kund_avslutsfeedback').insert({
     kund_id,
@@ -60,14 +71,6 @@ export async function triggerAvslutFeedback(kund_id: string, projekt_namn: strin
   if (insertErr) throw new Error(insertErr.message)
 
   const formulärLänk = `${base}/avslut/${token}`
-
-  const { data: mall } = await supabase
-    .from('epost_mallar')
-    .select('amne, kropp_html, alias_id')
-    .eq('system_kod', 'projekt_avslut_feedback')
-    .eq('aktiv', true)
-    .limit(1)
-    .maybeSingle()
 
   const vars: Record<string, string> = {
     kund_namn: kund.namn ?? '',
@@ -107,21 +110,30 @@ export function registerKundAvslutHandlers(): void {
     if (error) throw new Error(error.message)
   })
 
-  ipcMain.handle('db:kund-avslut:get-questions-template', async () => {
+  ipcMain.handle('db:kund-avslut:get-global-template', async () => {
     const { data } = await supabase
-      .from('app_installningar')
-      .select('avslut_questions_template')
-      .single()
-    return (data?.avslut_questions_template as typeof AVSLUT_QUESTIONS | null) ?? AVSLUT_QUESTIONS
+      .from('epost_mallar')
+      .select('questions_json')
+      .eq('system_kod', 'projekt_avslut_feedback')
+      .eq('aktiv', true)
+      .maybeSingle()
+    return (data?.questions_json as typeof AVSLUT_QUESTIONS | null) ?? AVSLUT_QUESTIONS
   })
 
-  ipcMain.handle('db:kund-avslut:save-questions-template', async (_, questions: typeof AVSLUT_QUESTIONS) => {
-    const { data: existing } = await supabase.from('app_installningar').select('id').limit(1).single()
-    if (!existing) throw new Error('No settings row found')
+  ipcMain.handle('db:kund-avslut:get-kund-template', async (_, kund_id: string) => {
+    const { data } = await supabase
+      .from('kunder')
+      .select('avslut_questions_template')
+      .eq('id', kund_id)
+      .single()
+    return (data?.avslut_questions_template as typeof AVSLUT_QUESTIONS | null) ?? null
+  })
+
+  ipcMain.handle('db:kund-avslut:save-kund-template', async (_, kund_id: string, questions: typeof AVSLUT_QUESTIONS | null) => {
     const { error } = await supabase
-      .from('app_installningar')
+      .from('kunder')
       .update({ avslut_questions_template: questions })
-      .eq('id', existing.id)
+      .eq('id', kund_id)
     if (error) throw new Error(error.message)
   })
 }
