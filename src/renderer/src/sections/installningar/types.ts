@@ -223,7 +223,7 @@ export type AvanceratPanel =
   | 'google'
   | 'zoho'
   | 'aktivitetslogg'
-  | 'ai-proveedores'
+  | 'ai-leverantor'
   | 'ai-asistenter'
   | 'workflows'
   | 'kontext'

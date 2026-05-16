@@ -4,7 +4,7 @@ import type { AvanceratPanel } from '@/sections/installningar/types'
 import { FortnoxPanel } from '@/sections/installningar/panels/FortnoxPanel'
 import { GooglePanel } from '@/sections/installningar/panels/GooglePanel'
 import { ZohoPanel } from '@/sections/installningar/panels/ZohoPanel'
-import { ProveedoresPanel } from '@/sections/installningar/panels/ProveedoresPanel'
+import { AiLeverantorPanel } from '@/sections/installningar/panels/AiLeverantorPanel'
 import { AsistenterPanel } from '@/sections/installningar/panels/AsistenterPanel'
 import { AktivitetsloggPanel } from '@/sections/installningar/panels/AktivitetsloggPanel'
 import { WorkflowNodesPanel } from '@/sections/installningar/panels/WorkflowNodesPanel'
@@ -43,9 +43,9 @@ const NAV_GROUPS: NavGroup[] = [
     ],
   },
   {
-    label: 'IA-Assistent',
+    label: 'AI-Assistent',
     items: [
-      { id: 'ai-proveedores', label: 'AI-Leverantör', icon: Cpu },
+      { id: 'ai-leverantor', label: 'AI-Leverantör', icon: Cpu },
       { id: 'ai-asistenter', label: 'Assistenter', icon: Sparkles },
     ],
   },
@@ -77,7 +77,7 @@ const PANEL_TITLES: Record<AvanceratPanel, string> = {
   google: 'Google Workspace',
   zoho: 'Zoho',
   aktivitetslogg: 'Aktivitetslogg',
-  'ai-proveedores': 'AI-Leverantör',
+  'ai-leverantor': 'AI-Leverantör',
   'ai-asistenter': 'Assistenter',
   workflows: 'Workflows',
   kontext: 'Projekt-kontext',
@@ -93,7 +93,7 @@ function renderPanel(panel: AvanceratPanel) {
     case 'google': return <GooglePanel />
     case 'zoho': return <ZohoPanel />
     case 'aktivitetslogg': return <AktivitetsloggPanel />
-    case 'ai-proveedores': return <ProveedoresPanel />
+    case 'ai-leverantor': return <AiLeverantorPanel />
     case 'ai-asistenter': return <AsistenterPanel />
     case 'workflows': return <WorkflowsPanel />
     case 'kontext': return <ProjektKontextPanel />

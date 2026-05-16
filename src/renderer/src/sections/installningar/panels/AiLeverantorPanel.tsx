@@ -13,7 +13,7 @@ const PROVIDER_DESCRIPTIONS: Record<AiProviderSlug, string> = {
   anthropic: 'Claude Opus, Sonnet, Haiku — Anthropic API',
   openai: 'GPT-4o, o3, o3-mini — OpenAI API',
   google: 'Gemini 2.5 Pro, 2.0 Flash — Google AI API',
-  openrouter: 'Acceso unificado a 300+ modelos — Claude, Gemini, Llama, DeepSeek, Mistral…'
+  openrouter: 'Samlad tillgång till 300+ modeller — Claude, Gemini, Llama, DeepSeek, Mistral…'
 }
 
 const API_KEY_PLACEHOLDERS: Record<AiProviderSlug, string> = {
@@ -99,15 +99,15 @@ function ProviderBlock({ provider, onUpdate }: { provider: AiProvider; onUpdate:
         </div>
 
         <div className="flex flex-col gap-1.5">
-          <label className="text-[11px] uppercase tracking-wider text-muted">Estado</label>
+          <label className="text-[11px] uppercase tracking-wider text-muted">Status</label>
           <div className="flex items-center gap-2 h-9">
             {testResult === null && !testing && (
-              <p className="text-xs text-subtle">Sin testear</p>
+              <p className="text-xs text-subtle">Ej testad</p>
             )}
             {testing && (
               <div className="flex items-center gap-2 text-xs text-muted">
                 <Loader2 size={13} className="animate-spin" />
-                Conectando...
+                Ansluter…
               </div>
             )}
             {testResult !== null && !testing && (
@@ -125,7 +125,7 @@ function ProviderBlock({ provider, onUpdate }: { provider: AiProvider; onUpdate:
   )
 }
 
-export function ProveedoresPanel() {
+export function AiLeverantorPanel() {
   const [providers, setProviders] = useState<AiProvider[]>([])
 
   useEffect(() => {
@@ -139,7 +139,7 @@ export function ProveedoresPanel() {
   return (
     <div className="flex flex-col">
       <div className="px-8 py-4 border-b border-border">
-        <p className="text-xs text-muted">Configura las credenciales para cada proveedor de IA. Las API keys se almacenan localmente y nunca salen del proceso principal.</p>
+        <p className="text-xs text-muted">Konfigurera API-nycklar för varje AI-leverantör. Nycklarna lagras lokalt och lämnar aldrig huvudprocessen.</p>
       </div>
       {providers.map((p) => (
         <ProviderBlock key={p.id} provider={p} onUpdate={handleUpdate} />

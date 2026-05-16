@@ -115,7 +115,7 @@ function AssistentDetail({
 
   return (
     <div className="flex flex-col flex-1 overflow-auto">
-      {/* Sección 1 — Identidad */}
+      {/* Section 1 — Identity */}
       <div className="px-8 py-6 border-b border-border">
         <p className="text-[11px] uppercase tracking-widest text-muted mb-4">Identitet</p>
         <div className="grid grid-cols-3 gap-x-8 gap-y-5">
@@ -130,7 +130,7 @@ function AssistentDetail({
             />
           </div>
           <div className="flex flex-col gap-1.5">
-            <label className="text-[11px] uppercase tracking-wider text-muted">Proveedor</label>
+            <label className="text-[11px] uppercase tracking-wider text-muted">Leverantör</label>
             <SelectField
               value={assistent.provider_id}
               onChange={handleProviderChange}
@@ -148,7 +148,7 @@ function AssistentDetail({
         </div>
       </div>
 
-      {/* Sección 2 — Parámetros */}
+      {/* Section 2 — Parameters */}
       <div className="px-8 py-6 border-b border-border">
         <p className="text-[11px] uppercase tracking-widest text-muted mb-4">Parametrar</p>
         <div className="grid grid-cols-3 gap-x-8 gap-y-5">
@@ -162,7 +162,7 @@ function AssistentDetail({
               onMouseUp={(e) => update({ temperature: parseFloat((e.target as HTMLInputElement).value) })}
             />
             <div className="flex justify-between text-[10px] text-subtle">
-              <span>0 Precis</span>
+              <span>0 Exakt</span>
               <span>2 Kreativ</span>
             </div>
           </div>
@@ -191,7 +191,7 @@ function AssistentDetail({
         </div>
       </div>
 
-      {/* Sección 3 — Beskrivning y Uppgifter */}
+      {/* Section 3 — Beskrivning och Uppgifter */}
       <div className="px-8 py-6 border-b border-border">
         <p className="text-[11px] uppercase tracking-widest text-muted mb-4">Användning</p>
         <div className="grid grid-cols-3 gap-x-8 gap-y-5">
@@ -225,7 +225,7 @@ function AssistentDetail({
         </div>
       </div>
 
-      {/* Sección 4 — System Prompt */}
+      {/* Section 4 — System Prompt */}
       <div className="px-8 py-6 border-b border-border">
         <div className="flex items-center justify-between mb-4">
           <p className="text-[11px] uppercase tracking-widest text-muted">System Prompt</p>
@@ -319,17 +319,17 @@ export function AsistenterPanel() {
 
   return (
     <div className="flex flex-1 min-h-0 h-full overflow-hidden">
-      {/* Lista izquierda */}
+      {/* Left list */}
       <div className="w-80 shrink-0 border-r border-border flex flex-col overflow-hidden">
         <div className="flex items-center justify-between px-4 py-3 border-b border-border shrink-0">
-          <p className="text-xs text-muted uppercase tracking-widest">Asistentes</p>
+          <p className="text-xs text-muted uppercase tracking-widest">Assistenter</p>
           <button onClick={handleCreate} className="text-muted hover:text-fg transition-colors" title="Ny assistent">
             <Plus size={14} />
           </button>
         </div>
         <div className="flex-1 overflow-auto py-1">
           {asistenter.length === 0 && (
-            <p className="text-xs text-subtle px-4 py-3">Inga asistenter ännu.</p>
+            <p className="text-xs text-subtle px-4 py-3">Inga assistenter ännu.</p>
           )}
           {asistenter.map((a) => (
             <button
@@ -361,7 +361,7 @@ export function AsistenterPanel() {
         </div>
       </div>
 
-      {/* Detalle derecho */}
+      {/* Right detail */}
       <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
         {selected
           ? <AssistentDetail

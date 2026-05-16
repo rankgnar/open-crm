@@ -102,7 +102,7 @@ function CronJobRow({
   onSchedule: (id: string, schedule: string) => Promise<void>
   onRunNow: (id: string) => Promise<void>
 }) {
-  const [editar, setEditar] = useState(false)
+  const [editing, setEditing] = useState(false)
   const [scheduleInput, setScheduleInput] = useState(job.schedule)
   const [sparar, setSparar] = useState(false)
 
@@ -112,7 +112,7 @@ function CronJobRow({
     setSparar(true)
     try {
       await onSchedule(job.id, scheduleInput.trim())
-      setEditar(false)
+      setEditing(false)
     } catch {
       // error handled upstream
     } finally {
@@ -122,7 +122,7 @@ function CronJobRow({
 
   function avbryt() {
     setScheduleInput(job.schedule)
-    setEditar(false)
+    setEditing(false)
   }
 
   return (
@@ -157,7 +157,7 @@ function CronJobRow({
       <div className="grid grid-cols-3 gap-x-8 gap-y-3 text-sm">
         <div>
           <p className="text-[11px] uppercase tracking-widest text-muted mb-1">Schema</p>
-          {editar ? (
+          {editing ? (
             <div className="flex items-center gap-1">
               <input
                 type="text"
@@ -189,7 +189,7 @@ function CronJobRow({
             </div>
           ) : (
             <button
-              onClick={() => setEditar(true)}
+              onClick={() => setEditing(true)}
               className="flex items-center gap-2 text-fg font-mono hover:bg-hover rounded px-1.5 py-0.5 -mx-1.5 -my-0.5 group"
             >
               <span>{job.schedule}</span>
