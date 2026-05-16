@@ -17,7 +17,6 @@ interface CreateKalenderEventInput {
   slut: string
   hel_dag?: boolean
   aterkommer?: boolean
-  sync_revisor?: boolean
   kund_id?: string | null
   projekt_id?: string | null
   fas_id?: string | null
@@ -67,7 +66,6 @@ export function registerKalenderHandlers(): void {
         slut: input.slut,
         hel_dag: input.hel_dag ?? false,
         aterkommer: input.aterkommer ?? false,
-        sync_revisor: input.sync_revisor ?? false,
         kund_id: input.kund_id ?? null,
         projekt_id: input.projekt_id ?? null,
         fas_id: input.fas_id ?? null,
@@ -221,7 +219,6 @@ export function registerKalenderHandlers(): void {
           plats: '',
           url: '',
           aterkommer: false,
-          sync_revisor: false,
         })
       }
       synkade.push(fas.id)
@@ -364,16 +361,6 @@ export function registerKalenderHandlers(): void {
       .is('kund_id', null)
       .is('projekt_id', null)
       .is('kalender_id', null)
-      .eq('sync_revisor', false)
-    if (error) throw new Error(error.message)
-    broadcast(KALENDER_CHANGED)
-  })
-
-  ipcMain.handle('db:kalender:empty-revisor', async () => {
-    const { error } = await supabase
-      .from('kalender_events')
-      .delete()
-      .eq('sync_revisor', true)
     if (error) throw new Error(error.message)
     broadcast(KALENDER_CHANGED)
   })
@@ -385,15 +372,13 @@ export function registerKalenderHandlers(): void {
     | { kund_id: string }
     | { projekt_id: string }
     | { lokal: true }
-    | { revisor: true }
 
   async function fetchEventsForFilter(filter: IcsFilter): Promise<Array<{ id: string; titel: string; beskrivning: string | null; plats: string | null; start: string; slut: string; hel_dag: boolean }>> {
     let query = supabase.from('kalender_events').select('id, titel, beskrivning, plats, start, slut, hel_dag').order('start', { ascending: true })
     if ('kalender_id' in filter) query = query.eq('kalender_id', filter.kalender_id)
     else if ('kund_id' in filter) query = query.eq('kund_id', filter.kund_id).is('projekt_id', null)
     else if ('projekt_id' in filter) query = query.eq('projekt_id', filter.projekt_id)
-    else if ('revisor' in filter) query = query.eq('sync_revisor', true)
-    else query = query.is('kund_id', null).is('projekt_id', null).is('kalender_id', null).eq('sync_revisor', false)
+    else query = query.is('kund_id', null).is('projekt_id', null).is('kalender_id', null)
     const { data, error } = await query
     if (error) throw new Error(error.message)
     return data ?? []

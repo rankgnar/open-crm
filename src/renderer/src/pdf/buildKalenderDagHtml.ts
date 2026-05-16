@@ -41,7 +41,6 @@ function kontextLabel(e: KalenderEvent, kunder: KundRef[], projekt: ProjektRef[]
     const k = kunder.find(ku => ku.id === e.kund_id)
     if (k) return k.namn
   }
-  if (e.sync_revisor) return 'Revisor'
   return 'Lokal'
 }
 

@@ -285,20 +285,6 @@ export function KalenderTile({ data, onNavigate, index }: { data: WorkspaceOverv
   )
 }
 
-export function RevisorTile({ data, onNavigate, index }: { data: WorkspaceOverview['revisor'] } & NavProps & { index: number }) {
-  return (
-    <Tile title="Revisor" onClick={() => onNavigate('revisor')} index={index} className="col-span-3 row-span-1">
-      <div className="text-2xl font-semibold text-fg ws-tabular leading-none">{data.kommande_deadlines}</div>
-      <div className="text-[11px] text-muted mt-1">kommande deadlines</div>
-      {data.nasta_deadline && (
-        <div className="text-[11px] text-subtle mt-auto truncate">
-          <span className="font-mono text-fg/70">{data.nasta_deadline.datum}</span> {data.nasta_deadline.titel}
-        </div>
-      )}
-    </Tile>
-  )
-}
-
 export function PersonalTile({ data, onNavigate, index }: { data: WorkspaceOverview['personal'] } & NavProps & { index: number }) {
   const pendingTotal = data.tidrapporter_inskickade + data.ledighet_inskickade
   const hasPending = pendingTotal > 0

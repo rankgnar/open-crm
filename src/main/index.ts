@@ -28,7 +28,6 @@ import { registerGoogleHandlers } from './ipc/google'
 import { registerEpostHandlers, processEpostKo } from './ipc/epost'
 import { registerWorkflowHandlers } from './ipc/workflows'
 import { registerWorkflowNodeHandlers } from './ipc/workflow-nodes'
-import { registerRevisorHandlers } from './ipc/revisor'
 import { registerPersonalHandlers } from './ipc/personal'
 import { registerKundUsersHandlers, processKundPortalInviteQueue } from './ipc/kundUsers'
 import { registerFortnoxHandlers } from './ipc/fortnox'
@@ -320,7 +319,6 @@ app.whenReady().then(() => {
   setInterval(() => { void processEpostKo().catch(() => {}) }, 60_000)
   registerWorkflowHandlers()
   registerWorkflowNodeHandlers()
-  registerRevisorHandlers()
   registerPersonalHandlers()
   registerKundUsersHandlers()
   setInterval(() => { void processKundPortalInviteQueue().catch(() => {}) }, 60_000)

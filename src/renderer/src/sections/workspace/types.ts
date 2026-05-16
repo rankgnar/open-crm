@@ -18,7 +18,6 @@ export interface WorkspaceOverview {
     misslyckade: number
   }
   kalender: { idag: number; nasta_handelser: { id: string; titel: string; start: string }[] }
-  revisor: { kommande_deadlines: number; nasta_deadline: { titel: string; datum: string } | null }
   personal: {
     aktiva: number
     total: number
@@ -43,5 +42,5 @@ export interface WorkspaceOverview {
 
 export type WorkspaceTarget =
   | 'kunder' | 'projekt' | 'forslag' | 'order' | 'ata' | 'signera'
-  | 'tidplan' | 'ekonomi' | 'epost' | 'kalender' | 'revisor'
+  | 'tidplan' | 'ekonomi' | 'epost' | 'kalender'
   | 'personal' | 'fortnox' | 'fakturering' | 'avancerat'

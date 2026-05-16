@@ -27,7 +27,6 @@ export interface WorkspaceOverview {
     misslyckade: number
   }
   kalender: { idag: number; nasta_handelser: { id: string; titel: string; start: string }[] }
-  revisor: { kommande_deadlines: number; nasta_deadline: { titel: string; datum: string } | null }
   personal: {
     aktiva: number
     total: number
@@ -264,21 +263,6 @@ async function fetchKalender(): Promise<WorkspaceOverview['kalender']> {
   }
 }
 
-async function fetchRevisor(): Promise<WorkspaceOverview['revisor']> {
-  const idag = ymd(new Date())
-  const { data, error } = await supabase
-    .from('revisor_deadlines')
-    .select('titel, datum, status')
-    .gte('datum', idag)
-    .order('datum', { ascending: true })
-    .limit(5)
-  if (error) return { kommande_deadlines: 0, nasta_deadline: null }
-  const rows = data ?? []
-  const kommande = rows.filter((r) => (r.status ?? 'kommande') === 'kommande').length
-  const nasta = rows[0] ? { titel: rows[0].titel as string, datum: rows[0].datum as string } : null
-  return { kommande_deadlines: kommande, nasta_deadline: nasta }
-}
-
 async function fetchPersonal(): Promise<WorkspaceOverview['personal']> {
   const idag = new Date().toISOString().slice(0, 10)
   const empty = { aktiva: 0, total: 0, tidrapporter_inskickade: 0, ledighet_inskickade: 0, lediga_idag: 0 }
@@ -394,12 +378,12 @@ export function registerWorkspaceHandlers(): void {
   ipcMain.handle('db:workspace:overview', async (): Promise<WorkspaceOverview> => {
     const [
       kunder, projekt, forslag, ordrar, ata, signatur,
-      tidplan, kostnader, epost, kalender, revisor, personal, fortnox, fakturering, ai,
+      tidplan, kostnader, epost, kalender, personal, fortnox, fakturering, ai,
     ] = await Promise.all([
       fetchKunder(), fetchProjekt(), fetchForslag(), fetchOrdrar(), fetchAta(), fetchSignatur(),
-      fetchTidplan(), fetchKostnader(), fetchEpost(), fetchKalender(), fetchRevisor(),
+      fetchTidplan(), fetchKostnader(), fetchEpost(), fetchKalender(),
       fetchPersonal(), fetchFortnox(), fetchFakturering(), fetchAi(),
     ])
-    return { kunder, projekt, forslag, ordrar, ata, signatur, tidplan, kostnader, epost, kalender, revisor, personal, fortnox, fakturering, ai }
+    return { kunder, projekt, forslag, ordrar, ata, signatur, tidplan, kostnader, epost, kalender, personal, fortnox, fakturering, ai }
   })
 }

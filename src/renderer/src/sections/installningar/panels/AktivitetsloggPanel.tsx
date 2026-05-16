@@ -16,14 +16,13 @@ const KATEGORI_LABEL: Record<string, string> = {
   signatur: 'Signatur',
   epost: 'E-post',
   personal: 'Personal',
-  revisor: 'Revisor',
   workflow: 'Workflows',
   ovrigt: 'Övrigt',
 }
 
 const KATEGORI_ORDER = [
   'kund', 'projekt', 'forslag', 'order', 'ata', 'tidplan', 'kalender',
-  'kostnader', 'fakturering', 'signatur', 'epost', 'personal', 'revisor',
+  'kostnader', 'fakturering', 'signatur', 'epost', 'personal',
   'workflow', 'ovrigt',
 ]
 

@@ -73,7 +73,6 @@ const EMPTY_FORM: NyttEventForm = {
   kund_id: '',
   projekt_id: '',
   kalender_id: '',
-  sync_revisor: false,
 }
 
 interface KundRef { id: string; namn: string; kalender_farg?: string | null }
@@ -84,7 +83,6 @@ type IcsFilter =
   | { kund_id: string }
   | { projekt_id: string }
   | { lokal: true }
-  | { revisor: true }
 interface StagedFile { filePath: string; fileName: string; mimeType: string; size: number }
 
 function getMonthGrid(year: number, month: number): Date[] {
@@ -1343,7 +1341,7 @@ function TaskForm({
   initialStart: string
   initialSlut: string
 }) {
-  type Kopplingstyp = 'ingen' | 'revisor' | 'kund' | 'projekt' | 'kalender'
+  type Kopplingstyp = 'ingen' | 'kund' | 'projekt' | 'kalender'
 
   const [form, setForm] = useState<NyttEventForm>({
     ...EMPTY_FORM,
@@ -1357,16 +1355,14 @@ function TaskForm({
 
   function handleKoppling(typ: Kopplingstyp) {
     setKoppling(typ)
-    if (typ === 'revisor') {
-      setForm(f => ({ ...f, sync_revisor: true, kund_id: '', projekt_id: '', kalender_id: '' }))
-    } else if (typ === 'kund') {
-      setForm(f => ({ ...f, sync_revisor: false, projekt_id: '', kalender_id: '' }))
+    if (typ === 'kund') {
+      setForm(f => ({ ...f, projekt_id: '', kalender_id: '' }))
     } else if (typ === 'projekt') {
-      setForm(f => ({ ...f, sync_revisor: false, kund_id: '', kalender_id: '' }))
+      setForm(f => ({ ...f, kund_id: '', kalender_id: '' }))
     } else if (typ === 'kalender') {
-      setForm(f => ({ ...f, sync_revisor: false, kund_id: '', projekt_id: '' }))
+      setForm(f => ({ ...f, kund_id: '', projekt_id: '' }))
     } else {
-      setForm(f => ({ ...f, sync_revisor: false, kund_id: '', projekt_id: '', kalender_id: '' }))
+      setForm(f => ({ ...f, kund_id: '', projekt_id: '', kalender_id: '' }))
     }
   }
 
@@ -1389,7 +1385,6 @@ function TaskForm({
 
   const KOPPLING_PILLS: { typ: Kopplingstyp; label: string }[] = [
     { typ: 'ingen', label: 'Ingen' },
-    { typ: 'revisor', label: 'Revisor' },
     { typ: 'kund', label: 'Kund' },
     { typ: 'projekt', label: 'Projekt' },
     ...(kalendrar.length > 0 ? [{ typ: 'kalender' as const, label: 'Kalender' }] : []),
@@ -2072,7 +2067,6 @@ export function KalenderSection({ onNavigate }: { onNavigate?: (section: string)
   const [vy, setVy] = useState<KalenderVy>('vecka')
   const [anchor, setAnchor] = useState(new Date())
   const [lokalVisas, setLokalVisas] = useState(true)
-  const [revisorVisas, setRevisorVisas] = useState(true)
   const [synligaKunder, setSynligaKunder] = useState<Set<string>>(new Set())
   const [synligaProjekt, setSynligaProjekt] = useState<Set<string>>(new Set())
   const [synligaKalendrar, setSynligaKalendrar] = useState<Set<string>>(new Set())
@@ -2080,7 +2074,7 @@ export function KalenderSection({ onNavigate }: { onNavigate?: (section: string)
   const [kunder, setKunder] = useState<KundRef[]>([])
   const [alleProjekt, setAlleProjekt] = useState<ProjektRef[]>([])
   const [kalendrar, setKalendrar] = useState<Kalender[]>([])
-  const [menuFor, setMenuFor] = useState<{ typ: 'lokal' | 'revisor' | 'kund' | 'projekt' | 'kalender'; id?: string; namn: string; farg: string; rect: DOMRect } | null>(null)
+  const [menuFor, setMenuFor] = useState<{ typ: 'lokal' | 'kund' | 'projekt' | 'kalender'; id?: string; namn: string; farg: string; rect: DOMRect } | null>(null)
   const [skaparKalender, setSkaparKalender] = useState(false)
   const [redigerarKalender, setRedigerarKalender] = useState<Kalender | null>(null)
   const [shareFor, setShareFor] = useState<{ filter: IcsFilter; calendarName: string } | null>(null)
@@ -2103,8 +2097,6 @@ export function KalenderSection({ onNavigate }: { onNavigate?: (section: string)
   const pdfMenuRef = useRef<HTMLDivElement>(null)
   const vyDropdownRef = useRef<HTMLDivElement>(null)
 
-  const REVISOR_FARG = '#818cf8'
-
   const synligaEvents = useMemo(() => {
     return events
       .map(e => ({
@@ -2118,15 +2110,12 @@ export function KalenderSection({ onNavigate }: { onNavigate?: (section: string)
               : (e.farg || LOKAL_FARG),
       }))
       .filter(e => {
-        if (e.sync_revisor && !revisorVisas) return false
         if (e.projekt_id) return synligaProjekt.has(e.projekt_id)
         if (e.kund_id) return synligaKunder.has(e.kund_id)
         if (e.kalender_id) return synligaKalendrar.has(e.kalender_id)
         return lokalVisas
       })
-  }, [events, alleProjekt, kunder, kalendrar, lokalVisas, revisorVisas, synligaKunder, synligaProjekt, synligaKalendrar])
-
-  const hayRevisorEvents = useMemo(() => events.some(e => e.sync_revisor), [events])
+  }, [events, alleProjekt, kunder, kalendrar, lokalVisas, synligaKunder, synligaProjekt, synligaKalendrar])
 
   const kundMedEvents = useMemo(() => {
     const ids = new Set(events.filter(e => e.kund_id && !e.projekt_id).map(e => e.kund_id!))
@@ -2293,7 +2282,6 @@ export function KalenderSection({ onNavigate }: { onNavigate?: (section: string)
     if ('kalender_id' in filter) await window.api.invoke('db:kalendrar:empty', filter.kalender_id)
     else if ('kund_id' in filter) await window.api.invoke('db:kalender:empty-kund', filter.kund_id)
     else if ('projekt_id' in filter) await window.api.invoke('db:kalender:empty-projekt', filter.projekt_id)
-    else if ('revisor' in filter) await window.api.invoke('db:kalender:empty-revisor')
     else await window.api.invoke('db:kalender:empty-lokal')
   }
 
@@ -2349,7 +2337,6 @@ export function KalenderSection({ onNavigate }: { onNavigate?: (section: string)
       start: new Date(form.start).toISOString(),
       slut: new Date(form.slut).toISOString(),
       hel_dag: form.hel_dag,
-      sync_revisor: form.sync_revisor,
       kund_id: form.kund_id || null,
       projekt_id: form.projekt_id || null,
       kalender_id: form.kalender_id || null,
@@ -2385,23 +2372,6 @@ export function KalenderSection({ onNavigate }: { onNavigate?: (section: string)
         innehall,
         farg: 'blue',
       }).catch(() => {})
-    }
-
-    if (form.sync_revisor) {
-      const start = new Date(form.start)
-      const slut = new Date(form.slut)
-      const datumStr = form.hel_dag
-        ? formatDatum(start.toISOString())
-        : `${formatDatum(start.toISOString())} ${formatTid(start.toISOString())} – ${formatTid(slut.toISOString())}`
-      const rader = [datumStr]
-      if (form.plats) rader.push(`Plats: ${form.plats}`)
-      if (form.url) rader.push(`URL: ${form.url}`)
-      if (form.beskrivning) rader.push('', form.beskrivning)
-      await window.api.invoke('db:revisor-anteckningar:create', {
-        titel: `Task: ${form.titel}`,
-        innehall: rader.join('\n'),
-        farg: '#6366f1',
-      })
     }
 
     await hamtaEvents()
@@ -2494,14 +2464,6 @@ export function KalenderSection({ onNavigate }: { onNavigate?: (section: string)
         titel: `Fas omplanerad: ${event.titel}`,
         innehall: logText,
         farg: 'amber',
-      })
-    }
-
-    if (event.sync_revisor) {
-      await window.api.invoke('db:revisor-anteckningar:create', {
-        titel: `${event.fas_id ? 'Fas' : 'Task'} omplanerad: ${event.titel}`,
-        innehall: logText,
-        farg: '#f59e0b',
       })
     }
 
@@ -2820,19 +2782,6 @@ export function KalenderSection({ onNavigate }: { onNavigate?: (section: string)
             />
           </div>
 
-          {hayRevisorEvents && (
-            <div>
-              <p className="px-4 mb-1.5 text-[10px] uppercase tracking-widest text-subtle">Revisor</p>
-              <SidebarRow
-                label="Revisor"
-                farg={REVISOR_FARG}
-                visible={revisorVisas}
-                onToggle={() => setRevisorVisas(v => !v)}
-                onMenu={(rect) => setMenuFor({ typ: 'revisor', namn: 'Revisor', farg: REVISOR_FARG, rect })}
-              />
-            </div>
-          )}
-
           <div>
             <div className="px-4 mb-1.5 flex items-center justify-between">
               <p className="text-[10px] uppercase tracking-widest text-subtle">Mina kalendrar</p>
@@ -3110,7 +3059,6 @@ export function KalenderSection({ onNavigate }: { onNavigate?: (section: string)
               menuFor.typ === 'kalender' ? { kalender_id: menuFor.id! } :
               menuFor.typ === 'kund' ? { kund_id: menuFor.id! } :
               menuFor.typ === 'projekt' ? { projekt_id: menuFor.id! } :
-              menuFor.typ === 'revisor' ? { revisor: true } :
               { lokal: true }
             setShareFor({ filter, calendarName: menuFor.namn })
             setMenuFor(null)
@@ -3120,7 +3068,6 @@ export function KalenderSection({ onNavigate }: { onNavigate?: (section: string)
               menuFor.typ === 'kalender' ? { kalender_id: menuFor.id! } :
               menuFor.typ === 'kund' ? { kund_id: menuFor.id! } :
               menuFor.typ === 'projekt' ? { projekt_id: menuFor.id! } :
-              menuFor.typ === 'revisor' ? { revisor: true } :
               { lokal: true }
             await handleExportIcs(filter, menuFor.namn)
             setMenuFor(null)
@@ -3130,7 +3077,6 @@ export function KalenderSection({ onNavigate }: { onNavigate?: (section: string)
               menuFor.typ === 'kalender' ? { kalender_id: menuFor.id! } :
               menuFor.typ === 'kund' ? { kund_id: menuFor.id! } :
               menuFor.typ === 'projekt' ? { projekt_id: menuFor.id! } :
-              menuFor.typ === 'revisor' ? { revisor: true } :
               { lokal: true }
             if (!window.confirm(`Vill du verkligen radera alla händelser i "${menuFor.namn}"?`)) return
             await handleEmpty(filter)

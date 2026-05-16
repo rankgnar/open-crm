@@ -158,6 +158,8 @@ export function PersonalDetail({
   const [invitingApp, setInvitingApp] = useState(false)
   const [resettingApp, setResettingApp] = useState(false)
   const [appAccessMsg, setAppAccessMsg] = useState<{ kind: 'ok' | 'err'; text: string } | null>(null)
+  const [confirmInviteApp, setConfirmInviteApp] = useState(false)
+  const [confirmResetApp, setConfirmResetApp] = useState(false)
 
   if (editing) {
     return (
@@ -353,26 +355,58 @@ export function PersonalDetail({
               />
               <DetailField label="Inloggningsmail" value={personal.email} />
             </div>
-            <div className="flex items-center gap-2">
-              <button
-                onClick={handleSendInvite}
-                disabled={!personal.email || invitingApp || resettingApp}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm bg-elevated border border-border text-fg hover:bg-hover disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
-                title={!personal.email ? 'Lägg till en e-postadress först' : undefined}
-              >
-                <Mail size={14} />
-                {invitingApp ? 'Skickar...' : personal.supabase_user_id ? 'Skicka ny inbjudan' : 'Skicka inbjudan'}
-              </button>
-              {personal.supabase_user_id && (
+            <div className="flex items-center gap-2 flex-wrap">
+              {confirmInviteApp ? (
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-muted">Skicka till {personal.email}?</span>
+                  <button
+                    onClick={() => { setConfirmInviteApp(false); void handleSendInvite() }}
+                    disabled={invitingApp}
+                    className="flex items-center gap-1 px-3 py-1.5 rounded-md text-sm text-fg hover:text-emerald-400 disabled:opacity-40 transition-colors"
+                  >
+                    Ja
+                  </button>
+                  <button onClick={() => setConfirmInviteApp(false)} className="flex items-center gap-1 px-3 py-1.5 rounded-md text-sm text-muted hover:text-fg transition-colors">
+                    Avbryt
+                  </button>
+                </div>
+              ) : (
                 <button
-                  onClick={handleSendPasswordReset}
+                  onClick={() => setConfirmInviteApp(true)}
                   disabled={!personal.email || invitingApp || resettingApp}
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm text-muted hover:text-fg hover:bg-hover disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm bg-elevated border border-border text-fg hover:bg-hover disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
                   title={!personal.email ? 'Lägg till en e-postadress först' : undefined}
                 >
-                  <KeyRound size={14} />
-                  {resettingApp ? 'Skickar...' : 'Återställ lösenord'}
+                  <Mail size={14} />
+                  {invitingApp ? 'Skickar...' : personal.supabase_user_id ? 'Skicka ny inbjudan' : 'Skicka inbjudan'}
                 </button>
+              )}
+              {personal.supabase_user_id && (
+                confirmResetApp ? (
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs text-muted">Skicka återställning?</span>
+                    <button
+                      onClick={() => { setConfirmResetApp(false); void handleSendPasswordReset() }}
+                      disabled={resettingApp}
+                      className="flex items-center gap-1 px-3 py-1.5 rounded-md text-sm text-fg hover:text-emerald-400 disabled:opacity-40 transition-colors"
+                    >
+                      Ja
+                    </button>
+                    <button onClick={() => setConfirmResetApp(false)} className="flex items-center gap-1 px-3 py-1.5 rounded-md text-sm text-muted hover:text-fg transition-colors">
+                      Avbryt
+                    </button>
+                  </div>
+                ) : (
+                  <button
+                    onClick={() => setConfirmResetApp(true)}
+                    disabled={!personal.email || invitingApp || resettingApp}
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm text-muted hover:text-fg hover:bg-hover disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                    title={!personal.email ? 'Lägg till en e-postadress först' : undefined}
+                  >
+                    <KeyRound size={14} />
+                    {resettingApp ? 'Skickar...' : 'Återställ lösenord'}
+                  </button>
+                )
               )}
               {appAccessMsg && (
                 <span className={`text-xs ml-2 ${appAccessMsg.kind === 'ok' ? 'text-emerald-400' : 'text-red-400'}`}>

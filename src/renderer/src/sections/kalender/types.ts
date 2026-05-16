@@ -20,7 +20,6 @@ export interface KalenderEvent {
   slut: string
   hel_dag: boolean
   aterkommer: boolean
-  sync_revisor: boolean
   slutford: boolean
   kund_id: string | null
   projekt_id: string | null
@@ -40,7 +39,6 @@ export interface NyttEventForm {
   kund_id: string
   projekt_id: string
   kalender_id: string
-  sync_revisor: boolean
 }
 
 export interface Kalender {
