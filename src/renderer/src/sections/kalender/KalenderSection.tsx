@@ -41,11 +41,11 @@ const PALETTE = [
 ]
 
 const TIME_BANDS = [
-  { id: 'natt',  label: 'Natt',   start: 0,  end: 6,  color: '#818cf8' },
-  { id: 'morg',  label: 'Morgon', start: 6,  end: 12, color: '#fbbf24' },
-  { id: 'midd',  label: 'Middag', start: 12, end: 14, color: '#34d399' },
-  { id: 'eftm',  label: 'Eftm',   start: 14, end: 20, color: '#fb923c' },
-  { id: 'kvall', label: 'Kväll',  start: 20, end: 24, color: '#a78bfa' },
+  { id: 'natt',  label: 'Natt',   start: 0,  end: 6,  color: '#818cf8', dropHour: 0  },
+  { id: 'morg',  label: 'Morgon', start: 6,  end: 12, color: '#fbbf24', dropHour: 8  },
+  { id: 'midd',  label: 'Middag', start: 12, end: 14, color: '#34d399', dropHour: 12 },
+  { id: 'eftm',  label: 'Eftm',   start: 14, end: 20, color: '#fb923c', dropHour: 14 },
+  { id: 'kvall', label: 'Kväll',  start: 20, end: 24, color: '#a78bfa', dropHour: 20 },
 ] as const
 
 function getProjektFarg(projektId: string, alleProjekt: ProjektRef[]): string {
@@ -202,7 +202,7 @@ function MultiVeckaGrid({
   anchor: Date; numVeckor: number; events: KalenderEvent[]
   valtDag: Date | null; onValjDag: (d: Date) => void; onValjEvent: (e: KalenderEvent) => void
   onDragStart?: (e: KalenderEvent) => void
-  onDrop: (dag: Date) => void
+  onDrop: (dag: Date, bandHour?: number) => void
   selectedIds: Set<string>
 }) {
   const idag = new Date()
@@ -245,38 +245,33 @@ function MultiVeckaGrid({
                   onClick={() => onValjDag(dag)}
                   onDragOver={e => e.preventDefault()}
                   onDrop={() => onDrop(dag)}
-                  className={`border-r border-border/40 p-1 flex flex-col gap-0.5 cursor-pointer transition-colors min-h-[80px] ${erVald ? 'bg-hover' : 'hover:bg-hover/40'}`}
+                  className={`border-r border-border/40 p-1 flex flex-col cursor-pointer transition-colors min-h-[160px] ${erVald ? 'bg-hover' : 'hover:bg-hover/40'}`}
                 >
-                  <span className={`text-[11px] font-medium self-start ${erIdag ? 'text-emerald-400' : 'text-muted'}`}>{dag.getDate()}</span>
-                  {(() => {
-                    const helDag = dagEvents.filter(e => e.hel_dag)
-                    const timed = dagEvents.filter(e => !e.hel_dag).sort(
-                      (a, b) => new Date(a.start).getTime() - new Date(b.start).getTime()
-                    )
-                    const groups = TIME_BANDS.map(band => ({
-                      band,
-                      events: timed.filter(e => {
-                        const h = new Date(e.start).getHours()
-                        return h >= band.start && h < band.end
-                      }),
-                    })).filter(g => g.events.length > 0)
+                  <span className={`text-[11px] font-medium self-start shrink-0 ${erIdag ? 'text-emerald-400' : 'text-muted'}`}>{dag.getDate()}</span>
+                  {dagEvents.filter(e => e.hel_dag).map(e => (
+                    <EventPill key={e.id} event={e} onClick={onValjEvent} onDragStart={onDragStart} selected={selectedIds.has(e.id)} />
+                  ))}
+                  {TIME_BANDS.map((band, gi) => {
+                    const bandEvents = dagEvents.filter(e => {
+                      if (e.hel_dag) return false
+                      const h = new Date(e.start).getHours()
+                      return h >= band.start && h < band.end
+                    }).sort((a, b) => new Date(a.start).getTime() - new Date(b.start).getTime())
                     return (
-                      <>
-                        {helDag.map(e => (
+                      <div
+                        key={band.id}
+                        className={`flex-1 flex flex-col gap-0.5 pt-1 pb-0.5 ${gi > 0 ? 'border-t border-border/50' : ''}`}
+                        onDragOver={e => e.preventDefault()}
+                        onDrop={e => { e.stopPropagation(); e.preventDefault(); onDrop(dag, band.dropHour) }}
+                      >
+                        <span className="text-[8px] uppercase tracking-widest leading-none px-0.5 mb-0.5 text-muted">{band.label}</span>
+                        {bandEvents.slice(0, 3).map(e => (
                           <EventPill key={e.id} event={e} onClick={onValjEvent} onDragStart={onDragStart} selected={selectedIds.has(e.id)} />
                         ))}
-                        {groups.map(({ band, events }) => (
-                          <div key={band.id} className="flex flex-col gap-0.5 mt-0.5">
-                            <span className="text-[8px] uppercase tracking-widest leading-none px-0.5" style={{ color: band.color }}>{band.label}</span>
-                            {events.slice(0, 3).map(e => (
-                              <EventPill key={e.id} event={e} onClick={onValjEvent} onDragStart={onDragStart} selected={selectedIds.has(e.id)} />
-                            ))}
-                            {events.length > 3 && <span className="text-[10px] text-muted px-0.5">+{events.length - 3}</span>}
-                          </div>
-                        ))}
-                      </>
+                        {bandEvents.length > 3 && <span className="text-[10px] text-muted px-0.5">+{bandEvents.length - 3}</span>}
+                      </div>
                     )
-                  })()}
+                  })}
                 </div>
               )
             })}
@@ -2455,7 +2450,7 @@ export function KalenderSection({ onNavigate }: { onNavigate?: (section: string)
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
   }
 
-  async function handleDrop(dag: Date, withTime = false) {
+  async function handleDrop(dag: Date, withTime = false, bandHour?: number) {
     if (!draggingEvent) return
     const event = draggingEvent
     setDraggingEvent(null)
@@ -2466,6 +2461,7 @@ export function KalenderSection({ onNavigate }: { onNavigate?: (section: string)
     const duration = oldSlut.getTime() - oldStart.getTime()
     const newStart = new Date(dag)
     if (!withTime) newStart.setHours(oldStart.getHours(), oldStart.getMinutes(), 0, 0)
+    if (bandHour !== undefined) newStart.setHours(bandHour, 0, 0, 0)
     if (newStart.getTime() === oldStart.getTime()) return
     const newSlut = new Date(newStart.getTime() + duration)
 
@@ -2949,7 +2945,7 @@ export function KalenderSection({ onNavigate }: { onNavigate?: (section: string)
               onValjDag={dag => { if (!selectionMode) { setValtDag(dag); setValtEvent(null); setSkapar(false) } }}
               onValjEvent={handleEventKlick}
               onDragStart={selectionMode ? undefined : handleDragStart}
-              onDrop={dag => void handleDrop(dag)}
+              onDrop={(dag, bandHour) => void handleDrop(dag, false, bandHour)}
               selectedIds={selectedIds}
             />
           ) : vy === 'manad' ? (
