@@ -24,11 +24,12 @@ import { PersonalSection } from '@/sections/personal/PersonalSection'
 import { ChatSection } from '@/sections/chat/ChatSection'
 import { LeverantorSection } from '@/sections/leverantor/LeverantorSection'
 import { InventarierSection } from '@/sections/inventarier/InventarierSection'
+import { KassaflodeSection } from '@/sections/kassaflode/KassaflodeSection'
 import type { InstallningarPanel } from '@/sections/installningar/types'
 
-type Section = 'workspace' | 'kunder' | 'projekt' | 'forslag' | 'signera' | 'tidplan' | 'ekonomi' | 'fakturering' | 'kvitto' | 'order' | 'ata' | 'fortnox' | 'epost' | 'kalender' | 'revisor' | 'personal' | 'leverantor' | 'chat' | 'installningar' | 'avancerat' | 'inventarier'
+type Section = 'workspace' | 'kunder' | 'projekt' | 'forslag' | 'signera' | 'tidplan' | 'ekonomi' | 'fakturering' | 'kvitto' | 'order' | 'ata' | 'fortnox' | 'epost' | 'kalender' | 'revisor' | 'personal' | 'leverantor' | 'chat' | 'installningar' | 'avancerat' | 'inventarier' | 'kassaflode'
 
-const VALID_SECTIONS: Section[] = ['workspace', 'kunder', 'projekt', 'forslag', 'signera', 'tidplan', 'ekonomi', 'fakturering', 'kvitto', 'order', 'ata', 'fortnox', 'epost', 'kalender', 'revisor', 'personal', 'leverantor', 'chat', 'installningar', 'avancerat', 'inventarier']
+const VALID_SECTIONS: Section[] = ['workspace', 'kunder', 'projekt', 'forslag', 'signera', 'tidplan', 'ekonomi', 'fakturering', 'kvitto', 'order', 'ata', 'fortnox', 'epost', 'kalender', 'revisor', 'personal', 'leverantor', 'chat', 'installningar', 'avancerat', 'inventarier', 'kassaflode']
 
 function sectionFromHash(): Section {
   const raw = window.location.hash.replace(/^#\/?/, '').split('?')[0]
@@ -191,6 +192,7 @@ export default function App() {
       {activeSection === 'personal' && <PersonalSection />}
       {activeSection === 'leverantor' && <LeverantorSection />}
       {activeSection === 'inventarier' && <InventarierSection />}
+      {activeSection === 'kassaflode' && <KassaflodeSection />}
       {activeSection === 'chat' && <ChatSection />}
       {activeSection === 'installningar' && <InställningarSection key={installningarPanel} initialPanel={installningarPanel} />}
       {activeSection === 'avancerat' && <AvanceratSection />}

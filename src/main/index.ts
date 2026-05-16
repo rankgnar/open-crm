@@ -42,6 +42,7 @@ import { registerKvittoHandlers } from './ipc/kvitto'
 import { registerInventarierHandlers } from './ipc/inventarier'
 import { registerFrageblanktterHandlers } from './ipc/frageblankett'
 import { registerKundAvslutHandlers } from './ipc/kund-avslut'
+import { registerKassaflodeHandlers } from './ipc/kassaflode'
 import appIcon from '../../resources/icon.png?asset'
 
 function createWindow(): void {
@@ -335,6 +336,7 @@ app.whenReady().then(() => {
   registerInventarierHandlers()
   registerFrageblanktterHandlers()
   registerKundAvslutHandlers()
+  registerKassaflodeHandlers()
   createWindow()
 
   ipcMain.handle('window:minimize', () => BrowserWindow.getFocusedWindow()?.minimize())
