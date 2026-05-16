@@ -1,5 +1,5 @@
 INSERT INTO epost_mallar (namn, amne, kropp_html, kategori, system_kod, aktiv, sortering)
-VALUES (
+SELECT
   'Projektavslut – feedback',
   'Vi beklagar att vi inte fick möjligheten – {{projekt_namn}}',
   '<p>Hej {{kund_namn}},</p>
@@ -11,5 +11,4 @@ VALUES (
   'projekt_avslut_feedback',
   true,
   90
-)
-ON CONFLICT (system_kod) DO NOTHING;
+WHERE NOT EXISTS (SELECT 1 FROM epost_mallar WHERE system_kod = 'projekt_avslut_feedback');
