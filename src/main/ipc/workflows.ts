@@ -464,7 +464,7 @@ const NODE_EXECUTORS: Partial<Record<WorkflowNodeType, NodeExecutorFn>> = {
     }
     const { error } = await supabase
       .from('projekt_context')
-      .insert({ projekt_id, nyckel, varde, workflow_run_id: run_id })
+      .upsert({ projekt_id, nyckel, varde, workflow_run_id: run_id }, { onConflict: 'projekt_id,nyckel' })
     if (error) throw new Error(`Kunde inte spara kontext: ${error.message}`)
     return { context_saved: nyckel, context_source: source_key }
   },
@@ -827,12 +827,10 @@ const NODE_EXECUTORS: Partial<Record<WorkflowNodeType, NodeExecutorFn>> = {
     }
 
     // Always save material_faltande (items needing catalog import), even if empty
-    await supabase.from('projekt_context').insert({
-      projekt_id,
-      nyckel: 'material_faltande',
-      varde: JSON.stringify(faltande),
-      workflow_run_id: run_id,
-    })
+    await supabase.from('projekt_context').upsert(
+      { projekt_id, nyckel: 'material_faltande', varde: JSON.stringify(faltande), workflow_run_id: run_id },
+      { onConflict: 'projekt_id,nyckel' }
+    )
 
     return {
       materialkostnad_urval: enriched,
@@ -1161,12 +1159,12 @@ const NODE_EXECUTORS: Partial<Record<WorkflowNodeType, NodeExecutorFn>> = {
       kommentar: ai_output.kommentar ?? '',
     }
 
-    const { error } = await supabase.from('projekt_context').insert([
+    const { error } = await supabase.from('projekt_context').upsert([
       { projekt_id, nyckel: 'arbetskostnad_urval',  varde: JSON.stringify(arbeteModified), workflow_run_id: run_id },
       { projekt_id, nyckel: 'materialkostnad_urval', varde: JSON.stringify(material),       workflow_run_id: run_id },
       { projekt_id, nyckel: 'material_webb_urval',   varde: JSON.stringify(webb),           workflow_run_id: run_id },
       { projekt_id, nyckel: 'forslag_revision',      varde: JSON.stringify(revisionsLog),   workflow_run_id: run_id },
-    ])
+    ], { onConflict: 'projekt_id,nyckel' })
     if (error) throw new Error(`Kunde inte spara korrigeringar: ${error.message}`)
 
     return {
