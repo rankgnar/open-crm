@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { useRefreshHandler } from '@/context/RefreshContext'
 import { ForslagTable } from './ForslagTable'
+import { ProjektInfoModal } from './ProjektInfoModal'
 import { ForslagForm } from './ForslagForm'
 import { ForslagDetail } from './ForslagDetail'
 import type { ForslagWithProjekt, CreateForslagInput, ForslagStatusar, ForslagFas, ForslagSubfas, ForslagArbete, ForslagMaterial, ForslagUnderentreprenor, SignaturSummary } from './types'
@@ -26,6 +27,7 @@ export function ForslagSection({ initialProjektId, onNavigateProjekt, initialFor
   const { config } = useAppConfig()
   const ROT_CAP_SINGLE = config?.rot_avdrag_tak_enkel ?? 50000
   const ROT_CAP_DOUBLE = config?.rot_avdrag_tak_dubbel ?? 100000
+  const [projektModalId, setProjektModalId] = useState<string | null>(null)
   const [forslag, setForslag] = useState<ForslagWithProjekt[]>([])
   const [allProjekt, setAllProjekt] = useState<ProjektWithKund[]>([])
   const [statusar, setStatusar] = useState<ForslagStatusar[]>([])
@@ -285,15 +287,21 @@ export function ForslagSection({ initialProjektId, onNavigateProjekt, initialFor
       : forslag
 
   return (
-    <ForslagTable
-      forslag={visibleForslag}
-      statusar={statusar}
-      signingEvents={signingEvents}
-      onSelect={(f) => { setSelectedForslag(f); setView('detail') }}
-      onNew={() => setView('create')}
-      onStatusChange={handleStatusChange}
-      onExportPdf={handleExportPdf}
-      onDeleteMany={handleDeleteMany}
-    />
+    <>
+      <ForslagTable
+        forslag={visibleForslag}
+        statusar={statusar}
+        signingEvents={signingEvents}
+        onSelect={(f) => { setSelectedForslag(f); setView('detail') }}
+        onNew={() => setView('create')}
+        onStatusChange={handleStatusChange}
+        onExportPdf={handleExportPdf}
+        onDeleteMany={handleDeleteMany}
+        onClickProjekt={(id) => setProjektModalId(id)}
+      />
+      {projektModalId && (
+        <ProjektInfoModal projektId={projektModalId} onClose={() => setProjektModalId(null)} />
+      )}
+    </>
   )
 }

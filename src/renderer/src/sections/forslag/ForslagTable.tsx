@@ -19,6 +19,7 @@ interface Props {
   onStatusChange: (id: string, status: string) => Promise<void>
   onExportPdf: (f: ForslagWithProjekt) => Promise<void>
   onDeleteMany: (ids: string[]) => Promise<void>
+  onClickProjekt?: (projektId: string) => void
 }
 
 function StatusPicker({ forslag, statusar, onStatusChange }: { forslag: ForslagWithProjekt; statusar: ForslagStatusar[]; onStatusChange: (id: string, status: string) => Promise<void> }) {
@@ -121,7 +122,7 @@ function PaminnelseCell({ historik }: { historik: { at: string }[] | undefined }
   )
 }
 
-export function ForslagTable({ forslag, statusar, signingEvents, onSelect, onNew, onStatusChange, onExportPdf, onDeleteMany }: Props) {
+export function ForslagTable({ forslag, statusar, signingEvents, onSelect, onNew, onStatusChange, onExportPdf, onDeleteMany, onClickProjekt }: Props) {
   const [exportingId, setExportingId] = useState<string | null>(null)
   const [selected, setSelected] = useState<Set<string>>(new Set())
   const [confirmBulk, setConfirmBulk] = useState(false)
@@ -306,9 +307,18 @@ export function ForslagTable({ forslag, statusar, signingEvents, onSelect, onNew
                   </td>
                   <td className="px-2 py-3 font-mono text-xs text-muted whitespace-nowrap">{f.forslag_nummer}</td>
                   <td className="px-4 py-3 text-fg whitespace-nowrap uppercase">{f.projekt.kunder.namn}</td>
-                  <td className="px-4 py-3 whitespace-nowrap">
+                  <td className="px-4 py-3 whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
                     <span className="font-mono text-xs text-muted">{f.projekt.projekt_nummer}</span>
-                    <span className="ml-2 text-fg">{f.projekt.namn}</span>
+                    {onClickProjekt ? (
+                      <button
+                        onClick={() => onClickProjekt(f.projekt_id)}
+                        className="ml-2 text-fg hover:text-emerald-400 hover:underline transition-colors"
+                      >
+                        {f.projekt.namn}
+                      </button>
+                    ) : (
+                      <span className="ml-2 text-fg">{f.projekt.namn}</span>
+                    )}
                   </td>
                   <td className="px-4 py-3"><SigneringLog summary={signingEvents[f.id]} /></td>
                   <td className="px-4 py-3"><PaminnelseCell historik={signingEvents[f.id]?.paminnelse_historik} /></td>
