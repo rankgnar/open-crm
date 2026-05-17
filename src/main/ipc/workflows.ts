@@ -2055,6 +2055,47 @@ const NODE_EXECUTORS: Partial<Record<WorkflowNodeType, NodeExecutorFn>> = {
     if (!assistent_id) throw new Error('Ingen AI-assistent vald. Välj en assistent i kördialogens "AI-assistent"-fält.')
     const promptTemplate = (nodeConfig.prompt_template as string) ?? ''
     if (!promptTemplate) throw new Error('prompt_template saknas i AI-nod konfiguration')
+
+    // ── Batch mode: split valda_subfaser into groups to avoid max_tokens truncation ──
+    // Activate with batch_faser:true in node config. batch_merge_key defaults to "estimat".
+    if (nodeConfig.batch_faser === true) {
+      const batchSize = Math.max(1, (nodeConfig.batch_size as number) || 5)
+      const mergeKey = (nodeConfig.batch_merge_key as string) || 'estimat'
+      const raw = collectedData.projekt_faser_urval
+      if (!raw) throw new Error('projekt_faser_urval saknas för batch-läge')
+      const fasUrval = (typeof raw === 'string' ? JSON.parse(raw) : raw) as Record<string, unknown>
+      const valdaSubfaser = fasUrval.valda_subfaser as Array<{ fas: string; subfaser: string[] }>
+      if (!Array.isArray(valdaSubfaser) || valdaSubfaser.length === 0) throw new Error('valda_subfaser är tom')
+
+      const mergedItems: unknown[] = []
+      const numericTotals: Record<string, number> = {}
+      const arrayExtras: Record<string, unknown[]> = {}
+
+      for (let i = 0; i < valdaSubfaser.length; i += batchSize) {
+        const batch = valdaSubfaser.slice(i, i + batchSize)
+        const batchUrval = { ...fasUrval, valda_subfaser: batch, valda_faser: batch.map(b => b.fas) }
+        const batchData = { ...collectedData, projekt_faser_urval: JSON.stringify(batchUrval) }
+        const prompt = interpolateTemplate(promptTemplate, batchData)
+        const text = await aiChat(assistent_id, [{ role: 'user', content: prompt }])
+        const batchResult = tryParseJson(text) as Record<string, unknown> | undefined
+        if (!batchResult) {
+          const head = text.slice(0, 200)
+          const hint = !text.trimEnd().endsWith('}') && !text.trimEnd().endsWith(']')
+            ? ' (avhugget av max_tokens)' : ''
+          throw new Error(`Batch-AI-svar (fas ${i / batchSize + 1}) kunde inte parsas. Längd: ${text.length}${hint}.\nBörjan: ${head}`)
+        }
+        if (Array.isArray(batchResult[mergeKey])) mergedItems.push(...(batchResult[mergeKey] as unknown[]))
+        for (const [k, v] of Object.entries(batchResult)) {
+          if (k === mergeKey) continue
+          if (typeof v === 'number') numericTotals[k] = (numericTotals[k] ?? 0) + v
+          else if (Array.isArray(v)) { arrayExtras[k] = arrayExtras[k] ?? []; arrayExtras[k].push(...v) }
+        }
+      }
+
+      const merged: Record<string, unknown> = { [mergeKey]: mergedItems, ...numericTotals, ...arrayExtras }
+      return { ai_output: merged, ai_raw: JSON.stringify(merged) }
+    }
+
     const prompt = interpolateTemplate(promptTemplate, collectedData)
     const text = await aiChat(assistent_id, [{ role: 'user', content: prompt }])
     const parsed = tryParseJson(text)
