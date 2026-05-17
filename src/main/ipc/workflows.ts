@@ -2294,6 +2294,22 @@ export function registerWorkflowHandlers(): void {
       else if (count) console.log(`[workflow watchdog] cleaned ${count} abandoned run(s)`)
     })
 
+  // Same watchdog for sequence_runs. Mark stuck 'kör' runs as 'fel' so
+  // find-resumable can surface them as continuable on the next session.
+  void supabase
+    .from('sequence_runs')
+    .update({
+      status: 'fel',
+      error_msg: 'Sekvens övergiven vid app-omstart (tidigare session avslutades).',
+      uppdaterad_at: new Date().toISOString(),
+      avslutad_at: new Date().toISOString(),
+    })
+    .eq('status', 'kör')
+    .then(({ error, count }) => {
+      if (error) console.error('[sequence watchdog] cleanup failed:', error.message)
+      else if (count) console.log(`[sequence watchdog] marked ${count} abandoned sequence run(s) as fel`)
+    })
+
   ipcMain.handle('db:projekt-context:list', async (_, projekt_id: string) => {
     const { data, error } = await supabase
       .from('projekt_context')

@@ -95,13 +95,15 @@ export function RunTriggerModal({ trigger, seccion, context, mode, resumable, on
   const [fasMallar, setFasMallar] = useState<FasMallOption[] | null>(null)
 
   const [nodeStatuses, setNodeStatuses] = useState<Record<string, WorkflowNodeResult>>({})
+  const initialStartAt = mode === 'resume' && resumable ? resumable.current_step : 0
+
   const [seqSteps, setSeqSteps] = useState<SeqStep[]>(() =>
-    seqIds.map(id => {
+    seqIds.map((id, i) => {
       const wf = seqWorkflows.find(w => w.id === id)
       return {
         workflowId: id,
         workflowNamn: wf?.namn ?? `Workflow ${id.slice(0, 6)}`,
-        status: 'väntar',
+        status: i < initialStartAt ? 'klar' : 'väntar',
         nodesDone: 0,
       }
     })
