@@ -17,9 +17,9 @@ export function TidplanReminderModal({ faser, onNavigateTidplan, onConfirm, onCl
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60">
-      <div className="bg-bg border border-border rounded-xl shadow-2xl w-full max-w-xl overflow-hidden">
+      <div className="bg-bg border border-border rounded-xl shadow-2xl w-full max-w-xl flex flex-col max-h-[85vh]">
 
-        <div className="flex items-center justify-between px-6 py-3 border-b border-border bg-sidebar">
+        <div className="flex items-center justify-between px-6 py-3 border-b border-border bg-sidebar shrink-0">
           <div className="flex items-center gap-2">
             <CalendarCheck size={14} className="text-blue-400" />
             <h2 className="text-sm font-medium text-fg">Kontrollera tidplan</h2>
@@ -29,7 +29,7 @@ export function TidplanReminderModal({ faser, onNavigateTidplan, onConfirm, onCl
           </button>
         </div>
 
-        <div className="px-6 py-5 flex flex-col gap-4">
+        <div className="px-6 py-5 flex flex-col gap-4 overflow-y-auto min-h-0">
           <p className="text-xs text-muted">Kontrollera att fasernas datum är korrekta innan förslaget skickas för signering.</p>
 
           {faser.length === 0 ? (
@@ -70,7 +70,7 @@ export function TidplanReminderModal({ faser, onNavigateTidplan, onConfirm, onCl
           )}
         </div>
 
-        <div className="flex items-center justify-between px-6 py-3 border-t border-border bg-sidebar">
+        <div className="flex items-center justify-between px-6 py-3 border-t border-border bg-sidebar shrink-0">
           <button onClick={onClose} className="text-sm text-muted hover:text-fg transition-colors px-3 py-1.5">
             Avbryt
           </button>
