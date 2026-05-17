@@ -47,12 +47,14 @@ function EmptyDetail() {
 function AssistentDetail({
   assistent,
   providers,
+  categories,
   onUpdate,
   onDelete,
   onSetStandard
 }: {
   assistent: AiAssistent
   providers: AiProvider[]
+  categories: string[]
   onUpdate: (a: AiAssistent) => void
   onDelete: (id: string) => void
   onSetStandard: (id: string) => void
@@ -149,11 +151,18 @@ function AssistentDetail({
           </div>
           <div className="flex flex-col gap-1.5">
             <label className="text-[11px] uppercase tracking-wider text-muted">Kategori</label>
-            <SelectField
-              value={assistent.category}
-              onChange={(v) => update({ category: v })}
-              options={CATEGORIES.map((c) => ({ value: c, label: c }))}
+            <input
+              type="text"
+              list="assistent-categories"
+              className="input text-sm text-muted"
+              defaultValue={assistent.category}
+              placeholder="Välj eller skriv en ny…"
+              onBlur={(e) => { if (e.target.value !== assistent.category) update({ category: e.target.value }) }}
+              onKeyDown={(e) => { if (e.key === 'Enter') e.currentTarget.blur() }}
             />
+            <datalist id="assistent-categories">
+              {categories.map((c) => <option key={c} value={c} />)}
+            </datalist>
           </div>
         </div>
       </div>
@@ -282,7 +291,7 @@ export function AsistenterPanel() {
   const [asistenter, setAsistenter] = useState<AiAssistent[]>([])
   const [providers, setProviders] = useState<AiProvider[]>([])
   const [selectedId, setSelectedId] = useState<string | null>(null)
-  const [collapsedCats, setCollapsedCats] = useState<Set<string>>(() => new Set())
+  const [expandedCats, setExpandedCats] = useState<Set<string>>(() => new Set())
 
   useEffect(() => {
     Promise.all([
@@ -328,6 +337,7 @@ export function AsistenterPanel() {
   }
 
   const selected = asistenter.find((a) => a.id === selectedId) ?? null
+  const categories = [...new Set([...CATEGORIES, ...asistenter.map((a) => a.category).filter(Boolean)])]
 
   return (
     <div className="flex flex-1 min-h-0 h-full overflow-hidden">
@@ -352,11 +362,11 @@ export function AsistenterPanel() {
             const uncategorized = asistenter.filter((a) => !CATEGORIES.includes(a.category))
             if (uncategorized.length > 0) grouped['Övrigt'] = uncategorized
             return Object.entries(grouped).map(([cat, items]) => {
-              const collapsed = collapsedCats.has(cat)
+              const expanded = expandedCats.has(cat)
               return (
                 <div key={cat}>
                   <button
-                    onClick={() => setCollapsedCats((prev) => {
+                    onClick={() => setExpandedCats((prev) => {
                       const next = new Set(prev)
                       if (next.has(cat)) next.delete(cat); else next.add(cat)
                       return next
@@ -366,10 +376,10 @@ export function AsistenterPanel() {
                     <span className="text-[10px] uppercase tracking-widest text-subtle">{cat}</span>
                     <div className="flex items-center gap-1.5">
                       <span className="text-[10px] text-subtle/60">{items.length}</span>
-                      {collapsed ? <ChevronDown size={11} className="text-subtle" /> : <ChevronUp size={11} className="text-subtle" />}
+                      {expanded ? <ChevronUp size={11} className="text-subtle" /> : <ChevronDown size={11} className="text-subtle" />}
                     </div>
                   </button>
-                  {!collapsed && items.map((a) => (
+                  {expanded && items.map((a) => (
                     <button
                       key={a.id}
                       onClick={() => setSelectedId(a.id)}
@@ -410,6 +420,7 @@ export function AsistenterPanel() {
               key={selected.id}
               assistent={selected}
               providers={providers}
+              categories={categories}
               onUpdate={handleUpdate}
               onDelete={handleDelete}
               onSetStandard={handleSetStandard}
