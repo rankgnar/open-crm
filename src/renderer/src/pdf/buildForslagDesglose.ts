@@ -40,6 +40,7 @@ export function buildForslagDesglose(
     accentFarg: string
     visaLeverantor?: boolean
     visaFasNotat?: boolean
+    sammanfattad?: boolean
   }
 ): string {
   const ac = opts.accentFarg
@@ -52,6 +53,12 @@ export function buildForslagDesglose(
   const MINI_HEADER = (label: string): string =>
     `<tr>
       <td colspan="6" style="padding:2px 5px 2px 10px;font-size:6.5px;font-weight:500;color:#9ca3af;text-transform:uppercase;letter-spacing:0.3px;border-bottom:0.5px solid #e5e7eb;">${label}</td>
+    </tr>`
+
+  const SUMMARY_ROW = (label: string, amount: number): string =>
+    `<tr>
+      <td colspan="5" style="padding:3px 5px 3px 18px;font-size:8px;color:#374151;border-bottom:0.5px solid #e0e0e0;">${label}</td>
+      <td style="padding:3px 5px;font-size:8px;font-weight:700;color:#0f172b;text-align:right;border-bottom:0.5px solid #e0e0e0;">${fmt(amount)} kr</td>
     </tr>`
 
   let html = `<table style="width:100%;border-collapse:collapse;font-family:-apple-system,'Helvetica Neue',Helvetica,Arial,sans-serif;">`
@@ -101,89 +108,104 @@ export function buildForslagDesglose(
 
       let subfasTotal = 0
 
-      // Arbete rows
-      if (arbete.length > 0) {
-        html += MINI_HEADER('Arbete')
-        html += `<tr style="background:${acBg};">
-          ${TD('Beskrivning', '43%', { bold: true, small: true, color: ac })}
-          ${TD('Yrkesroll', '20%', { bold: true, small: true, color: ac })}
-          ${TD('Tim.', '9%', { bold: true, small: true, color: ac, align: 'right' })}
-          ${TD('Á-pris', '10%', { bold: true, small: true, color: ac, align: 'right' })}
-          ${TD('ROT', '6%', { bold: true, small: true, color: ac, align: 'center' })}
-          ${TD('Summa', '12%', { bold: true, small: true, color: ac, align: 'right' })}
-        </tr>`
-        arbete.forEach((r, i) => {
-          const sum = r.antal_timmar * r.timpris
-          subfasTotal += sum
-          fasTotal += sum
-          grandArbete += sum
-          if (r.rot_berattigad) grandRotEligible += sum
-          const bg = i % 2 === 1 ? 'background:#fafafa;' : ''
-          html += `<tr style="${bg}">
-            ${TD(r.beskrivning || '—', '43%')}
-            ${TD(r.yrkesroll || '—', '20%')}
-            ${TD(fmtAntal(r.antal_timmar), '9%', { align: 'right' })}
-            ${TD(fmt(r.timpris), '10%', { align: 'right' })}
-            ${TD(r.rot_berattigad ? '✓' : '', '6%', { align: 'center', color: '#16a34a', bold: true })}
-            ${TD(fmt(sum), '12%', { align: 'right', bold: true })}
+      if (opts.sammanfattad) {
+        const subfasArbete = arbete.reduce((s, r) => s + r.antal_timmar * r.timpris, 0)
+        const subfasMaterial = material.reduce((s, r) => s + r.antal * r.a_pris, 0)
+        const subfasUE = ue.reduce((s, r) => s + r.kostnad, 0)
+        grandArbete += subfasArbete
+        grandMaterial += subfasMaterial
+        grandUE += subfasUE
+        arbete.filter(r => r.rot_berattigad).forEach(r => { grandRotEligible += r.antal_timmar * r.timpris })
+        subfasTotal = subfasArbete + subfasMaterial + subfasUE
+        fasTotal += subfasTotal
+        if (subfasArbete > 0) html += SUMMARY_ROW('Arbete', subfasArbete)
+        if (subfasMaterial > 0) html += SUMMARY_ROW('Material', subfasMaterial)
+        if (subfasUE > 0) html += SUMMARY_ROW('Underentreprenörer', subfasUE)
+      } else {
+        // Arbete rows
+        if (arbete.length > 0) {
+          html += MINI_HEADER('Arbete')
+          html += `<tr style="background:${acBg};">
+            ${TD('Beskrivning', '43%', { bold: true, small: true, color: ac })}
+            ${TD('Yrkesroll', '20%', { bold: true, small: true, color: ac })}
+            ${TD('Tim.', '9%', { bold: true, small: true, color: ac, align: 'right' })}
+            ${TD('Á-pris', '10%', { bold: true, small: true, color: ac, align: 'right' })}
+            ${TD('ROT', '6%', { bold: true, small: true, color: ac, align: 'center' })}
+            ${TD('Summa', '12%', { bold: true, small: true, color: ac, align: 'right' })}
           </tr>`
-        })
-      }
+          arbete.forEach((r, i) => {
+            const sum = r.antal_timmar * r.timpris
+            subfasTotal += sum
+            fasTotal += sum
+            grandArbete += sum
+            if (r.rot_berattigad) grandRotEligible += sum
+            const bg = i % 2 === 1 ? 'background:#fafafa;' : ''
+            html += `<tr style="${bg}">
+              ${TD(r.beskrivning || '—', '43%')}
+              ${TD(r.yrkesroll || '—', '20%')}
+              ${TD(fmtAntal(r.antal_timmar), '9%', { align: 'right' })}
+              ${TD(fmt(r.timpris), '10%', { align: 'right' })}
+              ${TD(r.rot_berattigad ? '✓' : '', '6%', { align: 'center', color: '#16a34a', bold: true })}
+              ${TD(fmt(sum), '12%', { align: 'right', bold: true })}
+            </tr>`
+          })
+        }
 
-      // Material rows
-      if (material.length > 0) {
-        html += MINI_HEADER('Material')
-        const beskWidth = showLeverantor ? '37%' : '52%'
-        html += `<tr style="background:${acBg};">
-          ${showLeverantor ? TD('Leverantör', '15%', { bold: true, small: true, color: ac }) : ''}
-          ${TD('Beskrivning', beskWidth, { bold: true, small: true, color: ac })}
-          ${TD('Enh.', '8%', { bold: true, small: true, color: ac, align: 'center' })}
-          ${TD('Antal', '8%', { bold: true, small: true, color: ac, align: 'right' })}
-          ${TD('Á-pris', '13%', { bold: true, small: true, color: ac, align: 'right' })}
-          ${TD('Summa', '19%', { bold: true, small: true, color: ac, align: 'right' })}
-        </tr>`
-        material.forEach((r, i) => {
-          const sum = r.antal * r.a_pris
-          subfasTotal += sum
-          fasTotal += sum
-          grandMaterial += sum
-          const bg = i % 2 === 1 ? 'background:#fafafa;' : ''
-          html += `<tr style="${bg}">
-            ${showLeverantor ? TD(r.leverantor || '—', '15%', { small: true }) : ''}
-            ${TD(r.beskrivning || '—', beskWidth)}
-            ${TD(r.enhet, '8%', { align: 'center' })}
-            ${TD(fmtAntal(r.antal), '8%', { align: 'right' })}
-            ${TD(fmt(r.a_pris), '13%', { align: 'right' })}
-            ${TD(fmt(sum), '19%', { align: 'right', bold: true })}
+        // Material rows
+        if (material.length > 0) {
+          html += MINI_HEADER('Material')
+          const beskWidth = showLeverantor ? '37%' : '52%'
+          html += `<tr style="background:${acBg};">
+            ${showLeverantor ? TD('Leverantör', '15%', { bold: true, small: true, color: ac }) : ''}
+            ${TD('Beskrivning', beskWidth, { bold: true, small: true, color: ac })}
+            ${TD('Enh.', '8%', { bold: true, small: true, color: ac, align: 'center' })}
+            ${TD('Antal', '8%', { bold: true, small: true, color: ac, align: 'right' })}
+            ${TD('Á-pris', '13%', { bold: true, small: true, color: ac, align: 'right' })}
+            ${TD('Summa', '19%', { bold: true, small: true, color: ac, align: 'right' })}
           </tr>`
-        })
-      }
+          material.forEach((r, i) => {
+            const sum = r.antal * r.a_pris
+            subfasTotal += sum
+            fasTotal += sum
+            grandMaterial += sum
+            const bg = i % 2 === 1 ? 'background:#fafafa;' : ''
+            html += `<tr style="${bg}">
+              ${showLeverantor ? TD(r.leverantor || '—', '15%', { small: true }) : ''}
+              ${TD(r.beskrivning || '—', beskWidth)}
+              ${TD(r.enhet, '8%', { align: 'center' })}
+              ${TD(fmtAntal(r.antal), '8%', { align: 'right' })}
+              ${TD(fmt(r.a_pris), '13%', { align: 'right' })}
+              ${TD(fmt(sum), '19%', { align: 'right', bold: true })}
+            </tr>`
+          })
+        }
 
-      // UE rows
-      if (ue.length > 0) {
-        html += MINI_HEADER('Underentreprenörer')
-        html += `<tr style="background:${acBg};">
-          ${TD('Namn', '28%', { bold: true, small: true, color: ac })}
-          ${TD('Beskrivning', '47%', { bold: true, small: true, color: ac })}
-          ${TD('Inkl. mat.', '10%', { bold: true, small: true, color: ac, align: 'center' })}
-          ${TD('Kostnad', '15%', { bold: true, small: true, color: ac, align: 'right' })}
-          <td style="width:0"></td>
-          <td style="width:0"></td>
-        </tr>`
-        ue.forEach((r, i) => {
-          subfasTotal += r.kostnad
-          fasTotal += r.kostnad
-          grandUE += r.kostnad
-          const bg = i % 2 === 1 ? 'background:#fafafa;' : ''
-          html += `<tr style="${bg}">
-            ${TD(r.namn || '—', '28%')}
-            ${TD(r.beskrivning || '—', '47%')}
-            ${TD(r.inkl_material ? '✓' : '—', '10%', { align: 'center', color: r.inkl_material ? '#16a34a' : undefined, bold: r.inkl_material })}
-            ${TD(fmt(r.kostnad), '15%', { align: 'right', bold: true })}
+        // UE rows
+        if (ue.length > 0) {
+          html += MINI_HEADER('Underentreprenörer')
+          html += `<tr style="background:${acBg};">
+            ${TD('Namn', '28%', { bold: true, small: true, color: ac })}
+            ${TD('Beskrivning', '47%', { bold: true, small: true, color: ac })}
+            ${TD('Inkl. mat.', '10%', { bold: true, small: true, color: ac, align: 'center' })}
+            ${TD('Kostnad', '15%', { bold: true, small: true, color: ac, align: 'right' })}
             <td style="width:0"></td>
             <td style="width:0"></td>
           </tr>`
-        })
+          ue.forEach((r, i) => {
+            subfasTotal += r.kostnad
+            fasTotal += r.kostnad
+            grandUE += r.kostnad
+            const bg = i % 2 === 1 ? 'background:#fafafa;' : ''
+            html += `<tr style="${bg}">
+              ${TD(r.namn || '—', '28%')}
+              ${TD(r.beskrivning || '—', '47%')}
+              ${TD(r.inkl_material ? '✓' : '—', '10%', { align: 'center', color: r.inkl_material ? '#16a34a' : undefined, bold: r.inkl_material })}
+              ${TD(fmt(r.kostnad), '15%', { align: 'right', bold: true })}
+              <td style="width:0"></td>
+              <td style="width:0"></td>
+            </tr>`
+          })
+        }
       }
 
       // Subfas subtotal (only if multiple categories)

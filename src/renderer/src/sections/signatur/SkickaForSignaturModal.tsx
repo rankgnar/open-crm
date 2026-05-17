@@ -24,7 +24,7 @@ interface Props {
   bifogaOptions?: BifogaOption[]
   titelOptions?:  TitelOptions
   onClose:        () => void
-  onSent:         (link: SignaturLank, extras?: { titel?: string }) => void
+  onSent:         (link: SignaturLank, extras?: { titel?: string; sammanfattad?: boolean; splitPdf?: boolean }) => void
 }
 
 const EXPIRY_OPTIONS = [
@@ -43,6 +43,8 @@ export function SkickaForSignaturModal({ dokument_typ, dokument_id, initialEmail
   const [meddelande, setMeddelande] = useState('')
   const [enabledBifoga, setEnabledBifoga] = useState<Set<string>>(() => new Set())
   const [titel, setTitel] = useState(titelOptions?.titel1 ?? '')
+  const [sammanfattad, setSammanfattad] = useState(false)
+  const [splitPdf, setSplitPdf] = useState(false)
   const [sending, setSending] = useState(false)
   const [error, setError] = useState('')
 
@@ -96,7 +98,11 @@ export function SkickaForSignaturModal({ dokument_typ, dokument_id, initialEmail
         mall_id: mallId ?? undefined,
         bilagor: bilagor.length > 0 ? bilagor : undefined,
       }) as SignaturLank
-      onSent(link, showTitelPicker ? { titel: titel || titelOptions?.titel1 } : undefined)
+      onSent(link, {
+        ...(showTitelPicker ? { titel: titel || titelOptions?.titel1 } : {}),
+        ...(sammanfattad ? { sammanfattad: true } : {}),
+        ...(splitPdf ? { splitPdf: true } : {}),
+      })
       onClose()
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e))
@@ -213,6 +219,24 @@ export function SkickaForSignaturModal({ dokument_typ, dokument_id, initialEmail
                 </label>
               )
             })}
+            <label className={`flex items-center gap-2 text-xs transition-colors cursor-pointer select-none ${sammanfattad ? 'text-emerald-400 font-medium' : 'text-muted hover:text-fg'}`}>
+              <input
+                type="checkbox"
+                checked={sammanfattad}
+                onChange={(e) => setSammanfattad(e.target.checked)}
+                className="w-4 h-4 accent-emerald-400"
+              />
+              <span>Dölj raddetaljer</span>
+            </label>
+            <label className={`flex items-center gap-2 text-xs transition-colors cursor-pointer select-none ${splitPdf ? 'text-emerald-400 font-medium' : 'text-muted hover:text-fg'}`}>
+              <input
+                type="checkbox"
+                checked={splitPdf}
+                onChange={(e) => setSplitPdf(e.target.checked)}
+                className="w-4 h-4 accent-emerald-400"
+              />
+              <span>Dela upp i 2 PDF (offert + spec)</span>
+            </label>
           </div>
 
           <div className="flex items-center gap-2">

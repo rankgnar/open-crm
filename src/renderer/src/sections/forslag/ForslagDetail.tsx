@@ -173,6 +173,8 @@ export function ForslagDetail({ forslag: forslagProp, statusar, allProjekt, onBa
   // Selected title + tidplan-attach flag inside the export modal.
   const [pdfExportTitel, setPdfExportTitel] = useState<string>('')
   const [pdfExportBifogaTidplan, setPdfExportBifogaTidplan] = useState<boolean>(false)
+  const [pdfExportSammanfattad, setPdfExportSammanfattad] = useState<boolean>(false)
+  const [pdfExportSplit, setPdfExportSplit] = useState<boolean>(false)
   const [signaturTitelOptions, setSignaturTitelOptions] = useState<{ titel1: string; titel2?: string } | null>(null)
 
   useEffect(() => {
@@ -556,7 +558,7 @@ export function ForslagDetail({ forslag: forslagProp, statusar, allProjekt, onBa
     return buildTidplanHtml(forslag, faser, mall, config)
   }
 
-  async function buildForslagHtml(titelOverride: string, displayOverrides?: Record<string, string>): Promise<string> {
+  async function buildForslagHtml(titelOverride: string, displayOverrides?: Record<string, string>, sammanfattad?: boolean): Promise<string> {
     const mall = await window.api.invoke('db:pdf-mall:get', 'forslag') as PdfMall | null
     const template = mall?.html_mall || DEFAULT_FORSLAG_HTML
     const accentFarg = mall?.accent_farg ?? '#1B3A6B'
@@ -571,7 +573,7 @@ export function ForslagDetail({ forslag: forslagProp, statusar, allProjekt, onBa
 
     const desgloseHtml = buildForslagDesglose(
       activeFaser, subfaserByFas, arbeteBySubfas, materialBySubfas, ueBySubfas,
-      { momsProcent: forslag.moms_procent, rotAvdrag, rotProcent, rotInkluderaMedsokande, rotCapEnkel: ROT_CAP_SINGLE, rotCapDubbel: ROT_CAP_DOUBLE, accentFarg, visaLeverantor: mall?.visa_leverantor_material !== false, visaFasNotat: mall?.visa_fas_notat !== false }
+      { momsProcent: forslag.moms_procent, rotAvdrag, rotProcent, rotInkluderaMedsokande, rotCapEnkel: ROT_CAP_SINGLE, rotCapDubbel: ROT_CAP_DOUBLE, accentFarg, visaLeverantor: mall?.visa_leverantor_material !== false, visaFasNotat: mall?.visa_fas_notat !== false, sammanfattad }
     )
 
     const allArbete = Object.values(arbeteBySubfas).flat().filter(r => activeSubfasIds.has(r.subfas_id))
@@ -639,38 +641,65 @@ export function ForslagDetail({ forslag: forslagProp, statusar, allProjekt, onBa
     return injectVars(template, vars)
   }
 
-  async function doExportPdf(titelOverride: string, bifogaTidplan: boolean = false) {
+  async function doExportPdf(titelOverride: string, bifogaTidplan: boolean = false, sammanfattad: boolean = false, split: boolean = false) {
     setPdfTitelPicker(null)
     setExportingPdf(true)
+    const baseName = `forslag-${forslag.forslag_nummer}-${forslag.projekt.kunder.namn.replace(/\s+/g, '_')}`
     try {
-      const parts: { html: string; landscape?: boolean }[] = []
-      if (bifogaTidplan) {
-        const [forslagSinSammaf, tidplanHtml, sammafHtml] = await Promise.all([
-          buildForslagHtml(titelOverride, { visa_sammanfattning_display: 'none' }),
-          buildTidplanHtmlForExport(),
-          buildForslagHtml(titelOverride, { visa_portada_display: 'none', visa_desglose_display: 'none' }),
-        ])
-        parts.push({ html: forslagSinSammaf }, { html: tidplanHtml, landscape: true }, { html: sammafHtml })
+      if (split) {
+        const pdf1Html = await buildForslagHtml(titelOverride, { visa_desglose_display: 'none' }, false)
+        const pdf2Html = await buildForslagHtml(titelOverride, { visa_portada_display: 'none', visa_sammanfattning_display: 'none', visa_villkor_display: 'none' }, sammanfattad)
+        if (bifogaTidplan) {
+          const tidplanHtml = await buildTidplanHtmlForExport()
+          const [pdf1b64, pdf2b64, tidplanb64] = await Promise.all([
+            window.api.invoke('pdf:generate-buffer', { html: pdf1Html }) as Promise<string>,
+            window.api.invoke('pdf:generate-buffer', { html: pdf2Html }) as Promise<string>,
+            window.api.invoke('pdf:generate-buffer', { html: tidplanHtml, landscape: true }) as Promise<string>,
+          ])
+          await window.api.invoke('pdf:save-pdfs', [
+            { name: `${baseName}-offert`, data_base64: pdf1b64 },
+            { name: `${baseName}-spec`, data_base64: pdf2b64 },
+            { name: `${baseName}-tidplan`, data_base64: tidplanb64 },
+          ])
+        } else {
+          const [pdf1b64, pdf2b64] = await Promise.all([
+            window.api.invoke('pdf:generate-buffer', { html: pdf1Html }) as Promise<string>,
+            window.api.invoke('pdf:generate-buffer', { html: pdf2Html }) as Promise<string>,
+          ])
+          await window.api.invoke('pdf:save-pdfs', [
+            { name: `${baseName}-offert`, data_base64: pdf1b64 },
+            { name: `${baseName}-spec`, data_base64: pdf2b64 },
+          ])
+        }
       } else {
-        parts.push({ html: await buildForslagHtml(titelOverride) })
+        const parts: { html: string; landscape?: boolean }[] = []
+        if (bifogaTidplan) {
+          const [forslagSinSammaf, tidplanHtml, sammafHtml] = await Promise.all([
+            buildForslagHtml(titelOverride, { visa_sammanfattning_display: 'none' }, sammanfattad),
+            buildTidplanHtmlForExport(),
+            buildForslagHtml(titelOverride, { visa_portada_display: 'none', visa_desglose_display: 'none' }, sammanfattad),
+          ])
+          parts.push({ html: forslagSinSammaf }, { html: tidplanHtml, landscape: true }, { html: sammafHtml })
+        } else {
+          parts.push({ html: await buildForslagHtml(titelOverride, undefined, sammanfattad) })
+        }
+        await window.api.invoke('pdf:generate-merged', { parts, name: baseName })
       }
-      await window.api.invoke('pdf:generate-merged', {
-        parts,
-        name: `forslag-${forslag.forslag_nummer}-${forslag.projekt.kunder.namn.replace(/\s+/g, '_')}`,
-      })
     } finally {
       setExportingPdf(false)
     }
   }
 
-  async function renderSigningPdf(linkId: string, titelOverride?: string): Promise<void> {
+  async function renderSigningPdf(linkId: string, titelOverride?: string, sammanfattad?: boolean, splitPdf?: boolean): Promise<void> {
+    // When split mode is on, the signing document is PDF1 only (portada + sammaf + villkor).
+    const splitOverride = splitPdf ? { visa_desglose_display: 'none' } : undefined
     try {
       const mall = await window.api.invoke('db:pdf-mall:get', 'forslag') as PdfMall | null
       const titel1 = mall?.portada_titel || 'FÖRSLAG'
       const titel2 = mall?.portada_titel_2?.trim() || ''
       const chosen = titelOverride || titel1
 
-      const html = await buildForslagHtml(chosen)
+      const html = await buildForslagHtml(chosen, splitOverride, sammanfattad)
       await window.api.invoke('db:signatur-lank:render-document-pdf', { link_id: linkId, html })
 
       // If the admin sent with titel1 and a distinct titel2 is configured,
@@ -679,7 +708,7 @@ export function ForslagDetail({ forslag: forslagProp, statusar, allProjekt, onBa
       // copy automatically upgrades to the final title.
       if (titel2 && titel2 !== chosen) {
         try {
-          const finalHtml = await buildForslagHtml(titel2)
+          const finalHtml = await buildForslagHtml(titel2, splitOverride, sammanfattad)
           await window.api.invoke('db:signatur-lank:render-final-document-pdf', { link_id: linkId, html: finalHtml })
         } catch (e) {
           console.error('Render final PDF failed (non-critical, portal falls back to document_pdf_url):', e)
@@ -1950,11 +1979,24 @@ export function ForslagDetail({ forslag: forslagProp, statusar, allProjekt, onBa
                 return { filnamn: `tidplan-${forslag.forslag_nummer}.pdf`, data_base64 }
               },
             },
+            ...(pdfExportSplit ? [{
+              id: 'specifikation',
+              label: 'Bifoga specifikation',
+              generate: async () => {
+                const specHtml = await buildForslagHtml(
+                  signaturTitelOptions?.titel1 || 'FÖRSLAG',
+                  { visa_portada_display: 'none', visa_sammanfattning_display: 'none', visa_villkor_display: 'none' },
+                  pdfExportSammanfattad
+                )
+                const data_base64 = await window.api.invoke('pdf:generate-buffer', { html: specHtml }) as string
+                return { filnamn: `specifikation-${forslag.forslag_nummer}.pdf`, data_base64 }
+              },
+            }] : []),
           ]}
           onClose={() => setShowSendModal(false)}
           onSent={(link, extras) => {
             setLinksRefresh(k => k + 1)
-            void renderSigningPdf(link.id, extras?.titel).then(() => setLinksRefresh(k => k + 1))
+            void renderSigningPdf(link.id, extras?.titel, extras?.sammanfattad, extras?.splitPdf).then(() => setLinksRefresh(k => k + 1))
           }}
         />
       )}
@@ -2005,6 +2047,26 @@ export function ForslagDetail({ forslag: forslagProp, statusar, allProjekt, onBa
                 />
                 <span>Inkludera tidplan i samma PDF</span>
               </label>
+
+              <label className={`flex items-center gap-2 text-xs cursor-pointer select-none transition-colors ${pdfExportSammanfattad ? 'text-emerald-400 font-medium' : 'text-muted hover:text-fg'}`}>
+                <input
+                  type="checkbox"
+                  checked={pdfExportSammanfattad}
+                  onChange={(e) => setPdfExportSammanfattad(e.target.checked)}
+                  className="w-4 h-4 accent-emerald-400"
+                />
+                <span>Dölj raddetaljer</span>
+              </label>
+
+              <label className={`flex items-center gap-2 text-xs cursor-pointer select-none transition-colors ${pdfExportSplit ? 'text-emerald-400 font-medium' : 'text-muted hover:text-fg'}`}>
+                <input
+                  type="checkbox"
+                  checked={pdfExportSplit}
+                  onChange={(e) => setPdfExportSplit(e.target.checked)}
+                  className="w-4 h-4 accent-emerald-400"
+                />
+                <span>Dela upp i 2 PDF (offert + spec)</span>
+              </label>
             </div>
 
             <div className="flex items-center justify-end gap-2 px-5 py-3 border-t border-border bg-sidebar">
@@ -2012,7 +2074,7 @@ export function ForslagDetail({ forslag: forslagProp, statusar, allProjekt, onBa
                 Avbryt
               </button>
               <button
-                onClick={() => doExportPdf(pdfExportTitel || pdfTitelPicker.titel1, pdfExportBifogaTidplan)}
+                onClick={() => doExportPdf(pdfExportTitel || pdfTitelPicker.titel1, pdfExportBifogaTidplan, pdfExportSammanfattad, pdfExportSplit)}
                 disabled={exportingPdf}
                 className="flex items-center gap-1.5 rounded-md bg-emerald-400 text-bg px-4 py-1.5 text-sm font-medium hover:opacity-90 transition-opacity disabled:opacity-30"
               >

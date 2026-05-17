@@ -145,6 +145,23 @@ export function registerPdfHandlers(): void {
     return buffer.toString('base64')
   })
 
+  // Generate multiple PDFs from base64 buffers and save them to a user-chosen folder.
+  // Shows a single folder-picker dialog; auto-names each file as `${name}.pdf`.
+  ipcMain.handle('pdf:save-pdfs', async (_, pdfs: { name: string; data_base64: string }[]) => {
+    const win = BrowserWindow.getAllWindows()[0]
+    const result = await dialog.showOpenDialog(win, {
+      title: 'Välj mapp för PDF-filer',
+      properties: ['openDirectory', 'createDirectory'],
+      defaultPath: app.getPath('downloads'),
+    })
+    if (result.canceled || !result.filePaths[0]) return null
+    const folder = result.filePaths[0]
+    for (const { name, data_base64 } of pdfs) {
+      await writeFile(join(folder, `${name}.pdf`), Buffer.from(data_base64, 'base64'))
+    }
+    return folder
+  })
+
   // Pick image file and return as base64 data URL
   ipcMain.handle('pdf:pick-logo', async () => {
     const { filePaths, canceled } = await dialog.showOpenDialog({
