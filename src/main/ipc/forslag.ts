@@ -583,6 +583,9 @@ export function registerForslagHandlers(): void {
 
   ipcMain.handle('db:forslag-nummer:set', async (_, value: number) => {
     const n = Math.max(1, Math.floor(value))
+    // Reject if a forslag with this number already exists — setval(..., false) makes nextval return n exactly
+    const { data: conflict } = await supabase.from('forslag').select('id').eq('forslag_nummer', String(n)).maybeSingle()
+    if (conflict) throw new Error(`Numret ${n} är redan använt av ett befintligt förslag`)
     const { error } = await supabase.rpc('setval_forslag_nummer', { new_value: n })
     if (error) throw new Error(error.message)
     return n

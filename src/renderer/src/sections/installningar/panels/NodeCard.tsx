@@ -29,6 +29,7 @@ export const NODE_META: Record<WorkflowNodeType, NodeMeta> = {
   'ai:analyze-pdf':            { label: 'AI — Analysera PDF',  category: 'ai',     description: 'Analyserar PDF-dokument och extraherar relevant information' },
   'action:save-context':           { label: 'Spara kontext',             category: 'action', description: 'Sparar ett värde till projektets kontext för framtida workflows' },
   'action:create-forslag':         { label: 'Skapa förslag',             category: 'action', description: 'Skapar ett nytt förslag kopplat till projektet' },
+  'action:use-mall-direct':        { label: 'Ladda mall direkt',          category: 'action', description: 'Laddar vald fas-mall med alla faser och subfaser utan AI-urval' },
   'action:add-faser-to-forslag':   { label: 'Lägg till faser i förslag', category: 'action', description: 'Lägger till valda faser och subfaser i det skapade förslaget' },
   'action:match-material-katalog': { label: 'Matcha material mot katalog',    category: 'action', description: 'Söker varje estimerat material i katalogen och berikar med pris och leverantör' },
   'action:search-web-price':         { label: 'Sök pris på webben',              category: 'action', description: 'Hämtar pris från webben för material som saknas i katalogen' },

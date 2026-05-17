@@ -297,6 +297,7 @@ export type WorkflowNodeType =
   | 'ai:analyze-pdf'
   | 'action:save-context'
   | 'action:create-forslag'
+  | 'action:use-mall-direct'
   | 'action:add-faser-to-forslag'
   | 'action:match-material-katalog'
   | 'action:search-web-price'
@@ -395,6 +396,7 @@ export interface WorkflowTrigger {
   icon: string
   sortering: number
   skapad_at: string
+  trigger_inputs?: string[] | null
   workflow?: Pick<Workflow, 'id' | 'namn' | 'definition'>
   sequence?: WorkflowSequence
   sequence_workflows?: Pick<Workflow, 'id' | 'namn'>[]

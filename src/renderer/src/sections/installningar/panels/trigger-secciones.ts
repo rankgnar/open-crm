@@ -15,7 +15,7 @@ export const SECCION_COLORS: Record<string, string> = {
   fakturor: 'text-amber-400',
 }
 
-export type RequiredInput = 'projekt_id' | 'kund_id' | 'forslag_id'
+export type RequiredInput = 'projekt_id' | 'kund_id' | 'forslag_id' | 'fas_mall_id'
 
 export const SECCION_REQUIRED_INPUTS: Record<string, RequiredInput[]> = {
   projekt:            ['projekt_id'],

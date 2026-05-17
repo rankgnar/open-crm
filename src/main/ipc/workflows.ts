@@ -499,24 +499,21 @@ const NODE_EXECUTORS: Partial<Record<WorkflowNodeType, NodeExecutorFn>> = {
     const giltig_till = new Date(Date.now() + giltig_dagar * 24 * 60 * 60 * 1000)
       .toISOString().split('T')[0]
 
-    const { data: numData, error: numErr } = await supabase.rpc('nextval_forslag_nummer')
-    if (numErr) throw new Error(`Kunde inte generera förslagnummer: ${numErr.message}`)
-    const forslag_nummer = numData as string
-
-    const { data: forslag, error } = await supabase
-      .from('forslag')
-      .insert({
-        projekt_id,
-        forslag_nummer,
-        titel,
-        sammanfattning,
-        giltig_till,
-        moms_procent,
-        status: 'utkast',
-      })
-      .select('id, forslag_nummer, titel')
-      .single()
-    if (error || !forslag) throw new Error(`Kunde inte skapa förslag: ${error?.message ?? ''}`)
+    let forslag: { id: string; forslag_nummer: string; titel: string } | null = null
+    for (let attempt = 0; attempt < 5; attempt++) {
+      const { data: numData, error: numErr } = await supabase.rpc('nextval_forslag_nummer')
+      if (numErr) throw new Error(`Kunde inte generera förslagnummer: ${numErr.message}`)
+      const candidate = String(numData as number)
+      const { data: result, error: insertErr } = await supabase
+        .from('forslag')
+        .insert({ projekt_id, forslag_nummer: candidate, titel, sammanfattning, giltig_till, moms_procent, status: 'utkast' })
+        .select('id, forslag_nummer, titel')
+        .single()
+      if (result && !insertErr) { forslag = result as { id: string; forslag_nummer: string; titel: string }; break }
+      // Only retry on unique constraint violation (sequence manually reset to existing value)
+      if ((insertErr as { code?: string } | null)?.code !== '23505') throw new Error(`Kunde inte skapa förslag: ${insertErr?.message ?? ''}`)
+    }
+    if (!forslag) throw new Error('Kunde inte skapa förslag: sekvensnummerkollision')
 
     await supabase.from('projekt_anteckningar').insert({
       projekt_id,
@@ -531,6 +528,38 @@ const NODE_EXECUTORS: Partial<Record<WorkflowNodeType, NodeExecutorFn>> = {
       forslag_titel: forslag.titel,
       forslag_kund: kund_namn,
     }
+  },
+
+  'action:use-mall-direct': async ({ workflowInput, collectedData }) => {
+    const mall_id = (workflowInput.fas_mall_id ?? collectedData.fas_mall_id) as string
+    if (!mall_id) throw new Error('fas_mall_id saknas — välj en fas-mall i kördialogens inmatningsfält')
+
+    type MallFas = { id: string; namn: string; sortering: number; subfaser: { id: string; namn: string; sortering: number }[] }
+    const { data: mall, error } = await supabase
+      .from('fas_mallar')
+      .select('id, namn, beskrivning, faser:fas_mall_faser(id, namn, sortering, subfaser:fas_mall_subfaser(id, namn, sortering))')
+      .eq('id', mall_id)
+      .single()
+    if (error || !mall) throw new Error(`Fas-mall hittades inte: ${error?.message ?? 'okänd mall'}`)
+
+    const faser = [...((mall.faser as MallFas[]) ?? [])].sort((a, b) => a.sortering - b.sortering)
+    const valda_faser = faser.map(f => f.namn)
+    const valda_subfaser = faser.map(f => ({
+      fas: f.namn,
+      subfaser: [...(f.subfaser ?? [])].sort((a, b) => a.sortering - b.sortering).map(s => s.namn),
+    }))
+
+    const projekt_faser_urval = {
+      projekt_typ: (mall as { namn: string }).namn,
+      vald_mall: (mall as { namn: string }).namn,
+      valda_faser,
+      valda_subfaser,
+      saknade_faser: [],
+      saknar_mall: false,
+      motivering: `Manuellt vald mall: ${(mall as { namn: string }).namn}`,
+    }
+
+    return { projekt_faser_urval }
   },
 
   'action:add-faser-to-forslag': async ({ collectedData }) => {
@@ -1711,28 +1740,24 @@ const NODE_EXECUTORS: Partial<Record<WorkflowNodeType, NodeExecutorFn>> = {
     baseDate.setDate(baseDate.getDate() + giltig_dagar)
     const giltig_till = baseDate.toISOString().split('T')[0]
 
-    const { data: numData, error: numErr } = await supabase.rpc('nextval_forslag_nummer')
-    if (numErr) throw new Error(`Kunde inte generera förslagnummer: ${numErr.message}`)
-    const forslag_nummer = String(numData)
-
     const ursprung = header.ursprung_nummer
       ? `Importerat från ${header.ursprung_nummer}`
       : 'Importerat från PDF'
 
-    const { data: forslag, error: fErr } = await supabase
-      .from('forslag')
-      .insert({
-        projekt_id,
-        forslag_nummer,
-        titel,
-        sammanfattning: ursprung,
-        giltig_till,
-        moms_procent,
-        status: 'utkast',
-      })
-      .select('id, forslag_nummer, titel')
-      .single()
-    if (fErr || !forslag) throw new Error(`Kunde inte skapa förslag: ${fErr?.message ?? ''}`)
+    let forslag: { id: string; forslag_nummer: string; titel: string } | null = null
+    for (let attempt = 0; attempt < 5; attempt++) {
+      const { data: numData, error: numErr } = await supabase.rpc('nextval_forslag_nummer')
+      if (numErr) throw new Error(`Kunde inte generera förslagnummer: ${numErr.message}`)
+      const candidate = String(numData as number)
+      const { data: result, error: fErr } = await supabase
+        .from('forslag')
+        .insert({ projekt_id, forslag_nummer: candidate, titel, sammanfattning: ursprung, giltig_till, moms_procent, status: 'utkast' })
+        .select('id, forslag_nummer, titel')
+        .single()
+      if (result && !fErr) { forslag = result as { id: string; forslag_nummer: string; titel: string }; break }
+      if ((fErr as { code?: string } | null)?.code !== '23505') throw new Error(`Kunde inte skapa förslag: ${fErr?.message ?? ''}`)
+    }
+    if (!forslag) throw new Error('Kunde inte skapa förslag: sekvensnummerkollision')
     const forslag_id = forslag.id as string
 
     let faser_count = 0

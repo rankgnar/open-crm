@@ -33,6 +33,12 @@ interface ForslagOption {
   projekt?: { namn: string; projekt_nummer: string } | null
 }
 
+interface FasMallOption {
+  id: string
+  namn: string
+  beskrivning?: string | null
+}
+
 interface Props {
   trigger: WorkflowTrigger
   seccion: string
@@ -54,7 +60,9 @@ interface SeqStep {
 
 export function RunTriggerModal({ trigger, seccion, context, mode, resumable, onClose }: Props) {
   const isSequence = Boolean(trigger.sequence_id || trigger.sequence_ids)
-  const requiredInputs = requiredInputsFor(seccion)
+  const sectionInputs = requiredInputsFor(seccion)
+  const triggerExtraInputs = (trigger.trigger_inputs ?? []) as string[]
+  const requiredInputs = [...new Set([...sectionInputs, ...triggerExtraInputs])] as import('../sections/installningar/panels/trigger-secciones').RequiredInput[]
   const inputsNeedingPicker = requiredInputs.filter(k => !context[k])
 
   const seqWorkflows = useMemo(() => {
@@ -84,6 +92,7 @@ export function RunTriggerModal({ trigger, seccion, context, mode, resumable, on
   const [projekter, setProjekter] = useState<ProjektOption[] | null>(null)
   const [kunder, setKunder] = useState<KundOption[] | null>(null)
   const [forslagList, setForslagList] = useState<ForslagOption[] | null>(null)
+  const [fasMallar, setFasMallar] = useState<FasMallOption[] | null>(null)
 
   const [nodeStatuses, setNodeStatuses] = useState<Record<string, WorkflowNodeResult>>({})
   const [seqSteps, setSeqSteps] = useState<SeqStep[]>(() =>
@@ -124,7 +133,12 @@ export function RunTriggerModal({ trigger, seccion, context, mode, resumable, on
         .then(d => setForslagList(d as ForslagOption[]))
         .catch(() => setForslagList([]))
     }
-  }, [phase, requiredInputs, projekter, kunder, forslagList])
+    if (inputsNeedingPicker.includes('fas_mall_id') && fasMallar === null) {
+      window.api.invoke('db:fas-mallar:list')
+        .then(d => setFasMallar(d as FasMallOption[]))
+        .catch(() => setFasMallar([]))
+    }
+  }, [phase, requiredInputs, projekter, kunder, forslagList, fasMallar])
 
   useEffect(() => {
     if (phase !== 'running') return
@@ -365,6 +379,13 @@ export function RunTriggerModal({ trigger, seccion, context, mode, resumable, on
                       value={pickedInputs.forslag_id ?? ''}
                       onChange={(id) => setPickedInputs(prev => ({ ...prev, forslag_id: id }))}
                       options={forslagList}
+                    />
+                  )}
+                  {inputsNeedingPicker.includes('fas_mall_id') && (
+                    <FasMallPicker
+                      value={pickedInputs.fas_mall_id ?? ''}
+                      onChange={(id) => setPickedInputs(prev => ({ ...prev, fas_mall_id: id }))}
+                      options={fasMallar}
                     />
                   )}
                 </div>
@@ -613,6 +634,25 @@ function ForslagPicker({ value, onChange, options }: { value: string; onChange: 
       )}
       itemSearch={(f, q) => `${f.forslag_nummer} ${f.titel ?? ''} ${f.projekt?.projekt_nummer ?? ''}`.toLowerCase().includes(q)}
       itemSummary={(f) => `${f.forslag_nummer}${f.titel ? ` — ${f.titel}` : ''}`}
+    />
+  )
+}
+
+function FasMallPicker({ value, onChange, options }: { value: string; onChange: (id: string) => void; options: FasMallOption[] | null }) {
+  return (
+    <PickerCombobox
+      label="Fas-mall"
+      value={value}
+      onChange={onChange}
+      options={options}
+      renderItem={(m) => (
+        <>
+          <span className="text-fg">{m.namn}</span>
+          {m.beskrivning && <span className="text-muted ml-2 truncate">· {m.beskrivning}</span>}
+        </>
+      )}
+      itemSearch={(m, q) => `${m.namn} ${m.beskrivning ?? ''}`.toLowerCase().includes(q)}
+      itemSummary={(m) => m.namn}
     />
   )
 }
