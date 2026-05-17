@@ -11,5 +11,4 @@ DROP TABLE IF EXISTS revisor_dokument;
 DROP POLICY IF EXISTS "revisor_dokument_select_admin" ON storage.objects;
 DROP POLICY IF EXISTS "revisor_dokument_insert_admin" ON storage.objects;
 
--- Drop storage bucket (safe if empty)
-DELETE FROM storage.buckets WHERE id = 'revisor-dokument';
+-- Storage bucket must be deleted via the Storage API, not direct DML
