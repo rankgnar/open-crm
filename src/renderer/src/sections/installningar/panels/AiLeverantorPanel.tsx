@@ -45,6 +45,10 @@ function ProviderBlock({ provider, onUpdate }: { provider: AiProvider; onUpdate:
     setTestResult(null)
     const result = await window.api.invoke('ai:providers:test', { provider_slug: provider.provider_slug }) as AiTestResult
     setTestResult(result)
+    if (result.ok !== provider.aktiv) {
+      const updated = await window.api.invoke('ai:providers:update', { id: provider.id, aktiv: result.ok }) as AiProvider
+      onUpdate(updated)
+    }
     setTesting(false)
   }
 
@@ -59,7 +63,7 @@ function ProviderBlock({ provider, onUpdate }: { provider: AiProvider; onUpdate:
             <p className="text-sm font-medium text-fg">{provider.display_name}</p>
             <p className="text-xs text-subtle">{PROVIDER_DESCRIPTIONS[provider.provider_slug]}</p>
           </div>
-          {hasKey && (
+          {testResult?.ok && (
             <span className="size-1.5 rounded-full bg-emerald-400 shadow-[0_0_6px_rgba(52,211,153,0.6)]" />
           )}
         </div>

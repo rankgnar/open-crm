@@ -39,8 +39,10 @@ const CHANNELS = [
   'db:personal-tidrapport:reject',
   'db:personal-tidrapport:delete',
   'db:personal-tidrapport:delete-many',
+  'db:personal-tidrapport:report',
   'db:personal-loneposter:list',
   'db:personal-loneposter:list-all',
+  'db:personal-loneposter:report',
   'db:personal-loneposter:create',
   'db:personal-loneposter:delete',
   'db:personal-loneposter:delete-many',
@@ -458,6 +460,26 @@ export function registerPersonalHandlers(): void {
     return result
   })
 
+  ipcMain.handle('db:personal-tidrapport:report', async (_, input: {
+    from: string
+    to: string
+    status?: string
+    personal_ids?: string[]
+  }) => {
+    let q = supabase
+      .from('personal_tidrapport')
+      .select('*, personal(namn, personal_nummer, loneform), projekt(namn, projekt_nummer)')
+      .gte('datum', input.from)
+      .lte('datum', input.to)
+      .order('datum', { ascending: true })
+      .order('personal_id', { ascending: true })
+    if (input.status) q = q.eq('status', input.status)
+    if (input.personal_ids && input.personal_ids.length > 0) q = q.in('personal_id', input.personal_ids)
+    const { data, error } = await q
+    if (error) throw new Error(error.message)
+    return (data ?? []).map((r) => ({ ...r, bilder_antal: 0 }))
+  })
+
   ipcMain.handle('db:personal-tidrapport:bilder', async (_, input: { personalId: string; projektId: string; datum: string }) => {
     const start = `${input.datum}T00:00:00`
     const end = `${input.datum}T23:59:59.999`
@@ -667,6 +689,45 @@ export function registerPersonalHandlers(): void {
     const { data, error } = await q
     if (error) throw new Error(error.message)
     return data
+  })
+
+  ipcMain.handle('db:personal-loneposter:report', async (_, input: {
+    from: string
+    to: string
+    personal_ids?: string[]
+    includeAllForskott?: boolean
+  }) => {
+    // Main query: date-filtered. When includeAllForskott, exclude förskott here
+    // so they are not double-counted when fetched without date restriction below.
+    let q = supabase
+      .from('personal_loneposter')
+      .select('*, personal(namn, personal_nummer)')
+      .gte('manad', input.from.slice(0, 7))
+      .lte('manad', input.to.slice(0, 7))
+      .order('manad', { ascending: true })
+      .order('personal_id', { ascending: true })
+    if (input.includeAllForskott) q = q.neq('typ', 'förskott')
+    if (input.personal_ids && input.personal_ids.length > 0) q = q.in('personal_id', input.personal_ids)
+    const { data, error } = await q
+    if (error) throw new Error(error.message)
+
+    type Row = Record<string, unknown>
+    const result: Row[] = (data ?? []) as Row[]
+
+    if (input.includeAllForskott) {
+      // Fetch ALL förskott for these employees regardless of date
+      let fq = supabase
+        .from('personal_loneposter')
+        .select('*, personal(namn, personal_nummer)')
+        .eq('typ', 'förskott')
+        .order('manad', { ascending: true })
+      if (input.personal_ids && input.personal_ids.length > 0) fq = fq.in('personal_id', input.personal_ids)
+      const { data: fData, error: fError } = await fq
+      if (fError) throw new Error(fError.message)
+      result.push(...((fData ?? []) as Row[]))
+    }
+
+    return result
   })
 
   ipcMain.handle('db:personal-loneposter:create', async (_, input: { personal_id: string; typ: string; belopp: number; beskrivning?: string; datum: string; manad: string }) => {

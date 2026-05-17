@@ -9,7 +9,7 @@ import type { AiProviderSlug, AiProvider, AiAssistent, AiTestResult, AiChatMessa
 const OPENROUTER_DEFAULT_BASE = 'https://openrouter.ai/api/v1'
 
 const MODELS: Record<AiProviderSlug, string[]> = {
-  anthropic: ['claude-opus-4-5', 'claude-sonnet-4-6', 'claude-haiku-3-5'],
+  anthropic: ['claude-opus-4-7', 'claude-sonnet-4-6', 'claude-haiku-4-5-20251001'],
   openai: ['gpt-4o', 'gpt-4o-mini', 'o3', 'o3-mini'],
   google: ['gemini-2.5-pro', 'gemini-2.5-flash', 'gemini-2.0-flash-001'],
   openrouter: [
@@ -87,7 +87,7 @@ export function registerAiHandlers(): void {
       if (provider_slug === 'anthropic') {
         if (!raw.api_key) return { ok: false, latency_ms: 0, error: 'API key saknas' }
         const client = new Anthropic({ apiKey: raw.api_key })
-        await client.messages.create({ model: 'claude-haiku-3-5', max_tokens: 1, messages: [{ role: 'user', content: 'hi' }] })
+        await client.messages.create({ model: 'claude-haiku-4-5-20251001', max_tokens: 1, messages: [{ role: 'user', content: 'hi' }] })
       } else if (provider_slug === 'openai') {
         if (!raw.api_key) return { ok: false, latency_ms: 0, error: 'API key saknas' }
         const client = new OpenAI({ apiKey: raw.api_key })

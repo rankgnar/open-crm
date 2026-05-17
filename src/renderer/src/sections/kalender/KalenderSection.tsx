@@ -2064,7 +2064,7 @@ function DagPanel({
 // ─── KalenderSection ─────────────────────────────────────────────────────────
 
 export function KalenderSection({ onNavigate }: { onNavigate?: (section: string) => void } = {}) {
-  const [vy, setVy] = useState<KalenderVy>('vecka')
+  const [vy, setVy] = useState<KalenderVy>('dag')
   const [anchor, setAnchor] = useState(new Date())
   const [lokalVisas, setLokalVisas] = useState(true)
   const [synligaKunder, setSynligaKunder] = useState<Set<string>>(new Set())
@@ -2092,7 +2092,7 @@ export function KalenderSection({ onNavigate }: { onNavigate?: (section: string)
   const [pdfMenuOpen, setPdfMenuOpen] = useState(false)
   const [pdfDatum, setPdfDatum] = useState(() => toDateInput(new Date()))
   const [exporterar, setExporterar] = useState(false)
-  const [kalendrarOppen, setKalendrarOppen] = useState(true)
+  const [kalendrarOppen, setKalendrarOppen] = useState(false)
   const [vyDropdownOpen, setVyDropdownOpen] = useState(false)
   const pdfMenuRef = useRef<HTMLDivElement>(null)
   const vyDropdownRef = useRef<HTMLDivElement>(null)

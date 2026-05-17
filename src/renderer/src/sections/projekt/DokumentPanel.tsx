@@ -446,7 +446,7 @@ export function DokumentPanel({ dokument, projektId, onUpload, onCreateText, onD
       {newTextOpen && createPortal(
         <>
           <div className="fixed inset-0 z-40 bg-black/40" onClick={closeNewText} />
-          <div className="fixed z-50 top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-elevated border border-border rounded-xl shadow-xl w-[480px] flex flex-col">
+          <div className="fixed z-50 top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-elevated border border-border rounded-xl shadow-xl w-[720px] flex flex-col">
             <div className="flex items-center justify-between px-4 py-3 border-b border-border">
               <span className="text-xs font-semibold text-fg uppercase tracking-wider">Ny textfil</span>
               <button onClick={closeNewText} className="p-1 text-subtle hover:text-fg transition-colors">
@@ -473,7 +473,7 @@ export function DokumentPanel({ dokument, projektId, onUpload, onCreateText, onD
                 <textarea
                   value={newTextContent}
                   onChange={(e) => setNewTextContent(e.target.value)}
-                  rows={8}
+                  rows={14}
                   placeholder="Skriv innehållet här..."
                   className="text-sm bg-bg border border-border rounded px-2.5 py-1.5 text-fg outline-none focus:border-blue-400 transition-colors resize-none font-mono"
                 />

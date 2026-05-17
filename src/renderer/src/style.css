@@ -169,6 +169,13 @@ input[type=number] { -moz-appearance: textfield; }
   filter: invert(0.9);
 }
 
+/* ─── Print / PDF report ──────────────────────────────────────── */
+@media print {
+  body * { visibility: hidden; }
+  #print-report, #print-report * { visibility: visible; }
+  #print-report { position: absolute; top: 0; left: 0; right: 0; }
+}
+
 /* ─── Workspace bento ───────────────────────────────────────── */
 @keyframes ws-tile-enter {
   from { opacity: 0; transform: translateY(6px); }

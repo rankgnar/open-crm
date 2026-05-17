@@ -246,3 +246,46 @@ export const LONEPOST_TYPER: { value: LonepostTyp; label: string; sign: 1 | -1 }
   { value: 'avdrag', label: 'Avdrag', sign: -1 },
   { value: 'förskott', label: 'Förskott', sign: -1 },
 ]
+
+export interface LonepostGlobal extends PersonalLonepost {
+  personal: { namn: string; personal_nummer: string } | null
+}
+
+export interface PdfSettings {
+  // Sections
+  showTimrapporter: boolean
+  showLoneunderlag: boolean
+  showSammanfattning: boolean
+  showTimlon: boolean
+  // Tidrapport columns
+  showColIn: boolean
+  showColPaus: boolean
+  showColTyp: boolean
+  showColProjekt: boolean
+  showColTransport: boolean
+  showColBeskrivning: boolean
+  // Lonepost types
+  showLonepostTillagg: boolean
+  showLonepostTraktamente: boolean
+  showLonepostUtlagg: boolean
+  showLonepostAvdrag: boolean
+  showLonepostForskott: boolean
+}
+
+export const DEFAULT_PDF_SETTINGS: PdfSettings = {
+  showTimrapporter: true,
+  showLoneunderlag: true,
+  showSammanfattning: true,
+  showTimlon: true,
+  showColIn: true,
+  showColPaus: true,
+  showColTyp: true,
+  showColProjekt: true,
+  showColTransport: false,
+  showColBeskrivning: false,
+  showLonepostTillagg: true,
+  showLonepostTraktamente: true,
+  showLonepostUtlagg: true,
+  showLonepostAvdrag: true,
+  showLonepostForskott: true,
+}

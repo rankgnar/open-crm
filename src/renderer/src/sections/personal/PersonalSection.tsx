@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
+import { Settings, X } from 'lucide-react'
 import { useRefreshHandler } from '@/context/RefreshContext'
 import { PersonalTable } from './PersonalTable'
 import { PersonalForm } from './PersonalForm'
@@ -6,13 +7,15 @@ import { PersonalDetail } from './PersonalDetail'
 import { TidrapporterView } from './TidrapporterView'
 import { LedighetView } from './LedighetView'
 import { LoneunderlagView } from './LoneunderlagView'
+import { ReportView } from './ReportView'
 import type {
   Personal, CreatePersonalInput, UpdatePersonalInput, PersonalAnteckning, PersonalDokument,
   PersonalLonepost, PersonalStatusar, DokumentKategori, FileDialogResult, CsvImportResult,
-  ProjektPersonal, ProjektItem,
+  ProjektPersonal, ProjektItem, PdfSettings,
 } from './types'
+import { DEFAULT_PDF_SETTINGS } from './types'
 
-type MainTab = 'anstallda' | 'tidrapporter' | 'ledighet' | 'loneunderlag'
+type MainTab = 'anstallda' | 'tidrapporter' | 'ledighet' | 'loneunderlag' | 'report'
 type AnstallView = 'list' | 'create' | 'detail'
 
 const TABS: { key: MainTab; label: string }[] = [
@@ -20,10 +23,38 @@ const TABS: { key: MainTab; label: string }[] = [
   { key: 'tidrapporter', label: 'Tidrapporter' },
   { key: 'ledighet', label: 'Ledighet' },
   { key: 'loneunderlag', label: 'Löneunderlag' },
+  { key: 'report', label: 'Report' },
+]
+
+type PdfSettingRow =
+  | { type: 'toggle'; key: keyof PdfSettings; label: string; indent?: boolean }
+  | { type: 'divider'; label: string }
+
+const PDF_SETTINGS_DEF: PdfSettingRow[] = [
+  { type: 'divider', label: 'Sektioner' },
+  { type: 'toggle', key: 'showTimrapporter',  label: 'Tidrapporter' },
+  { type: 'toggle', key: 'showLoneunderlag',  label: 'Löneunderlag' },
+  { type: 'toggle', key: 'showSammanfattning', label: 'Sammanfattning' },
+  { type: 'toggle', key: 'showTimlon',         label: 'Timlön / månadslön' },
+  { type: 'divider', label: 'Kolumner — tidrapport' },
+  { type: 'toggle', key: 'showColIn',          label: 'In / Ut' },
+  { type: 'toggle', key: 'showColPaus',        label: 'Paus (min)' },
+  { type: 'toggle', key: 'showColTyp',         label: 'Typ' },
+  { type: 'toggle', key: 'showColProjekt',     label: 'Proj.nr / Projekt' },
+  { type: 'toggle', key: 'showColTransport',   label: 'Transport' },
+  { type: 'toggle', key: 'showColBeskrivning', label: 'Beskrivning' },
+  { type: 'divider', label: 'Lönetyper' },
+  { type: 'toggle', key: 'showLonepostTillagg',     label: 'Tillägg', indent: true },
+  { type: 'toggle', key: 'showLonepostTraktamente', label: 'Traktamente', indent: true },
+  { type: 'toggle', key: 'showLonepostUtlagg',      label: 'Utlägg', indent: true },
+  { type: 'toggle', key: 'showLonepostAvdrag',      label: 'Avdrag', indent: true },
+  { type: 'toggle', key: 'showLonepostForskott',    label: 'Förskott', indent: true },
 ]
 
 export function PersonalSection() {
   const [mainTab, setMainTab] = useState<MainTab>('anstallda')
+  const [pdfSettings, setPdfSettings] = useState<PdfSettings>(DEFAULT_PDF_SETTINGS)
+  const [settingsOpen, setSettingsOpen] = useState(false)
 
   // Anställda sub-state
   const [personal, setPersonal] = useState<Personal[]>([])
@@ -229,11 +260,11 @@ export function PersonalSection() {
   return (
     <div className="flex flex-col h-full">
       {/* Sub-navigation */}
-      <div className="flex border-b border-border bg-sidebar shrink-0 px-6">
+      <div className="flex items-center border-b border-border bg-sidebar shrink-0 px-6">
         {TABS.map(({ key, label }) => (
           <button
             key={key}
-            onClick={() => { setMainTab(key); if (key === 'anstallda') clearDetail() }}
+            onClick={() => { setMainTab(key); if (key === 'anstallda') clearDetail(); if (key !== 'report') setSettingsOpen(false) }}
             className={`px-4 py-3 text-xs font-medium border-b-2 transition-colors ${
               mainTab === key ? 'border-fg text-fg' : 'border-transparent text-subtle hover:text-muted'
             }`}
@@ -241,13 +272,62 @@ export function PersonalSection() {
             {label}
           </button>
         ))}
+        {mainTab === 'report' && (
+          <button
+            onClick={() => setSettingsOpen((v) => !v)}
+            title="PDF-inställningar"
+            className={`ml-auto p-2.5 rounded-md transition-colors ${settingsOpen ? 'text-fg bg-hover' : 'text-subtle hover:text-muted hover:bg-hover'}`}
+          >
+            <Settings size={14} />
+          </button>
+        )}
       </div>
 
       {/* Tab content */}
-      <div className="flex-1 min-h-0 overflow-hidden">
+      <div className="flex-1 min-h-0 overflow-hidden relative">
         {mainTab === 'tidrapporter' && <TidrapporterView />}
         {mainTab === 'ledighet' && <LedighetView />}
         {mainTab === 'loneunderlag' && <LoneunderlagView />}
+        {mainTab === 'report' && <ReportView pdfSettings={pdfSettings} />}
+
+        {/* PDF settings panel */}
+        {settingsOpen && mainTab === 'report' && (
+          <div className="absolute right-0 top-0 bottom-0 w-64 bg-elevated border-l border-border z-40 flex flex-col shadow-xl">
+            <div className="flex items-center justify-between px-4 py-3 border-b border-border shrink-0">
+              <p className="text-[11px] uppercase tracking-widest text-muted">PDF-innehåll</p>
+              <button onClick={() => setSettingsOpen(false)} className="text-subtle hover:text-fg transition-colors">
+                <X size={13} />
+              </button>
+            </div>
+            <div className="flex-1 overflow-auto p-4 flex flex-col gap-1">
+              {PDF_SETTINGS_DEF.map((row, i) => {
+                if (row.type === 'divider') {
+                  return (
+                    <p key={i} className="text-[10px] uppercase tracking-widest text-subtle mt-3 mb-1 first:mt-0">
+                      {row.label}
+                    </p>
+                  )
+                }
+                return (
+                  <label
+                    key={row.key}
+                    className={`flex items-center justify-between gap-3 cursor-pointer group py-1 ${row.indent ? 'pl-3' : ''}`}
+                  >
+                    <span className={`text-xs transition-colors group-hover:text-fg ${row.indent ? 'text-subtle' : 'text-muted'}`}>
+                      {row.label}
+                    </span>
+                    <input
+                      type="checkbox"
+                      checked={pdfSettings[row.key]}
+                      onChange={() => setPdfSettings((s) => ({ ...s, [row.key]: !s[row.key] }))}
+                      className="rounded border-border accent-emerald-400 w-3.5 h-3.5 shrink-0"
+                    />
+                  </label>
+                )
+              })}
+            </div>
+          </div>
+        )}
 
         {mainTab === 'anstallda' && (
           <>
