@@ -1,7 +1,9 @@
 import { useState, useEffect, useCallback } from 'react'
-import { Plus, Sparkles, Star, Trash2 } from 'lucide-react'
+import { Plus, Sparkles, Star, Trash2, ChevronDown, ChevronUp } from 'lucide-react'
 import type { AiAssistent, AiProvider, AiProviderSlug, AiUppgift } from '../types'
 import { SelectField } from '@/components/SelectField'
+
+const CATEGORIES = ['Förslag', 'E-post', 'Analys', 'Formulär', 'Allmänt']
 
 const UPPGIFTER: { value: AiUppgift; label: string }[] = [
   { value: 'forslag', label: 'Förslag' },
@@ -145,6 +147,14 @@ function AssistentDetail({
               options={models.map((m) => ({ value: m, label: m }))}
             />
           </div>
+          <div className="flex flex-col gap-1.5">
+            <label className="text-[11px] uppercase tracking-wider text-muted">Kategori</label>
+            <SelectField
+              value={assistent.category}
+              onChange={(v) => update({ category: v })}
+              options={CATEGORIES.map((c) => ({ value: c, label: c }))}
+            />
+          </div>
         </div>
       </div>
 
@@ -272,6 +282,7 @@ export function AsistenterPanel() {
   const [asistenter, setAsistenter] = useState<AiAssistent[]>([])
   const [providers, setProviders] = useState<AiProvider[]>([])
   const [selectedId, setSelectedId] = useState<string | null>(null)
+  const [collapsedCats, setCollapsedCats] = useState<Set<string>>(() => new Set())
 
   useEffect(() => {
     Promise.all([
@@ -296,7 +307,8 @@ export function AsistenterPanel() {
       max_tokens: 2048,
       aktiv: true,
       ar_standard: false,
-      sortering: asistenter.length
+      sortering: asistenter.length,
+      category: 'Allmänt'
     }) as AiAssistent
     setAsistenter((prev) => [...prev, created])
     setSelectedId(created.id)
@@ -327,37 +339,67 @@ export function AsistenterPanel() {
             <Plus size={14} />
           </button>
         </div>
-        <div className="flex-1 overflow-auto py-1">
+        <div className="flex-1 overflow-auto">
           {asistenter.length === 0 && (
             <p className="text-xs text-subtle px-4 py-3">Inga assistenter ännu.</p>
           )}
-          {asistenter.map((a) => (
-            <button
-              key={a.id}
-              onClick={() => setSelectedId(a.id)}
-              className={`w-full text-left px-4 py-2.5 transition-colors ${selectedId === a.id ? 'bg-hover text-fg' : 'text-muted hover:text-fg hover:bg-hover'}`}
-            >
-              <div className="flex items-center gap-1.5">
-                {a.ar_standard && <Star size={10} className="text-amber-400 fill-amber-400 shrink-0" />}
-                <p className="text-sm truncate">{a.namn}</p>
-              </div>
-              <p className="text-[11px] text-subtle truncate mt-0.5">
-                {a.provider?.display_name ?? '—'} · {a.model_id}
-              </p>
-              {(a.uppgifter ?? []).length > 0 && (
-                <div className="flex flex-wrap gap-1 mt-1.5">
-                  {(a.uppgifter ?? []).map((u) => {
-                    const label = UPPGIFTER.find((x) => x.value === u)?.label ?? u
-                    return (
-                      <span key={u} className="text-[10px] px-1.5 py-0.5 rounded bg-elevated border border-border text-subtle leading-none">
-                        {label}
-                      </span>
-                    )
-                  })}
+          {asistenter.length > 0 && (() => {
+            const grouped = CATEGORIES.reduce<Record<string, AiAssistent[]>>((acc, cat) => {
+              const items = asistenter.filter((a) => a.category === cat)
+              if (items.length > 0) acc[cat] = items
+              return acc
+            }, {})
+            const uncategorized = asistenter.filter((a) => !CATEGORIES.includes(a.category))
+            if (uncategorized.length > 0) grouped['Övrigt'] = uncategorized
+            return Object.entries(grouped).map(([cat, items]) => {
+              const collapsed = collapsedCats.has(cat)
+              return (
+                <div key={cat}>
+                  <button
+                    onClick={() => setCollapsedCats((prev) => {
+                      const next = new Set(prev)
+                      if (next.has(cat)) next.delete(cat); else next.add(cat)
+                      return next
+                    })}
+                    className="w-full flex items-center justify-between px-4 py-1.5 border-b border-border/50 bg-sidebar/50 sticky top-0 hover:bg-hover transition-colors"
+                  >
+                    <span className="text-[10px] uppercase tracking-widest text-subtle">{cat}</span>
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-[10px] text-subtle/60">{items.length}</span>
+                      {collapsed ? <ChevronDown size={11} className="text-subtle" /> : <ChevronUp size={11} className="text-subtle" />}
+                    </div>
+                  </button>
+                  {!collapsed && items.map((a) => (
+                    <button
+                      key={a.id}
+                      onClick={() => setSelectedId(a.id)}
+                      className={`w-full text-left px-4 py-2.5 border-b border-border/50 transition-colors ${selectedId === a.id ? 'bg-hover text-fg' : 'text-muted hover:text-fg hover:bg-hover'}`}
+                    >
+                      <div className="flex items-center gap-1.5">
+                        {a.ar_standard && <Star size={10} className="text-amber-400 fill-amber-400 shrink-0" />}
+                        <p className="text-sm truncate">{a.namn}</p>
+                      </div>
+                      <p className="text-[11px] text-subtle truncate mt-0.5">
+                        {a.provider?.display_name ?? '—'} · {a.model_id}
+                      </p>
+                      {(a.uppgifter ?? []).length > 0 && (
+                        <div className="flex flex-wrap gap-1 mt-1.5">
+                          {(a.uppgifter ?? []).map((u) => {
+                            const label = UPPGIFTER.find((x) => x.value === u)?.label ?? u
+                            return (
+                              <span key={u} className="text-[10px] px-1.5 py-0.5 rounded bg-elevated border border-border text-subtle leading-none">
+                                {label}
+                              </span>
+                            )
+                          })}
+                        </div>
+                      )}
+                    </button>
+                  ))}
                 </div>
-              )}
-            </button>
-          ))}
+              )
+            })
+          })()}
         </div>
       </div>
 

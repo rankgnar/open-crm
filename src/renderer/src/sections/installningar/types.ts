@@ -181,6 +181,7 @@ export interface AiAssistent {
   aktiv: boolean
   ar_standard: boolean
   sortering: number
+  category: string
   skapad_at: string
   uppdaterad_at: string
   provider?: Pick<AiProvider, 'provider_slug' | 'display_name'>
