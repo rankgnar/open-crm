@@ -170,12 +170,20 @@ const [selected, setSelected] = useState<Set<string>>(new Set())
   const [deletingBulk, setDeletingBulk] = useState(false)
   const [savingBulkStatus, setSavingBulkStatus] = useState(false)
   const [confirmRowId, setConfirmRowId] = useState<string | null>(null)
-  const [sortCol, setSortCol] = useState<string | null>(null)
-  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc')
+  const [sortCol, setSortCol] = useState<string | null>(() => localStorage.getItem('projekt-sort-col') || null)
+  const [sortDir, setSortDir] = useState<'asc' | 'desc'>(() => (localStorage.getItem('projekt-sort-dir') as 'asc' | 'desc') || 'asc')
 
   function handleSort(col: string) {
-    if (sortCol === col) setSortDir((d) => d === 'asc' ? 'desc' : 'asc')
-    else { setSortCol(col); setSortDir('asc') }
+    if (sortCol === col) {
+      const next = sortDir === 'asc' ? 'desc' : 'asc'
+      setSortDir(next)
+      localStorage.setItem('projekt-sort-dir', next)
+    } else {
+      setSortCol(col)
+      setSortDir('asc')
+      localStorage.setItem('projekt-sort-col', col)
+      localStorage.setItem('projekt-sort-dir', 'asc')
+    }
   }
 
   function toggleSelect(e: React.MouseEvent, id: string) {
