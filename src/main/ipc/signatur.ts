@@ -1,5 +1,8 @@
 import { ipcMain, BrowserWindow } from 'electron'
 import { randomBytes } from 'crypto'
+import { writeFile, unlink } from 'fs/promises'
+import { join } from 'path'
+import { tmpdir } from 'os'
 import { supabase } from '../supabase'
 import { buildSignatureUrl } from '../lib/signaturUrl'
 import { zohoUploadAttachment } from './epost'
@@ -449,8 +452,10 @@ export function registerSignaturHandlers(): void {
       height: args.landscape ? 850 : 1131,
       webPreferences: { sandbox: false },
     })
+    const tmp1 = join(tmpdir(), `crm-pdf-${Date.now()}.html`)
+    await writeFile(tmp1, args.html, 'utf-8')
     try {
-      await win.loadURL(`data:text/html;charset=utf-8,${encodeURIComponent(args.html)}`)
+      await win.loadFile(tmp1)
       const buffer = await win.webContents.printToPDF({
         printBackground: true,
         pageSize: 'A4',
@@ -474,6 +479,7 @@ export function registerSignaturHandlers(): void {
       return { url: publicUrl }
     } finally {
       win.close()
+      unlink(tmp1).catch(() => {})
     }
   })
 
@@ -494,8 +500,10 @@ export function registerSignaturHandlers(): void {
       height: args.landscape ? 850 : 1131,
       webPreferences: { sandbox: false },
     })
+    const tmp2 = join(tmpdir(), `crm-pdf-${Date.now()}.html`)
+    await writeFile(tmp2, args.html, 'utf-8')
     try {
-      await win.loadURL(`data:text/html;charset=utf-8,${encodeURIComponent(args.html)}`)
+      await win.loadFile(tmp2)
       const buffer = await win.webContents.printToPDF({
         printBackground: true,
         pageSize: 'A4',
@@ -519,6 +527,7 @@ export function registerSignaturHandlers(): void {
       return { url: publicUrl }
     } finally {
       win.close()
+      unlink(tmp2).catch(() => {})
     }
   })
 

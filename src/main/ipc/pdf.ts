@@ -1,8 +1,18 @@
 import { ipcMain, dialog, shell, BrowserWindow, app } from 'electron'
-import { writeFile, readFile } from 'fs/promises'
+import { writeFile, readFile, unlink } from 'fs/promises'
 import { join } from 'path'
 import { tmpdir } from 'os'
 import { supabase } from '../supabase'
+
+async function loadHtmlInWindow(win: BrowserWindow, html: string): Promise<void> {
+  const tmp = join(tmpdir(), `crm-pdf-${Date.now()}.html`)
+  await writeFile(tmp, html, 'utf-8')
+  try {
+    await win.loadFile(tmp)
+  } finally {
+    unlink(tmp).catch(() => {})
+  }
+}
 
 export function registerPdfHandlers(): void {
   ipcMain.handle('db:pdf-mall:list', async () => {
@@ -43,7 +53,7 @@ export function registerPdfHandlers(): void {
       webPreferences: { sandbox: false }
     })
 
-    await win.loadURL(`data:text/html;charset=utf-8,${encodeURIComponent(html)}`)
+    await loadHtmlInWindow(win, html)
 
     const buffer = await win.webContents.printToPDF({
       printBackground: true,
@@ -87,7 +97,7 @@ export function registerPdfHandlers(): void {
         height: part.landscape ? 850 : 1131,
         webPreferences: { sandbox: false }
       })
-      await win.loadURL(`data:text/html;charset=utf-8,${encodeURIComponent(part.html)}`)
+      await loadHtmlInWindow(win, part.html)
       const buf = await win.webContents.printToPDF({
         printBackground: true,
         pageSize: 'A4',
@@ -132,7 +142,7 @@ export function registerPdfHandlers(): void {
       webPreferences: { sandbox: false }
     })
 
-    await win.loadURL(`data:text/html;charset=utf-8,${encodeURIComponent(html)}`)
+    await loadHtmlInWindow(win, html)
 
     const buffer = await win.webContents.printToPDF({
       printBackground: true,
