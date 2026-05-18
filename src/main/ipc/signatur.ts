@@ -531,6 +531,66 @@ export function registerSignaturHandlers(): void {
     }
   })
 
+  ipcMain.handle('db:signatur-lank:render-specifikation-pdf', async (_, args: { link_id: string; html: string }) => {
+    if (!args.link_id || !args.html) throw new Error('link_id + html krävs')
+    const { data: link, error: linkErr } = await supabase
+      .from('signatur_lankar').select('token').eq('id', args.link_id).single()
+    if (linkErr || !link) throw new Error(linkErr?.message ?? 'Länken finns inte')
+
+    const win = new BrowserWindow({ show: false, width: 800, height: 1131, webPreferences: { sandbox: false } })
+    const tmp = join(tmpdir(), `crm-pdf-${Date.now()}.html`)
+    await writeFile(tmp, args.html, 'utf-8')
+    try {
+      await win.loadFile(tmp)
+      const buffer = await win.webContents.printToPDF({
+        printBackground: true, pageSize: 'A4', landscape: false,
+        margins: { top: 0, bottom: 0, left: 0, right: 0 },
+      })
+      const path = `${link.token}/specifikation.pdf`
+      const { error: upErr } = await supabase.storage
+        .from('signing-pdfs').upload(path, buffer, { contentType: 'application/pdf', upsert: true })
+      if (upErr) throw new Error(`Storage-uppladdning misslyckades: ${upErr.message}`)
+      const { data: { publicUrl } } = supabase.storage.from('signing-pdfs').getPublicUrl(path)
+      const { error: updErr } = await supabase
+        .from('signatur_lankar').update({ specifikation_pdf_url: publicUrl }).eq('id', args.link_id)
+      if (updErr) throw new Error(updErr.message)
+      return { url: publicUrl }
+    } finally {
+      win.close()
+      unlink(tmp).catch(() => {})
+    }
+  })
+
+  ipcMain.handle('db:signatur-lank:render-tidplan-pdf', async (_, args: { link_id: string; html: string }) => {
+    if (!args.link_id || !args.html) throw new Error('link_id + html krävs')
+    const { data: link, error: linkErr } = await supabase
+      .from('signatur_lankar').select('token').eq('id', args.link_id).single()
+    if (linkErr || !link) throw new Error(linkErr?.message ?? 'Länken finns inte')
+
+    const win = new BrowserWindow({ show: false, width: 1200, height: 850, webPreferences: { sandbox: false } })
+    const tmp = join(tmpdir(), `crm-pdf-${Date.now()}.html`)
+    await writeFile(tmp, args.html, 'utf-8')
+    try {
+      await win.loadFile(tmp)
+      const buffer = await win.webContents.printToPDF({
+        printBackground: true, pageSize: 'A4', landscape: true,
+        margins: { top: 0, bottom: 0, left: 0, right: 0 },
+      })
+      const path = `${link.token}/tidplan.pdf`
+      const { error: upErr } = await supabase.storage
+        .from('signing-pdfs').upload(path, buffer, { contentType: 'application/pdf', upsert: true })
+      if (upErr) throw new Error(`Storage-uppladdning misslyckades: ${upErr.message}`)
+      const { data: { publicUrl } } = supabase.storage.from('signing-pdfs').getPublicUrl(path)
+      const { error: updErr } = await supabase
+        .from('signatur_lankar').update({ tidplan_pdf_url: publicUrl }).eq('id', args.link_id)
+      if (updErr) throw new Error(updErr.message)
+      return { url: publicUrl }
+    } finally {
+      win.close()
+      unlink(tmp).catch(() => {})
+    }
+  })
+
   // ── Default mall-id for the modal pre-selection ───────────────────────────
   ipcMain.handle('db:signatur-lank:get-default-mall', async (_, dokument_typ: DokumentTyp) => {
     const { data } = await supabase

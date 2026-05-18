@@ -24,7 +24,7 @@ interface Props {
   bifogaOptions?: BifogaOption[]
   titelOptions?:  TitelOptions
   onClose:        () => void
-  onSent:         (link: SignaturLank, extras?: { titel?: string; sammanfattad?: boolean; splitPdf?: boolean }) => void
+  onSent:         (link: SignaturLank, extras?: { titel?: string; sammanfattad?: boolean; splitPdf?: boolean; bifogaTidplan?: boolean }) => void
 }
 
 const EXPIRY_OPTIONS = [
@@ -103,6 +103,7 @@ export function SkickaForSignaturModal({ dokument_typ, dokument_id, initialEmail
         ...(showTitelPicker ? { titel: titel || titelOptions?.titel1 } : {}),
         ...(sammanfattad ? { sammanfattad: true } : {}),
         ...(splitPdf ? { splitPdf: true } : {}),
+        ...(enabledBifoga.has('tidplan') ? { bifogaTidplan: true } : {}),
       })
       onClose()
     } catch (e) {

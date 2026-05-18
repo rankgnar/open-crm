@@ -2011,7 +2011,30 @@ export function ForslagDetail({ forslag: forslagProp, statusar, allProjekt, onBa
           onClose={() => setShowSendModal(false)}
           onSent={(link, extras) => {
             setLinksRefresh(k => k + 1)
-            void renderSigningPdf(link.id, extras?.titel, extras?.sammanfattad, extras?.splitPdf).then(() => setLinksRefresh(k => k + 1))
+            void renderSigningPdf(link.id, extras?.titel, extras?.sammanfattad, extras?.splitPdf)
+              .then(async () => {
+                if (extras?.splitPdf) {
+                  try {
+                    const specHtml = await buildForslagHtml(
+                      signaturTitelOptions?.titel1 || 'FÖRSLAG',
+                      { visa_portada_display: 'none', visa_sammanfattning_display: 'none', visa_villkor_display: 'none' },
+                      extras?.sammanfattad ?? false
+                    )
+                    await window.api.invoke('db:signatur-lank:render-specifikation-pdf', { link_id: link.id, html: specHtml })
+                  } catch (e) {
+                    console.error('Render specifikation PDF failed:', e)
+                  }
+                }
+                if (extras?.bifogaTidplan) {
+                  try {
+                    const tidplanHtml = await buildTidplanHtmlForExport()
+                    await window.api.invoke('db:signatur-lank:render-tidplan-pdf', { link_id: link.id, html: tidplanHtml })
+                  } catch (e) {
+                    console.error('Render tidplan PDF failed:', e)
+                  }
+                }
+                setLinksRefresh(k => k + 1)
+              })
           }}
         />
       )}
