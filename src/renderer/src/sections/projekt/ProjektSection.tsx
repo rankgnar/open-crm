@@ -3,6 +3,7 @@ import { useRefreshHandler } from '@/context/RefreshContext'
 import { ProjektTable } from './ProjektTable'
 import { ProjektForm } from './ProjektForm'
 import { ProjektDetail } from './ProjektDetail'
+import { DuplikatProjektModal } from './DuplikatProjektModal'
 import type { ProjektWithKund, CreateProjektInput, ProjektAnteckning, ProjektStatusar, ProjektDokument, FileDialogResult, ProjektAktivitet, DokumentKategori, Frageblankett, FragaFalt, FrageblanktEpostDraft } from './types'
 import type { Kund } from '@/sections/kunder/types'
 import type { FaktureringSnapshot } from '@/sections/fakturering/types'
@@ -19,6 +20,7 @@ export function ProjektSection({ initialProjektId }: Props = {}) {
   const [fragSummary, setFragSummary] = useState<Record<string, string>>({})
   const [forslagSummary, setForslagSummary] = useState<Record<string, { status: string; farg: string; forslag_nummer: string }>>({})
   const [loading, setLoading] = useState(true)
+  const [showDuplicate, setShowDuplicate] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [view, setView] = useState<View>('list')
   const [selectedProjekt, setSelectedProjekt] = useState<ProjektWithKund | null>(null)
@@ -73,6 +75,14 @@ export function ProjektSection({ initialProjektId }: Props = {}) {
     setProjekt((prev) => [created, ...prev])
     logActivity(created.id, 'projekt_skapat', 'Projekt skapat')
     setView('list')
+  }
+
+  function handleDuplicated(newProjekt: ProjektWithKund) {
+    setProjekt((prev) => [newProjekt, ...prev])
+    setSelectedProjekt(newProjekt)
+    setView('detail')
+    loadAnteckningar(newProjekt.id)
+    setShowDuplicate(false)
   }
 
   async function handleEdit(data: CreateProjektInput) {
@@ -367,16 +377,27 @@ export function ProjektSection({ initialProjektId }: Props = {}) {
   }
 
   return (
-    <ProjektTable
-      projekt={projekt}
-      statusar={statusar}
-      fragSummary={fragSummary}
-      forslagSummary={forslagSummary}
-      onSelect={(p) => { setSelectedProjekt(p); setView('detail'); loadAnteckningar(p.id) }}
-      onNew={() => setView('create')}
-      onStatusChange={handleStatusChange}
-      onStatusChangeMany={handleStatusChangeMany}
-      onDeleteMany={handleDeleteMany}
-    />
+    <>
+      <ProjektTable
+        projekt={projekt}
+        statusar={statusar}
+        fragSummary={fragSummary}
+        forslagSummary={forslagSummary}
+        onSelect={(p) => { setSelectedProjekt(p); setView('detail'); loadAnteckningar(p.id) }}
+        onNew={() => setView('create')}
+        onDuplicate={() => setShowDuplicate(true)}
+        onStatusChange={handleStatusChange}
+        onStatusChangeMany={handleStatusChangeMany}
+        onDeleteMany={handleDeleteMany}
+      />
+      {showDuplicate && (
+        <DuplikatProjektModal
+          allProjekt={projekt}
+          allKunder={kunder}
+          onClose={() => setShowDuplicate(false)}
+          onDuplicated={handleDuplicated}
+        />
+      )}
+    </>
   )
 }

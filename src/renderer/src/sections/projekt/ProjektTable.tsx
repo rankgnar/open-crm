@@ -1,4 +1,4 @@
-import { Plus, Search, X, Trash2, ArrowUp, ArrowDown, ArrowUpDown, ChevronDown, Check, Globe } from 'lucide-react'
+import { Plus, Search, X, Trash2, ArrowUp, ArrowDown, ArrowUpDown, ChevronDown, Check, Globe, Copy } from 'lucide-react'
 import { RefreshButton } from '@/components/RefreshButton'
 import { useRef, useState, useEffect } from 'react'
 import type { ProjektWithKund, ProjektStatusar } from './types'
@@ -13,6 +13,7 @@ interface Props {
   forslagSummary: Record<string, { status: string; farg: string; forslag_nummer: string }>
   onSelect: (p: ProjektWithKund) => void
   onNew: () => void
+  onDuplicate?: () => void
   onStatusChange: (id: string, status: string) => Promise<void>
   onStatusChangeMany: (ids: string[], status: string) => Promise<void>
   onDeleteMany: (ids: string[]) => Promise<void>
@@ -150,7 +151,7 @@ function StatusSelect({ value, onChange, statusar }: { value: string[]; onChange
   )
 }
 
-export function ProjektTable({ projekt, statusar, fragSummary, forslagSummary, onSelect, onNew, onStatusChange, onStatusChangeMany, onDeleteMany }: Props) {
+export function ProjektTable({ projekt, statusar, fragSummary, forslagSummary, onSelect, onNew, onDuplicate, onStatusChange, onStatusChangeMany, onDeleteMany }: Props) {
   const [query, setQuery] = useState('')
   const [statusFilter, setStatusFilter] = useState<string[]>(() => {
     try {
@@ -273,6 +274,11 @@ const [selected, setSelected] = useState<Set<string>>(new Set())
             context={selected.size === 1 ? { projekt_id: [...selected][0] } : {}}
           />
           <RefreshButton iconOnly />
+          {onDuplicate && (
+            <button onClick={onDuplicate} className="inline-flex items-center gap-1.5 px-3 py-2.5 text-[10px] font-semibold uppercase tracking-wider text-muted hover:text-fg transition-colors">
+              <Copy size={11} />Duplicera
+            </button>
+          )}
           <button onClick={onNew} className="inline-flex items-center gap-1.5 px-3 py-2.5 text-[10px] font-semibold uppercase tracking-wider text-muted hover:text-fg transition-colors">
             <Plus size={11} />Nytt projekt
           </button>
