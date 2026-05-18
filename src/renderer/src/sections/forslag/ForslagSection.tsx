@@ -236,6 +236,11 @@ export function ForslagSection({ initialProjektId, onNavigateProjekt, initialFor
     setShowDuplicate(false)
   }
 
+  async function handleProjektStatusChange(projektId: string, status: string) {
+    await window.api.invoke('db:projekt:update', projektId, { status })
+    setForslag((prev) => prev.map((f) => f.projekt_id === projektId ? { ...f, projekt: { ...f.projekt, status } } : f))
+  }
+
   async function handleDeleteMany(ids: string[]) {
     if (ids.length === 0) return
     await window.api.invoke('db:forslag:delete-many', ids)
@@ -301,6 +306,7 @@ export function ForslagSection({ initialProjektId, onNavigateProjekt, initialFor
         onExportPdf={handleExportPdf}
         onDeleteMany={handleDeleteMany}
         onClickProjekt={(id) => setProjektModalId(id)}
+        onProjektStatusChange={handleProjektStatusChange}
       />
       {projektModalId && (
         <ProjektInfoModal projektId={projektModalId} onClose={() => setProjektModalId(null)} />

@@ -25,6 +25,7 @@ interface Props {
   onExportPdf: (f: ForslagWithProjekt) => Promise<void>
   onDeleteMany: (ids: string[]) => Promise<void>
   onClickProjekt?: (projektId: string) => void
+  onProjektStatusChange?: (projektId: string, status: string) => Promise<void>
 }
 
 function StatusPicker({ forslag, statusar, onStatusChange }: { forslag: ForslagWithProjekt; statusar: ForslagStatusar[]; onStatusChange: (id: string, status: string) => Promise<void> }) {
@@ -123,6 +124,45 @@ function PaminnelseCell({ historik }: { historik: { at: string }[] | undefined }
         {historik.length > 1 ? `${historik.length}×` : '1×'}
       </span>
       <span className="text-[10px] text-muted whitespace-nowrap">{dateStr}</span>
+    </div>
+  )
+}
+
+function ProjektStatusPicker({ projektId, current, statusar, onChange }: { projektId: string; current: string; statusar: ProjektStatusar[]; onChange: (projektId: string, status: string) => Promise<void> }) {
+  const [open, setOpen] = useState(false)
+  const ref = useRef<HTMLDivElement>(null)
+  const currentStatus = statusar.find((s) => s.namn === current)
+
+  async function handleSelect(e: React.MouseEvent, namn: string) {
+    e.stopPropagation()
+    setOpen(false)
+    if (namn !== current) await onChange(projektId, namn)
+  }
+
+  return (
+    <div ref={ref} className="relative inline-block">
+      <button
+        onClick={(e) => { e.stopPropagation(); setOpen((v) => !v) }}
+        onBlur={(e) => { if (!ref.current?.contains(e.relatedTarget as Node)) setOpen(false) }}
+        className="inline-flex items-center gap-1.5 text-xs rounded px-1.5 py-0.5 hover:bg-hover transition-colors"
+      >
+        <span className={`size-1.5 rounded-full shrink-0 ${PROJEKT_FARG_DOT[currentStatus?.farg as keyof typeof PROJEKT_FARG_DOT] ?? 'bg-muted'}`} />
+        <span className={PROJEKT_FARG_TEXT[currentStatus?.farg as keyof typeof PROJEKT_FARG_TEXT] ?? 'text-muted'}>{current}</span>
+      </button>
+      {open && (
+        <div className="absolute left-0 top-full mt-1 z-20 min-w-[140px] bg-elevated border border-border rounded-lg shadow-lg py-1 flex flex-col">
+          {statusar.map((s) => (
+            <button
+              key={s.id}
+              onMouseDown={(e) => handleSelect(e, s.namn)}
+              className={`flex items-center gap-2 px-3 py-1.5 text-xs hover:bg-hover transition-colors text-left ${s.namn === current ? 'opacity-40 cursor-default' : ''}`}
+            >
+              <span className={`size-1.5 rounded-full ${PROJEKT_FARG_DOT[s.farg as keyof typeof PROJEKT_FARG_DOT] ?? 'bg-muted'}`} />
+              <span className={PROJEKT_FARG_TEXT[s.farg as keyof typeof PROJEKT_FARG_TEXT] ?? 'text-muted'}>{s.namn}</span>
+            </button>
+          ))}
+        </div>
+      )}
     </div>
   )
 }
@@ -261,7 +301,7 @@ function StatusSelect({ value, onChange, statusar }: { value: string[]; onChange
   )
 }
 
-export function ForslagTable({ forslag, statusar, projektStatusar, signingEvents, onSelect, onNew, onDuplicate, onStatusChange, onExportPdf, onDeleteMany, onClickProjekt }: Props) {
+export function ForslagTable({ forslag, statusar, projektStatusar, signingEvents, onSelect, onNew, onDuplicate, onStatusChange, onExportPdf, onDeleteMany, onClickProjekt, onProjektStatusChange }: Props) {
   const [exportingId, setExportingId] = useState<string | null>(null)
   const [selected, setSelected] = useState<Set<string>>(new Set())
   const [confirmBulk, setConfirmBulk] = useState(false)
@@ -515,17 +555,26 @@ export function ForslagTable({ forslag, statusar, projektStatusar, signingEvents
                       <span className="ml-2 text-fg">{f.projekt.namn}</span>
                     )}
                   </td>
-                  <td className="px-4 py-3 whitespace-nowrap">
-                    {(() => {
-                      const ps = projektStatusar.find((s) => s.namn === f.projekt.status)
-                      const farg = ps?.farg ?? 'muted'
-                      return (
-                        <div className="inline-flex items-center gap-1.5">
-                          <span className={`size-1.5 rounded-full shrink-0 ${PROJEKT_FARG_DOT[farg] ?? 'bg-muted'}`} />
-                          <span className={`text-xs ${PROJEKT_FARG_TEXT[farg] ?? 'text-muted'}`}>{f.projekt.status}</span>
-                        </div>
-                      )
-                    })()}
+                  <td className="px-4 py-3 whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
+                    {onProjektStatusChange ? (
+                      <ProjektStatusPicker
+                        projektId={f.projekt_id}
+                        current={f.projekt.status}
+                        statusar={projektStatusar}
+                        onChange={onProjektStatusChange}
+                      />
+                    ) : (
+                      (() => {
+                        const ps = projektStatusar.find((s) => s.namn === f.projekt.status)
+                        const farg = ps?.farg ?? 'muted'
+                        return (
+                          <div className="inline-flex items-center gap-1.5">
+                            <span className={`size-1.5 rounded-full shrink-0 ${PROJEKT_FARG_DOT[farg] ?? 'bg-muted'}`} />
+                            <span className={`text-xs ${PROJEKT_FARG_TEXT[farg] ?? 'text-muted'}`}>{f.projekt.status}</span>
+                          </div>
+                        )
+                      })()
+                    )}
                   </td>
                   <td className="px-4 py-3"><SigneringLog summary={signingEvents[f.id]} /></td>
                   <td className="px-4 py-3"><PaminnelseCell historik={signingEvents[f.id]?.paminnelse_historik} /></td>
