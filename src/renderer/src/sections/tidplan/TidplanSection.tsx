@@ -1,11 +1,12 @@
 import { Fragment, useState, useEffect, useRef, useCallback, useMemo } from 'react'
-import { ArrowLeft, CalendarCheck, CalendarDays, CalendarX, ChevronDown, ChevronLeft, ChevronRight, ChevronsDown, ChevronsUp, RefreshCw, FileDown, Trash2 } from 'lucide-react'
+import { ArrowLeft, CalendarCheck, CalendarDays, CalendarX, ChevronDown, ChevronLeft, ChevronRight, ChevronsDown, ChevronsUp, RefreshCw, FileDown, Trash2, Wand2 } from 'lucide-react'
 import type { ForslagWithProjekt, ForslagFas, ForslagSubfas, ForslagArbete } from '@/sections/forslag/types'
 import type { AppInstallningar, PdfMall } from '@/sections/installningar/types'
 import { useAppConfig } from '@/context/AppConfig'
 import { useRefreshHandler } from '@/context/RefreshContext'
 import { RefreshButton } from '@/components/RefreshButton'
 import { buildTidplanHtml } from '@/pdf/buildTidplanHtml'
+import { PlanerautomatisktModal } from './PlanerautomatisktModal'
 
 const DAY_PX = 22
 const NAME_COL = 380
@@ -456,6 +457,7 @@ export function TidplanSection({ onNavigateBack, navigateBackLabel, initialForsl
   const [loading, setLoading] = useState(false)
   const [synkar, setSynkar] = useState(false)
   const [exportando, setExportando] = useState(false)
+  const [planerModalOpen, setPlanerModalOpen] = useState(false)
   const faserRef = useRef<ForslagFas[]>([])
   useEffect(() => { faserRef.current = faser }, [faser])
 
@@ -674,6 +676,22 @@ export function TidplanSection({ onNavigateBack, navigateBackLabel, initialForsl
     setSynkadeFaser(prev => { const n = new Set(prev); n.delete(fas.id); return n })
   }, [])
 
+  const handlePlanerConfirm = useCallback(async (
+    updates: Array<{ id: string; start_datum: string; slut_datum: string }>
+  ) => {
+    setFaser(prev => prev.map(f => {
+      const u = updates.find(x => x.id === f.id)
+      return u ? { ...f, ...u } : f
+    }))
+    await Promise.all(
+      updates.map(u => window.api.invoke('db:forslag-faser:update', u.id, {
+        start_datum: u.start_datum,
+        slut_datum: u.slut_datum,
+      }))
+    )
+    setPlanerModalOpen(false)
+  }, [])
+
   const handleUpdateFas = useCallback(async (id: string, patch: { start_datum?: string | null; slut_datum?: string | null }) => {
     setFaser(prev => prev.map(f => f.id === id ? { ...f, ...patch } : f))
     try {
@@ -816,6 +834,15 @@ export function TidplanSection({ onNavigateBack, navigateBackLabel, initialForsl
                   </button>
                 )}
                 <button
+                  onClick={() => setPlanerModalOpen(true)}
+                  disabled={faser.length === 0}
+                  className="flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs border border-border text-muted hover:text-fg hover:bg-hover transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                  title="Fördela faser automatiskt baserat på timmar"
+                >
+                  <Wand2 size={11} />
+                  Planera automatiskt
+                </button>
+                <button
                   onClick={() => void handleExportPdf()}
                   disabled={exportando || faser.length === 0}
                   className="flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs border border-border text-muted hover:text-fg hover:bg-hover transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
@@ -838,6 +865,15 @@ export function TidplanSection({ onNavigateBack, navigateBackLabel, initialForsl
                 onDeleteFas={handleDeleteFas}
                 onDesynkaFas={handleDesynkaFas}
               />
+              {planerModalOpen && (
+                <PlanerautomatisktModal
+                  faser={faser}
+                  subfaserByFas={subfaserByFas}
+                  arbetenBySubfas={arbetenBySubfas}
+                  onConfirm={handlePlanerConfirm}
+                  onClose={() => setPlanerModalOpen(false)}
+                />
+              )}
             </>
           )}
         </div>
