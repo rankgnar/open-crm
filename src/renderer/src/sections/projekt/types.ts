@@ -49,6 +49,11 @@ export interface ProjektWithKund extends Projekt {
     kundnummer: string
     webbadress: string | null
     telefon: string | null
+    telefon_2: string | null
+    adress: string | null
+    adress_2: string | null
+    postnummer: string | null
+    stad: string | null
   }
 }
 

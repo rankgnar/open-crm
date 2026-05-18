@@ -1,7 +1,10 @@
-import { Plus, FileDown, Loader2, Trash2, ArrowUp, ArrowDown, ArrowUpDown, Bell, Copy } from 'lucide-react'
+import { Plus, FileDown, Loader2, Trash2, ArrowUp, ArrowDown, ArrowUpDown, Bell, Copy, ChevronDown, Check } from 'lucide-react'
 import { RefreshButton } from '@/components/RefreshButton'
-import { useRef, useState } from 'react'
+import { KundPopover } from '@/components/KundPopover'
+import { useRef, useState, useEffect } from 'react'
 import type { ForslagWithProjekt, ForslagStatusar, SignaturSummary } from './types'
+import type { ProjektStatusar } from '@/sections/projekt/types'
+import { FARG_DOT as PROJEKT_FARG_DOT, FARG_TEXT as PROJEKT_FARG_TEXT } from '@/sections/projekt/types'
 
 const FARG_DOT: Record<string, string> = {
   emerald: 'bg-emerald-400', blue: 'bg-blue-400', amber: 'bg-amber-400', red: 'bg-red-400', muted: 'bg-muted',
@@ -13,6 +16,7 @@ const FARG_TEXT: Record<string, string> = {
 interface Props {
   forslag: ForslagWithProjekt[]
   statusar: ForslagStatusar[]
+  projektStatusar: ProjektStatusar[]
   signingEvents: Record<string, SignaturSummary>
   onSelect: (f: ForslagWithProjekt) => void
   onNew: () => void
@@ -123,22 +127,100 @@ function PaminnelseCell({ historik }: { historik: { at: string }[] | undefined }
   )
 }
 
-export function ForslagTable({ forslag, statusar, signingEvents, onSelect, onNew, onDuplicate, onStatusChange, onExportPdf, onDeleteMany, onClickProjekt }: Props) {
+function StatusSelect({ value, onChange, statusar }: { value: string[]; onChange: (v: string[]) => void; statusar: ForslagStatusar[] }) {
+  const [open, setOpen] = useState(false)
+  const ref = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    if (!open) return
+    const handler = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false)
+    }
+    document.addEventListener('mousedown', handler)
+    return () => document.removeEventListener('mousedown', handler)
+  }, [open])
+
+  function toggle(namn: string) {
+    const next = value.includes(namn) ? value.filter((v) => v !== namn) : [...value, namn]
+    onChange(next)
+  }
+
+  const label = value.length === 0 ? 'Alla statusar' : value.length === 1 ? value[0] : `${value.length} statusar`
+  const hasSelection = value.length > 0
+
+  return (
+    <div ref={ref} className="relative w-40 shrink-0">
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        className="w-full flex items-center justify-between gap-2 bg-elevated border border-border rounded-lg px-3 py-2 text-xs outline-none hover:border-fg/30 transition-colors"
+      >
+        <span className={`truncate ${hasSelection ? 'text-fg' : 'text-subtle'}`}>{label}</span>
+        <ChevronDown size={11} className="text-muted shrink-0" />
+      </button>
+      {open && (
+        <div className="absolute left-0 right-0 top-full mt-1 z-50 bg-elevated border border-border rounded-lg shadow-xl flex flex-col overflow-hidden">
+          <div className="max-h-64 overflow-auto py-1">
+            {hasSelection && (
+              <button
+                type="button"
+                onClick={() => { onChange([]); setOpen(false) }}
+                className="w-full text-left px-3 py-2 text-xs text-subtle hover:bg-hover transition-colors"
+              >
+                — Alla statusar —
+              </button>
+            )}
+            {statusar.map((s) => {
+              const checked = value.includes(s.namn)
+              return (
+                <button
+                  key={s.id}
+                  type="button"
+                  onClick={() => toggle(s.namn)}
+                  className={`w-full flex items-center gap-2 text-left px-3 py-2 text-xs hover:bg-hover transition-colors ${checked ? 'text-fg font-medium' : 'text-muted'}`}
+                >
+                  <span className={`w-3.5 h-3.5 rounded border shrink-0 flex items-center justify-center transition-colors ${checked ? 'bg-emerald-500 border-emerald-500' : 'border-border bg-bg'}`}>
+                    {checked && <Check size={9} className="text-white" />}
+                  </span>
+                  <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${FARG_DOT[s.farg]}`} />
+                  <span className="truncate">{s.namn}</span>
+                </button>
+              )
+            })}
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
+export function ForslagTable({ forslag, statusar, projektStatusar, signingEvents, onSelect, onNew, onDuplicate, onStatusChange, onExportPdf, onDeleteMany, onClickProjekt }: Props) {
   const [exportingId, setExportingId] = useState<string | null>(null)
   const [selected, setSelected] = useState<Set<string>>(new Set())
   const [confirmBulk, setConfirmBulk] = useState(false)
   const [deletingBulk, setDeletingBulk] = useState(false)
   const [sortCol, setSortCol] = useState<string | null>(null)
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc')
+  const [statusFilter, setStatusFilter] = useState<string[]>(() => {
+    try {
+      const saved = localStorage.getItem('forslag-status-filter')
+      return saved ? (JSON.parse(saved) as string[]) : []
+    } catch { return [] }
+  })
+  useEffect(() => {
+    localStorage.setItem('forslag-status-filter', JSON.stringify(statusFilter))
+  }, [statusFilter])
 
   function handleSort(col: string) {
     if (sortCol === col) setSortDir((d) => d === 'asc' ? 'desc' : 'asc')
     else { setSortCol(col); setSortDir('asc') }
   }
 
-  const allSelected = forslag.length > 0 && forslag.every((f) => selected.has(f.id))
+  const filtered = statusFilter.length > 0 ? forslag.filter((f) => statusFilter.includes(f.status)) : forslag
 
-  const sorted = sortCol ? [...forslag].sort((a, b) => {
+  const allSelected = filtered.length > 0 && filtered.every((f) => selected.has(f.id))
+
+  const sorted = sortCol ? [...filtered].sort((a, b) => {
     const vals: Record<string, string | null> = {
       forslag_nummer: a.forslag_nummer, kund: a.projekt.kunder.namn, projekt: a.projekt.namn,
       status: a.status, giltig_till: a.giltig_till, skapad_at: a.skapad_at,
@@ -150,7 +232,7 @@ export function ForslagTable({ forslag, statusar, signingEvents, onSelect, onNew
     const av = String(vals[sortCol] ?? ''), bv = String(bvals[sortCol] ?? '')
     const cmp = av.localeCompare(bv, 'sv')
     return sortDir === 'asc' ? cmp : -cmp
-  }) : forslag
+  }) : filtered
 
   function toggleSelect(e: React.MouseEvent, id: string) {
     e.stopPropagation()
@@ -160,7 +242,7 @@ export function ForslagTable({ forslag, statusar, signingEvents, onSelect, onNew
 
   function toggleAll(e: React.MouseEvent) {
     e.stopPropagation()
-    setSelected(allSelected ? new Set() : new Set(forslag.map((f) => f.id)))
+    setSelected(allSelected ? new Set() : new Set(filtered.map((f) => f.id)))
     setConfirmBulk(false)
   }
 
@@ -187,10 +269,11 @@ export function ForslagTable({ forslag, statusar, signingEvents, onSelect, onNew
         <div className="flex items-center gap-3">
           <h1 className="text-base font-semibold text-fg">Förslag</h1>
           <span className="text-xs text-muted bg-elevated border border-border rounded-full px-2 py-0.5">
-            {forslag.length}
+            {filtered.length}
           </span>
         </div>
         <div className="flex items-center gap-2">
+          <StatusSelect value={statusFilter} onChange={setStatusFilter} statusar={statusar} />
           <RefreshButton iconOnly />
           {onDuplicate && (
             <button
@@ -265,6 +348,7 @@ export function ForslagTable({ forslag, statusar, signingEvents, onSelect, onNew
                     </div>
                   </th>
                 ))}
+                <th className="px-4 py-2.5 text-[11px] font-medium uppercase tracking-wider text-muted select-none">Projektstatus</th>
                 <th className="px-4 py-2.5 text-[11px] font-medium uppercase tracking-wider text-muted select-none">Signering</th>
                 <th className="px-4 py-2.5 text-[11px] font-medium uppercase tracking-wider text-muted select-none">Påminnelse</th>
                 {([
@@ -315,7 +399,9 @@ export function ForslagTable({ forslag, statusar, signingEvents, onSelect, onNew
                     />
                   </td>
                   <td className="px-2 py-3 font-mono text-xs text-muted whitespace-nowrap">{f.forslag_nummer}</td>
-                  <td className="px-4 py-3 text-fg whitespace-nowrap uppercase">{f.projekt.kunder.namn}</td>
+                  <td className="px-4 py-3 whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
+                    <KundPopover kund={f.projekt.kunder} />
+                  </td>
                   <td className="px-4 py-3 whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
                     <span className="font-mono text-xs text-muted">{f.projekt.projekt_nummer}</span>
                     {onClickProjekt ? (
@@ -328,6 +414,18 @@ export function ForslagTable({ forslag, statusar, signingEvents, onSelect, onNew
                     ) : (
                       <span className="ml-2 text-fg">{f.projekt.namn}</span>
                     )}
+                  </td>
+                  <td className="px-4 py-3 whitespace-nowrap">
+                    {(() => {
+                      const ps = projektStatusar.find((s) => s.namn === f.projekt.status)
+                      const farg = ps?.farg ?? 'muted'
+                      return (
+                        <div className="inline-flex items-center gap-1.5">
+                          <span className={`size-1.5 rounded-full shrink-0 ${PROJEKT_FARG_DOT[farg] ?? 'bg-muted'}`} />
+                          <span className={`text-xs ${PROJEKT_FARG_TEXT[farg] ?? 'text-muted'}`}>{f.projekt.status}</span>
+                        </div>
+                      )
+                    })()}
                   </td>
                   <td className="px-4 py-3"><SigneringLog summary={signingEvents[f.id]} /></td>
                   <td className="px-4 py-3"><PaminnelseCell historik={signingEvents[f.id]?.paminnelse_historik} /></td>

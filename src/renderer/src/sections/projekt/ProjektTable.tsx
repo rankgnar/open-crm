@@ -1,5 +1,6 @@
 import { Plus, Search, X, Trash2, ArrowUp, ArrowDown, ArrowUpDown, ChevronDown, Check, Globe, Copy } from 'lucide-react'
 import { RefreshButton } from '@/components/RefreshButton'
+import { KundPopover } from '@/components/KundPopover'
 import { useRef, useState, useEffect } from 'react'
 import type { ProjektWithKund, ProjektStatusar } from './types'
 import { FARG_DOT, FARG_TEXT } from './types'
@@ -385,9 +386,9 @@ const [selected, setSelected] = useState<Set<string>>(new Set())
                       <input type="checkbox" checked={isSelected} onChange={() => {}} className="rounded border-border accent-emerald-400 cursor-pointer" />
                     </td>
                     <td className="px-4 py-3 font-mono text-xs text-muted whitespace-nowrap">{p.projekt_nummer ?? '—'}</td>
-                    <td className="px-4 py-3 whitespace-nowrap">
+                    <td className="px-4 py-3 whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
                       <span className="font-mono text-xs text-muted">{p.kunder.kundnummer}</span>
-                      <span className="ml-2 text-fg uppercase">{p.kunder.namn}</span>
+                      <span className="ml-2"><KundPopover kund={p.kunder} /></span>
                     </td>
                     <td className="px-2 py-3 w-8" onClick={(e) => e.stopPropagation()}>
                       {p.kunder.webbadress ? (

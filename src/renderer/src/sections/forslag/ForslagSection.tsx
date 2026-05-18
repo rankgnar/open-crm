@@ -6,7 +6,7 @@ import { DuplikatForslagModal } from './DuplikatForslagModal'
 import { ForslagForm } from './ForslagForm'
 import { ForslagDetail } from './ForslagDetail'
 import type { ForslagWithProjekt, CreateForslagInput, ForslagStatusar, ForslagFas, ForslagSubfas, ForslagArbete, ForslagMaterial, ForslagUnderentreprenor, SignaturSummary } from './types'
-import type { ProjektWithKund } from '@/sections/projekt/types'
+import type { ProjektWithKund, ProjektStatusar } from '@/sections/projekt/types'
 import type { PdfMall } from '@/sections/installningar/types'
 import { buildForslagDesglose } from '@/pdf/buildForslagDesglose'
 import { DEFAULT_FORSLAG_HTML } from '@/pdf/defaultTemplates'
@@ -33,6 +33,7 @@ export function ForslagSection({ initialProjektId, onNavigateProjekt, initialFor
   const [forslag, setForslag] = useState<ForslagWithProjekt[]>([])
   const [allProjekt, setAllProjekt] = useState<ProjektWithKund[]>([])
   const [statusar, setStatusar] = useState<ForslagStatusar[]>([])
+  const [projektStatusar, setProjektStatusar] = useState<ProjektStatusar[]>([])
   const [signingEvents, setSigningEvents] = useState<Record<string, SignaturSummary>>({})
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -41,15 +42,17 @@ export function ForslagSection({ initialProjektId, onNavigateProjekt, initialFor
 
   const loadData = useCallback(async () => {
     try {
-      const [forslagData, projektData, statusData, signingData] = await Promise.all([
+      const [forslagData, projektData, statusData, projektStatusData, signingData] = await Promise.all([
         window.api.invoke('db:forslag:list') as Promise<ForslagWithProjekt[]>,
         window.api.invoke('db:projekt:list') as Promise<ProjektWithKund[]>,
         window.api.invoke('db:forslag-statusar:list') as Promise<ForslagStatusar[]>,
+        window.api.invoke('db:projekt-statusar:list') as Promise<ProjektStatusar[]>,
         window.api.invoke('db:signatur-lank:forslag-events') as Promise<Record<string, SignaturSummary>>,
       ])
       setForslag(forslagData)
       setAllProjekt(projektData)
       setStatusar(statusData)
+      setProjektStatusar(projektStatusData)
       setSigningEvents(signingData)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Kunde inte ladda data')
@@ -280,26 +283,16 @@ export function ForslagSection({ initialProjektId, onNavigateProjekt, initialFor
     )
   }
 
-  const projektStatusFilter = (() => {
-    try {
-      const saved = localStorage.getItem('projekt-status-filter')
-      return saved ? (JSON.parse(saved) as string[]) : []
-    } catch {
-      return []
-    }
-  })()
-
   const visibleForslag = initialProjektId
     ? forslag.filter((f) => f.projekt_id === initialProjektId)
-    : projektStatusFilter.length > 0
-      ? forslag.filter((f) => projektStatusFilter.includes(f.projekt.status))
-      : forslag
+    : forslag
 
   return (
     <>
       <ForslagTable
         forslag={visibleForslag}
         statusar={statusar}
+        projektStatusar={projektStatusar}
         signingEvents={signingEvents}
         onSelect={(f) => { setSelectedForslag(f); setView('detail') }}
         onNew={() => setView('create')}
