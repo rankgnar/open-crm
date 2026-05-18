@@ -865,6 +865,12 @@ export function registerEpostHandlers(): void {
     if (error) throw new Error(error.message)
     return { ok: true }
   })
+
+  ipcMain.handle('db:epost-ko:delete', async (_, id: string) => {
+    const { error } = await supabase.from('epost_ko').delete().eq('id', id).neq('status', 'skickar')
+    if (error) throw new Error(error.message)
+    return { ok: true }
+  })
 }
 
 // ── Queue processor (called by ticker in main/index.ts) ──────────────────────

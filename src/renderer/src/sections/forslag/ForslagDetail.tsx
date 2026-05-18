@@ -1685,6 +1685,17 @@ export function ForslagDetail({ forslag: forslagProp, statusar, allProjekt, onBa
                           <Send size={11} className="text-muted shrink-0" />
                           <p className="text-xs text-fg truncate flex-1">{ko.amne || '(inget ämne)'}</p>
                           <span className={`text-[10px] font-medium ${statusColor}`}>{ko.status}</span>
+                          {ko.status !== 'skickar' && (
+                            <button
+                              onClick={async () => {
+                                await window.api.invoke('db:epost-ko:delete', ko.id)
+                                setEpostKo(prev => prev.filter(k => k.id !== ko.id))
+                              }}
+                              className="text-[10px] text-red-400 hover:text-red-300 transition-opacity shrink-0"
+                            >
+                              Ta bort
+                            </button>
+                          )}
                         </div>
                         <p className="text-[11px] text-muted ml-[19px] truncate">{ko.till}</p>
                         <p className="text-[11px] text-subtle ml-[19px]">
