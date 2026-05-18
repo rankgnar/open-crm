@@ -84,7 +84,8 @@ export function SkickaForSignaturModal({ dokument_typ, dokument_id, initialEmail
       // shares the printToPDF BrowserWindow in the main process.
       const bilagor: { filnamn: string; data_base64: string }[] = []
       for (const opt of bifogaOptions ?? []) {
-        if (enabledBifoga.has(opt.id)) {
+        const include = opt.id === 'specifikation' ? splitPdf : enabledBifoga.has(opt.id)
+        if (include) {
           bilagor.push(await opt.generate())
         }
       }
@@ -199,7 +200,7 @@ export function SkickaForSignaturModal({ dokument_typ, dokument_id, initialEmail
 
         <div className="flex items-center justify-between gap-3 px-6 py-3 border-t border-border bg-sidebar">
           <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
-            {(bifogaOptions ?? []).map(opt => {
+            {(bifogaOptions ?? []).filter(opt => opt.id !== 'specifikation').map(opt => {
               const checked = enabledBifoga.has(opt.id)
               return (
                 <label key={opt.id} className={`flex items-center gap-2 text-xs transition-colors cursor-pointer select-none ${checked ? 'text-emerald-400 font-medium' : 'text-muted hover:text-fg'}`}>

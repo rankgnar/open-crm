@@ -1994,7 +1994,7 @@ export function ForslagDetail({ forslag: forslagProp, statusar, allProjekt, onBa
                 return { filnamn: `tidplan-${forslag.forslag_nummer}.pdf`, data_base64 }
               },
             },
-            ...(pdfExportSplit ? [{
+            {
               id: 'specifikation',
               label: 'Bifoga specifikation',
               generate: async () => {
@@ -2006,7 +2006,7 @@ export function ForslagDetail({ forslag: forslagProp, statusar, allProjekt, onBa
                 const data_base64 = await window.api.invoke('pdf:generate-buffer', { html: specHtml }) as string
                 return { filnamn: `specifikation-${forslag.forslag_nummer}.pdf`, data_base64 }
               },
-            }] : []),
+            },
           ]}
           onClose={() => setShowSendModal(false)}
           onSent={(link, extras) => {
