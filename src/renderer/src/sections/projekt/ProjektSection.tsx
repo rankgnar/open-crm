@@ -392,7 +392,6 @@ export function ProjektSection({ initialProjektId }: Props = {}) {
       />
       {showDuplicate && (
         <DuplikatProjektModal
-          allProjekt={projekt}
           allKunder={kunder}
           onClose={() => setShowDuplicate(false)}
           onDuplicated={handleDuplicated}

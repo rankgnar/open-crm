@@ -17,6 +17,7 @@ const CHANNELS = [
   'db:projekt:import-csv',
   'db:projekt:delete-many',
   'db:projekt:duplicate',
+  'db:projekt:duplicate-from-forslag',
   'db:projekt:update-status-many',
   'db:projekt-anteckningar:list',
   'db:projekt-anteckningar:create',
@@ -282,6 +283,87 @@ export function registerProjektHandlers(): void {
               ues.map(u => ({ subfas_id: newSub.id, namn: u.namn, beskrivning: u.beskrivning, inkl_material: u.inkl_material, kostnad: u.kostnad }))
             )
           }
+        }
+      }
+    }
+
+    return newP
+  })
+
+  ipcMain.handle('db:projekt:duplicate-from-forslag', async (_, input: { source_forslag_id: string; target_kund_id: string; projekt_namn: string }) => {
+    const { data: srcF, error: srcFErr } = await supabase
+      .from('forslag').select('*, projekt!inner(*)').eq('id', input.source_forslag_id).single()
+    if (srcFErr) throw new Error(srcFErr.message)
+
+    const srcP = srcF.projekt as Record<string, unknown>
+    const projekt_nummer = await nextProjektNummer()
+    const { data: newP, error: newPErr } = await supabase
+      .from('projekt')
+      .insert({
+        kund_id: input.target_kund_id,
+        projekt_nummer,
+        namn: input.projekt_namn,
+        beskrivning: srcP.beskrivning as string | undefined,
+        status: srcP.status as string | undefined,
+        budget_total: srcP.budget_total as number | undefined,
+        betalningsvillkor: srcP.betalningsvillkor as string | undefined,
+        villkor: srcP.villkor as string | undefined,
+        rot_avdrag: srcP.rot_avdrag as boolean | undefined,
+        rot_procent: srcP.rot_procent as number | undefined,
+        rot_inkludera_medsokande: srcP.rot_inkludera_medsokande as boolean | undefined,
+      })
+      .select(SELECT_WITH_KUND)
+      .single()
+    if (newPErr) throw new Error(newPErr.message)
+
+    const { data: numData, error: numErr } = await supabase.rpc('nextval_forslag_nummer')
+    if (numErr) throw new Error(numErr.message)
+    const forslag_nummer = `F-${String(numData as number).padStart(4, '0')}`
+    const { data: newF, error: fErr } = await supabase
+      .from('forslag')
+      .insert({ projekt_id: newP.id, forslag_nummer, titel: srcF.titel, status: 'Utkast', moms_procent: srcF.moms_procent, sammanfattning: srcF.sammanfattning })
+      .select('id').single()
+    if (fErr) throw new Error(fErr.message)
+
+    const { data: faser } = await supabase
+      .from('forslag_faser').select('*').eq('forslag_id', srcF.id).order('sortering')
+
+    for (const fas of faser ?? []) {
+      const { data: newFas, error: fasErr } = await supabase
+        .from('forslag_faser')
+        .insert({ forslag_id: newF.id, namn: fas.namn, beskrivning: fas.beskrivning, sortering: fas.sortering, notat: fas.notat, aktiv: fas.aktiv })
+        .select('id').single()
+      if (fasErr) throw new Error(fasErr.message)
+
+      const { data: subfaser } = await supabase
+        .from('forslag_subfaser').select('*').eq('fas_id', fas.id).order('sortering')
+
+      for (const subfas of subfaser ?? []) {
+        const { data: newSub, error: subErr } = await supabase
+          .from('forslag_subfaser')
+          .insert({ fas_id: newFas.id, namn: subfas.namn, beskrivning: subfas.beskrivning, sortering: subfas.sortering })
+          .select('id').single()
+        if (subErr) throw new Error(subErr.message)
+
+        const [{ data: arbeten }, { data: material }, { data: ues }] = await Promise.all([
+          supabase.from('forslag_arbetskostnad').select('*').eq('subfas_id', subfas.id),
+          supabase.from('forslag_materialkostnad').select('*').eq('subfas_id', subfas.id),
+          supabase.from('forslag_underentreprenorer').select('*').eq('subfas_id', subfas.id),
+        ])
+        if (arbeten?.length) {
+          await supabase.from('forslag_arbetskostnad').insert(
+            arbeten.map(a => ({ subfas_id: newSub.id, beskrivning: a.beskrivning, yrkesroll: a.yrkesroll, antal_timmar: a.antal_timmar, timpris: a.timpris, rot_berattigad: a.rot_berattigad }))
+          )
+        }
+        if (material?.length) {
+          await supabase.from('forslag_materialkostnad').insert(
+            material.map(m => ({ subfas_id: newSub.id, beskrivning: m.beskrivning, enhet: m.enhet, antal: m.antal, a_pris: m.a_pris, leverantor: m.leverantor }))
+          )
+        }
+        if (ues?.length) {
+          await supabase.from('forslag_underentreprenorer').insert(
+            ues.map(u => ({ subfas_id: newSub.id, namn: u.namn, beskrivning: u.beskrivning, inkl_material: u.inkl_material, kostnad: u.kostnad }))
+          )
         }
       }
     }
