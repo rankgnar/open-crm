@@ -79,17 +79,6 @@ export function SkickaForSignaturModal({ dokument_typ, dokument_id, initialEmail
     }
     setSending(true)
     try {
-      // Generate any attachments the user has opted into. Run sequentially
-      // so a slow PDF render doesn't block the UI on parallel work that
-      // shares the printToPDF BrowserWindow in the main process.
-      const bilagor: { filnamn: string; data_base64: string }[] = []
-      for (const opt of bifogaOptions ?? []) {
-        const include = opt.id === 'specifikation' ? splitPdf : enabledBifoga.has(opt.id)
-        if (include) {
-          bilagor.push(await opt.generate())
-        }
-      }
-
       const link = await window.api.invoke('db:signatur-lank:create', {
         dokument_typ,
         dokument_id,
@@ -97,7 +86,6 @@ export function SkickaForSignaturModal({ dokument_typ, dokument_id, initialEmail
         giltig_dagar: days,
         meddelande: meddelande.trim() || undefined,
         mall_id: mallId ?? undefined,
-        bilagor: bilagor.length > 0 ? bilagor : undefined,
       }) as SignaturLank
       onSent(link, {
         ...(showTitelPicker ? { titel: titel || titelOptions?.titel1 } : {}),
