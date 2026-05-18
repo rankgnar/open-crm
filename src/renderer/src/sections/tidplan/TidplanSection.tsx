@@ -96,6 +96,12 @@ function GanttChart({ faser, subfaserByFas, arbetenBySubfas, expandedFaser, onTo
   const dragRef = useRef<{ fasId: string; startX: number; origStart: string; origSlut: string; mode: DragMode } | null>(null)
   const [dragOffsets, setDragOffsets] = useState<Record<string, { mode: DragMode; delta: number }>>({})
 
+  const [selectedFaserIds, setSelectedFaserIds] = useState<Set<string>>(new Set())
+  const selectedRef = useRef<Set<string>>(new Set())
+  useEffect(() => { selectedRef.current = selectedFaserIds }, [selectedFaserIds])
+  const fasesRef = useRef(faser)
+  useEffect(() => { fasesRef.current = faser }, [faser])
+
   const today = useMemo(() => { const d = new Date(); d.setHours(0, 0, 0, 0); return d }, [])
   const todayIdx = daysBetween(tStart, today)
 
@@ -157,11 +163,40 @@ function GanttChart({ faser, subfaserByFas, arbetenBySubfas, expandedFaser, onTo
           patch.slut_datum = toISO(addDays(new Date(origSlut), delta))
         }
         await onUpdateRef.current(fasId, patch)
+      } else if (mode === 'move') {
+        setSelectedFaserIds(prev => {
+          const next = new Set(prev)
+          if (next.has(fasId)) next.delete(fasId)
+          else next.add(fasId)
+          return next
+        })
       }
     }
     document.addEventListener('mousemove', onMove)
     document.addEventListener('mouseup', onUp)
     return () => { document.removeEventListener('mousemove', onMove); document.removeEventListener('mouseup', onUp) }
+  }, [])
+
+  useEffect(() => {
+    function onKeyDown(e: KeyboardEvent) {
+      if (e.key === 'Escape') { setSelectedFaserIds(new Set()); return }
+      if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return
+      if (selectedRef.current.size === 0) return
+      const tag = (e.target as HTMLElement).tagName
+      if (['INPUT', 'TEXTAREA', 'SELECT'].includes(tag)) return
+      e.preventDefault()
+      const delta = e.key === 'ArrowLeft' ? -1 : 1
+      for (const id of selectedRef.current) {
+        const fas = fasesRef.current.find(f => f.id === id)
+        if (!fas?.start_datum || !fas?.slut_datum) continue
+        void onUpdateRef.current(id, {
+          start_datum: toISO(addDays(new Date(fas.start_datum), delta)),
+          slut_datum: toISO(addDays(new Date(fas.slut_datum), delta)),
+        })
+      }
+    }
+    document.addEventListener('keydown', onKeyDown)
+    return () => document.removeEventListener('keydown', onKeyDown)
   }, [])
 
   const ganttW = days.length * DAY_PX
@@ -176,7 +211,19 @@ function GanttChart({ faser, subfaserByFas, arbetenBySubfas, expandedFaser, onTo
   ].join(', ')
 
   return (
-    <div className="flex-1 overflow-auto">
+    <div className="flex-1 flex flex-col min-h-0">
+      {selectedFaserIds.size > 0 && (
+        <div className="flex items-center gap-3 px-4 py-1.5 bg-elevated border-b border-emerald-400/30 text-[11px] text-emerald-400 shrink-0" style={{ paddingLeft: NAME_COL + 16 }}>
+          <span className="font-medium">{selectedFaserIds.size} {selectedFaserIds.size === 1 ? 'fas vald' : 'faser valda'}</span>
+          <span className="text-muted">· ← → för att flytta · Esc för att avmarkera</span>
+        </div>
+      )}
+      <div
+        className="flex-1 overflow-auto"
+        onClick={(e) => {
+          if (!(e.target as HTMLElement).closest('[data-fas-bar]')) setSelectedFaserIds(new Set())
+        }}
+      >
       <div style={{ minWidth: NAME_COL + ganttW }}>
 
         {/* Month header */}
@@ -334,13 +381,14 @@ function GanttChart({ faser, subfaserByFas, arbetenBySubfas, expandedFaser, onTo
                   <div className="relative" style={{ width: ganttW }}>
                     {hasBoth && (
                       <div
+                        data-fas-bar
                         className="absolute top-1/2 -translate-y-1/2 rounded flex items-center justify-start overflow-hidden select-none"
                         style={{
                           left: leftPx,
                           width: Math.max(widthPx, 4),
                           height: 22,
-                          background: 'rgba(52,211,153,0.18)',
-                          border: '1px solid rgba(52,211,153,0.45)',
+                          background: selectedFaserIds.has(fas.id) ? 'rgba(52,211,153,0.32)' : 'rgba(52,211,153,0.18)',
+                          border: selectedFaserIds.has(fas.id) ? '2px solid rgba(52,211,153,0.9)' : '1px solid rgba(52,211,153,0.45)',
                           cursor: 'grab',
                         }}
                         onMouseDown={(e) => startDrag(e, fas, 'move')}
@@ -349,12 +397,14 @@ function GanttChart({ faser, subfaserByFas, arbetenBySubfas, expandedFaser, onTo
                           <span className="text-[10px] text-emerald-300 font-medium truncate px-2 pointer-events-none">{durLabel}</span>
                         )}
                         <div
+                          data-fas-bar
                           className="absolute left-0 top-0 bottom-0 w-1.5 hover:bg-emerald-400/40"
                           style={{ cursor: 'ew-resize' }}
                           onMouseDown={(e) => startDrag(e, fas, 'resize-start')}
                           title="Ändra startdatum"
                         />
                         <div
+                          data-fas-bar
                           className="absolute right-0 top-0 bottom-0 w-1.5 hover:bg-emerald-400/40"
                           style={{ cursor: 'ew-resize' }}
                           onMouseDown={(e) => startDrag(e, fas, 'resize-end')}
@@ -438,6 +488,7 @@ function GanttChart({ faser, subfaserByFas, arbetenBySubfas, expandedFaser, onTo
             })
           )}
         </div>
+      </div>
       </div>
     </div>
   )
