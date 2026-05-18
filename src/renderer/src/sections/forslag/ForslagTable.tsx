@@ -301,11 +301,11 @@ export function ForslagTable({ forslag, statusar, projektStatusar, signingEvents
   const sorted = sortCol ? [...filtered].sort((a, b) => {
     const vals: Record<string, string | null> = {
       forslag_nummer: a.forslag_nummer, kund: a.projekt.kunder.namn, projekt: a.projekt.namn,
-      status: a.status, giltig_till: a.giltig_till, skapad_at: a.skapad_at,
+      projektstatus: a.projekt.status, status: a.status, giltig_till: a.giltig_till, skapad_at: a.skapad_at,
     }
     const bvals: Record<string, string | null> = {
       forslag_nummer: b.forslag_nummer, kund: b.projekt.kunder.namn, projekt: b.projekt.namn,
-      status: b.status, giltig_till: b.giltig_till, skapad_at: b.skapad_at,
+      projektstatus: b.projekt.status, status: b.status, giltig_till: b.giltig_till, skapad_at: b.skapad_at,
     }
     const av = String(vals[sortCol] ?? ''), bv = String(bvals[sortCol] ?? '')
     const cmp = av.localeCompare(bv, 'sv')
@@ -431,7 +431,16 @@ export function ForslagTable({ forslag, statusar, projektStatusar, signingEvents
                     </div>
                   </th>
                 ))}
-                <th className="px-4 py-2.5 text-[11px] font-medium uppercase tracking-wider text-muted select-none">Projektstatus</th>
+                <th onClick={() => handleSort('projektstatus')}
+                  className="px-4 py-2.5 text-[11px] font-medium uppercase tracking-wider text-muted cursor-pointer select-none hover:text-fg transition-colors group/th">
+                  <div className="flex items-center gap-1">
+                    Projektstatus
+                    {sortCol === 'projektstatus'
+                      ? sortDir === 'asc' ? <ArrowUp size={10} className="text-fg shrink-0" /> : <ArrowDown size={10} className="text-fg shrink-0" />
+                      : <ArrowUpDown size={10} className="shrink-0 opacity-0 group-hover/th:opacity-40 transition-opacity" />
+                    }
+                  </div>
+                </th>
                 <th className="px-4 py-2.5 text-[11px] font-medium uppercase tracking-wider text-muted select-none">Signering</th>
                 <th className="px-4 py-2.5 text-[11px] font-medium uppercase tracking-wider text-muted select-none">Påminnelse</th>
                 {([
