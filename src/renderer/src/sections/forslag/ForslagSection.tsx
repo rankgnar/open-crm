@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useRef } from 'react'
 import { useRefreshHandler } from '@/context/RefreshContext'
 import { ForslagTable } from './ForslagTable'
 import { ProjektInfoModal } from './ProjektInfoModal'
+import { DuplikatForslagModal } from './DuplikatForslagModal'
 import { ForslagForm } from './ForslagForm'
 import { ForslagDetail } from './ForslagDetail'
 import type { ForslagWithProjekt, CreateForslagInput, ForslagStatusar, ForslagFas, ForslagSubfas, ForslagArbete, ForslagMaterial, ForslagUnderentreprenor, SignaturSummary } from './types'
@@ -28,6 +29,7 @@ export function ForslagSection({ initialProjektId, onNavigateProjekt, initialFor
   const ROT_CAP_SINGLE = config?.rot_avdrag_tak_enkel ?? 50000
   const ROT_CAP_DOUBLE = config?.rot_avdrag_tak_dubbel ?? 100000
   const [projektModalId, setProjektModalId] = useState<string | null>(null)
+  const [showDuplicate, setShowDuplicate] = useState(false)
   const [forslag, setForslag] = useState<ForslagWithProjekt[]>([])
   const [allProjekt, setAllProjekt] = useState<ProjektWithKund[]>([])
   const [statusar, setStatusar] = useState<ForslagStatusar[]>([])
@@ -224,6 +226,13 @@ export function ForslagSection({ initialProjektId, onNavigateProjekt, initialFor
     setView('list')
   }
 
+  function handleDuplicated(newForslag: ForslagWithProjekt) {
+    setForslag((prev) => [newForslag, ...prev])
+    setSelectedForslag(newForslag)
+    setView('detail')
+    setShowDuplicate(false)
+  }
+
   async function handleDeleteMany(ids: string[]) {
     if (ids.length === 0) return
     await window.api.invoke('db:forslag:delete-many', ids)
@@ -294,6 +303,7 @@ export function ForslagSection({ initialProjektId, onNavigateProjekt, initialFor
         signingEvents={signingEvents}
         onSelect={(f) => { setSelectedForslag(f); setView('detail') }}
         onNew={() => setView('create')}
+        onDuplicate={() => setShowDuplicate(true)}
         onStatusChange={handleStatusChange}
         onExportPdf={handleExportPdf}
         onDeleteMany={handleDeleteMany}
@@ -301,6 +311,15 @@ export function ForslagSection({ initialProjektId, onNavigateProjekt, initialFor
       />
       {projektModalId && (
         <ProjektInfoModal projektId={projektModalId} onClose={() => setProjektModalId(null)} />
+      )}
+      {showDuplicate && (
+        <DuplikatForslagModal
+          allForslag={forslag}
+          allProjekt={allProjekt}
+          defaultProjektId={initialProjektId}
+          onClose={() => setShowDuplicate(false)}
+          onDuplicated={handleDuplicated}
+        />
       )}
     </>
   )

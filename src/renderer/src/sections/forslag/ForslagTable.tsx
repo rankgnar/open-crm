@@ -1,4 +1,4 @@
-import { Plus, FileDown, Loader2, Trash2, ArrowUp, ArrowDown, ArrowUpDown, Bell } from 'lucide-react'
+import { Plus, FileDown, Loader2, Trash2, ArrowUp, ArrowDown, ArrowUpDown, Bell, Copy } from 'lucide-react'
 import { RefreshButton } from '@/components/RefreshButton'
 import { useRef, useState } from 'react'
 import type { ForslagWithProjekt, ForslagStatusar, SignaturSummary } from './types'
@@ -16,6 +16,7 @@ interface Props {
   signingEvents: Record<string, SignaturSummary>
   onSelect: (f: ForslagWithProjekt) => void
   onNew: () => void
+  onDuplicate?: () => void
   onStatusChange: (id: string, status: string) => Promise<void>
   onExportPdf: (f: ForslagWithProjekt) => Promise<void>
   onDeleteMany: (ids: string[]) => Promise<void>
@@ -122,7 +123,7 @@ function PaminnelseCell({ historik }: { historik: { at: string }[] | undefined }
   )
 }
 
-export function ForslagTable({ forslag, statusar, signingEvents, onSelect, onNew, onStatusChange, onExportPdf, onDeleteMany, onClickProjekt }: Props) {
+export function ForslagTable({ forslag, statusar, signingEvents, onSelect, onNew, onDuplicate, onStatusChange, onExportPdf, onDeleteMany, onClickProjekt }: Props) {
   const [exportingId, setExportingId] = useState<string | null>(null)
   const [selected, setSelected] = useState<Set<string>>(new Set())
   const [confirmBulk, setConfirmBulk] = useState(false)
@@ -191,6 +192,14 @@ export function ForslagTable({ forslag, statusar, signingEvents, onSelect, onNew
         </div>
         <div className="flex items-center gap-2">
           <RefreshButton iconOnly />
+          {onDuplicate && (
+            <button
+              onClick={onDuplicate}
+              className="inline-flex items-center gap-1.5 px-3 py-2.5 text-[10px] font-semibold uppercase tracking-wider text-muted hover:text-fg transition-colors"
+            >
+              <Copy size={11} />Duplicera
+            </button>
+          )}
           <button
             onClick={onNew}
             className="inline-flex items-center gap-1.5 px-3 py-2.5 text-[10px] font-semibold uppercase tracking-wider text-muted hover:text-fg transition-colors"
