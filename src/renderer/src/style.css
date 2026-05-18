@@ -23,14 +23,14 @@
 }
 
 :root[data-theme="light"] {
-  --color-bg: #ffffff;
-  --color-sidebar: #f5f5f5;
-  --color-elevated: #f0f0f0;
-  --color-border: #e6e6e6;
+  --color-bg: #f5f4f1;
+  --color-sidebar: #eeede9;
+  --color-elevated: #e6e5e1;
+  --color-border: #d8d7d3;
   --color-hover: rgba(0, 0, 0, 0.05);
   --color-fg: #111111;
-  --color-muted: #6a6a6a;
-  --color-subtle: #a0a0a0;
+  --color-muted: #404040;
+  --color-subtle: #5e5e5e;
 }
 
 * {

@@ -1,11 +1,12 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
-import { ArrowLeft, ArrowUp, ArrowDown, Pencil, Trash2, Plus, X as XIcon, Check, ChevronRight, ChevronDown, CalendarDays, FileDown, Send, Mail, RefreshCw, FolderOpen, ChevronsUpDown, StickyNote, Eye, EyeOff, Sparkles, Loader2, Bell } from 'lucide-react'
+import { ArrowLeft, ArrowUp, ArrowDown, Pencil, Trash2, Plus, X as XIcon, Check, ChevronRight, ChevronDown, CalendarDays, FileDown, Send, Mail, RefreshCw, FolderOpen, ChevronsUpDown, StickyNote, Eye, EyeOff, Sparkles, Loader2, Bell, Tags } from 'lucide-react'
 import { WorkflowTriggerBar } from '@/components/WorkflowTriggerBar'
 import { SkickaForSignaturModal } from '@/sections/signatur/SkickaForSignaturModal'
 import { SkickaUppdateradVersionModal } from '@/sections/signatur/SkickaUppdateradVersionModal'
 import { PaminnelseModal } from '@/sections/signatur/PaminnelseModal'
 import { VilkorReminderModal } from './VilkorReminderModal'
 import { TidplanReminderModal } from './TidplanReminderModal'
+import { BulkTimprisModal } from './BulkTimprisModal'
 import { SignaturLankarPanel } from '@/sections/signatur/SignaturLankarPanel'
 import { SignaturTimeline } from '@/sections/signatur/SignaturTimeline'
 import { SignaturGodkannandeBlock } from '@/sections/signatur/SignaturGodkannandeBlock'
@@ -91,6 +92,7 @@ export function ForslagDetail({ forslag: forslagProp, statusar, allProjekt, onBa
   const [showSendModal, setShowSendModal] = useState(false)
   const [showVilkorReminder, setShowVilkorReminder] = useState(false)
   const [showTidplanReminder, setShowTidplanReminder] = useState(false)
+  const [showBulkTimpris, setShowBulkTimpris] = useState(false)
   const [linksRefresh, setLinksRefresh] = useState(0)
   const [latestLink, setLatestLink] = useState<SignaturLank | null>(null)
   const [sendingRevised, setSendingRevised] = useState(false)
@@ -922,6 +924,9 @@ export function ForslagDetail({ forslag: forslagProp, statusar, allProjekt, onBa
             <>
               <button onClick={loadAll} className="inline-flex items-center gap-1.5 px-3 py-2.5 text-[10px] font-semibold uppercase tracking-wider text-muted hover:text-fg transition-colors">
                 <RefreshCw size={11} />
+              </button>
+              <button onClick={() => setShowBulkTimpris(true)} className="inline-flex items-center gap-1.5 px-3 py-2.5 text-[10px] font-semibold uppercase tracking-wider text-muted hover:text-fg transition-colors">
+                <Tags size={11} />Timpriser
               </button>
               <button onClick={handleExportPdf} disabled={exportingPdf} className="inline-flex items-center gap-1.5 px-3 py-2.5 text-[10px] font-semibold uppercase tracking-wider text-muted hover:text-fg transition-colors disabled:opacity-40">
                 <FileDown size={11} />{exportingPdf ? 'Genererar...' : 'PDF'}
@@ -1940,6 +1945,16 @@ export function ForslagDetail({ forslag: forslagProp, statusar, allProjekt, onBa
             setShowVilkorReminder(false)
             setShowTidplanReminder(true)
           }}
+        />
+      )}
+
+      {showBulkTimpris && (
+        <BulkTimprisModal
+          forslagId={forslag.id}
+          arbete={Object.values(arbeteBySubfas).flat()}
+          arbetsRoller={arbetsRoller}
+          onClose={() => setShowBulkTimpris(false)}
+          onApplied={() => { setShowBulkTimpris(false); loadAll() }}
         />
       )}
 

@@ -26,6 +26,7 @@ const CHANNELS = [
   'db:forslag-arbete:create',
   'db:forslag-arbete:update',
   'db:forslag-arbete:delete',
+  'db:forslag-arbete:bulk-update-timpris',
   'db:forslag-material:list',
   'db:forslag-material:list-by-forslag',
   'db:forslag-material:create',
@@ -412,6 +413,36 @@ export function registerForslagHandlers(): void {
 
     return { updated: updated?.length ?? 0, rot_avdrag: !!projekt.rot_avdrag }
   })
+
+  ipcMain.handle(
+    'db:forslag-arbete:bulk-update-timpris',
+    async (_, forslag_id: string, updates: { yrkesroll: string; timpris: number }[]) => {
+      if (!Array.isArray(updates) || updates.length === 0) return { updated: 0 }
+
+      const { data: faser } = await supabase
+        .from('forslag_faser').select('id').eq('forslag_id', forslag_id)
+      const fasIds = (faser ?? []).map((f: { id: string }) => f.id)
+      if (!fasIds.length) return { updated: 0 }
+
+      const { data: subfaser } = await supabase
+        .from('forslag_subfaser').select('id').in('fas_id', fasIds)
+      const subfasIds = (subfaser ?? []).map((s: { id: string }) => s.id)
+      if (!subfasIds.length) return { updated: 0 }
+
+      let totalUpdated = 0
+      for (const { yrkesroll, timpris } of updates) {
+        const { data, error } = await supabase
+          .from('forslag_arbetskostnad')
+          .update({ timpris })
+          .in('subfas_id', subfasIds)
+          .eq('yrkesroll', yrkesroll)
+          .select('id')
+        if (error) throw new Error(error.message)
+        totalUpdated += data?.length ?? 0
+      }
+      return { updated: totalUpdated }
+    }
+  )
 
   // --- Materialkostnad (now linked to subfas) ---
 

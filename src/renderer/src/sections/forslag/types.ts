@@ -147,6 +147,12 @@ export type UpdateForslagInput = Partial<Omit<CreateForslagInput, 'projekt_id'>>
   ai_analys?: string
 }
 
+export interface BulkTimprisEntry {
+  yrkesroll: string
+  forslagTimpris: number
+  katalogTimpris: number | null
+}
+
 export interface ForslagEpostRef {
   id: string
   forslag_id: string
