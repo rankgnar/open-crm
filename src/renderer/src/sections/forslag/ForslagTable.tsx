@@ -127,6 +127,73 @@ function PaminnelseCell({ historik }: { historik: { at: string }[] | undefined }
   )
 }
 
+function ProjektStatusFilter({ value, onChange, statusar }: { value: string[]; onChange: (v: string[]) => void; statusar: ProjektStatusar[] }) {
+  const [open, setOpen] = useState(false)
+  const ref = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    if (!open) return
+    const handler = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false)
+    }
+    document.addEventListener('mousedown', handler)
+    return () => document.removeEventListener('mousedown', handler)
+  }, [open])
+
+  function toggle(namn: string) {
+    const next = value.includes(namn) ? value.filter((v) => v !== namn) : [...value, namn]
+    onChange(next)
+  }
+
+  const label = value.length === 0 ? 'Projektstatus' : value.length === 1 ? value[0] : `${value.length} statusar`
+  const hasSelection = value.length > 0
+
+  return (
+    <div ref={ref} className="relative w-40 shrink-0">
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        className="w-full flex items-center justify-between gap-2 bg-elevated border border-border rounded-lg px-3 py-2 text-xs outline-none hover:border-fg/30 transition-colors"
+      >
+        <span className={`truncate ${hasSelection ? 'text-fg' : 'text-subtle'}`}>{label}</span>
+        <ChevronDown size={11} className="text-muted shrink-0" />
+      </button>
+      {open && (
+        <div className="absolute left-0 right-0 top-full mt-1 z-50 bg-elevated border border-border rounded-lg shadow-xl flex flex-col overflow-hidden">
+          <div className="max-h-64 overflow-auto py-1">
+            {hasSelection && (
+              <button
+                type="button"
+                onClick={() => { onChange([]); setOpen(false) }}
+                className="w-full text-left px-3 py-2 text-xs text-subtle hover:bg-hover transition-colors"
+              >
+                — Alla —
+              </button>
+            )}
+            {statusar.map((s) => {
+              const checked = value.includes(s.namn)
+              return (
+                <button
+                  key={s.id}
+                  type="button"
+                  onClick={() => toggle(s.namn)}
+                  className={`w-full flex items-center gap-2 text-left px-3 py-2 text-xs hover:bg-hover transition-colors ${checked ? 'text-fg font-medium' : 'text-muted'}`}
+                >
+                  <span className={`w-3.5 h-3.5 rounded border shrink-0 flex items-center justify-center transition-colors ${checked ? 'bg-emerald-500 border-emerald-500' : 'border-border bg-bg'}`}>
+                    {checked && <Check size={9} className="text-white" />}
+                  </span>
+                  <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${PROJEKT_FARG_DOT[s.farg as keyof typeof PROJEKT_FARG_DOT] ?? 'bg-muted'}`} />
+                  <span className="truncate">{s.namn}</span>
+                </button>
+              )
+            })}
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
 function StatusSelect({ value, onChange, statusar }: { value: string[]; onChange: (v: string[]) => void; statusar: ForslagStatusar[] }) {
   const [open, setOpen] = useState(false)
   const ref = useRef<HTMLDivElement>(null)
@@ -211,12 +278,23 @@ export function ForslagTable({ forslag, statusar, projektStatusar, signingEvents
     localStorage.setItem('forslag-status-filter', JSON.stringify(statusFilter))
   }, [statusFilter])
 
+  const [projektFilter, setProjektFilter] = useState<string[]>(() => {
+    try {
+      const saved = localStorage.getItem('forslag-projektstatus-filter')
+      return saved ? (JSON.parse(saved) as string[]) : []
+    } catch { return [] }
+  })
+  useEffect(() => {
+    localStorage.setItem('forslag-projektstatus-filter', JSON.stringify(projektFilter))
+  }, [projektFilter])
+
   function handleSort(col: string) {
     if (sortCol === col) setSortDir((d) => d === 'asc' ? 'desc' : 'asc')
     else { setSortCol(col); setSortDir('asc') }
   }
 
-  const filtered = statusFilter.length > 0 ? forslag.filter((f) => statusFilter.includes(f.status)) : forslag
+  const filteredByProjekt = projektFilter.length > 0 ? forslag.filter((f) => projektFilter.includes(f.projekt.status)) : forslag
+  const filtered = statusFilter.length > 0 ? filteredByProjekt.filter((f) => statusFilter.includes(f.status)) : filteredByProjekt
 
   const allSelected = filtered.length > 0 && filtered.every((f) => selected.has(f.id))
 
@@ -273,6 +351,7 @@ export function ForslagTable({ forslag, statusar, projektStatusar, signingEvents
           </span>
         </div>
         <div className="flex items-center gap-2">
+          <ProjektStatusFilter value={projektFilter} onChange={setProjektFilter} statusar={projektStatusar} />
           <StatusSelect value={statusFilter} onChange={setStatusFilter} statusar={statusar} />
           <RefreshButton iconOnly />
           {onDuplicate && (
@@ -317,6 +396,10 @@ export function ForslagTable({ forslag, statusar, projektStatusar, signingEvents
       {forslag.length === 0 ? (
         <div className="flex flex-1 items-center justify-center">
           <p className="text-muted text-sm">Inga förslag ännu. Skapa ett nytt förslag för att börja.</p>
+        </div>
+      ) : filtered.length === 0 ? (
+        <div className="flex flex-1 items-center justify-center">
+          <p className="text-muted text-sm">Inga förslag matchar filtret.</p>
         </div>
       ) : (
         <div className="flex-1 overflow-auto">
