@@ -1994,6 +1994,7 @@ export function ForslagDetail({ forslag: forslagProp, statusar, allProjekt, onBa
           dokument_id={forslag.id}
           initialEmail={forslag.projekt?.kunder?.email ?? ''}
           kund_namn={forslag.projekt.kunder.namn}
+          projekt_namn={forslag.projekt.namn}
           titelOptions={signaturTitelOptions ?? undefined}
           bifogaOptions={[
             {

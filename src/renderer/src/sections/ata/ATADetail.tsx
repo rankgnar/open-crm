@@ -373,6 +373,8 @@ export function ATADetail({ ata: ataProp, onBack, onSetStatus, onSign, onUpdate,
           dokument_typ="ata"
           dokument_id={ata.id}
           initialEmail={ata.kund?.email ?? ''}
+          kund_namn={ata.kund_namn}
+          projekt_namn={ata.projekt?.namn ?? ''}
           onClose={() => setShowSendModal(false)}
           onSent={(link) => {
             setLinksRefresh(k => k + 1)

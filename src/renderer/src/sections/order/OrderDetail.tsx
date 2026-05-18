@@ -377,6 +377,8 @@ export function OrderDetail({ order: orderProp, onBack, onSetStatus, onSign, onU
           dokument_typ="order"
           dokument_id={order.id}
           initialEmail={order.kund?.email ?? ''}
+          kund_namn={order.kund_namn}
+          projekt_namn={order.projekt?.namn ?? ''}
           onClose={() => setShowSendModal(false)}
           onSent={(link) => {
             setLinksRefresh(k => k + 1)

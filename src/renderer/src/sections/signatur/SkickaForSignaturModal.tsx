@@ -21,10 +21,17 @@ interface Props {
   dokument_id:    string
   initialEmail?:  string
   kund_namn?:     string
+  projekt_namn?:  string
   bifogaOptions?: BifogaOption[]
   titelOptions?:  TitelOptions
   onClose:        () => void
   onSent:         (link: SignaturLank, extras?: { titel?: string; sammanfattad?: boolean; splitPdf?: boolean; bifogaTidplan?: boolean }) => void
+}
+
+function resolveVars(template: string, kund_namn?: string, projekt_namn?: string): string {
+  return template
+    .replace(/\{\{kund_namn\}\}/g, kund_namn ?? '')
+    .replace(/\{\{projekt_namn\}\}/g, projekt_namn ?? '')
 }
 
 const EXPIRY_OPTIONS = [
@@ -35,7 +42,7 @@ const EXPIRY_OPTIONS = [
   { label: 'Ingen utgång', days: 0 },
 ]
 
-export function SkickaForSignaturModal({ dokument_typ, dokument_id, initialEmail, kund_namn, bifogaOptions, titelOptions, onClose, onSent }: Props) {
+export function SkickaForSignaturModal({ dokument_typ, dokument_id, initialEmail, kund_namn, projekt_namn, bifogaOptions, titelOptions, onClose, onSent }: Props) {
   const [email, setEmail] = useState(initialEmail ?? '')
   const [days, setDays] = useState(30)
   const [mallar, setMallar] = useState<EpostMall[]>([])
@@ -64,7 +71,7 @@ export function SkickaForSignaturModal({ dokument_typ, dokument_id, initialEmail
       setMallId(resolvedId)
       const mall = filtered.find(m => m.id === resolvedId)
       if (mall?.meddelande_standard) {
-        setMeddelande(mall.meddelande_standard.replace(/\{\{kund_namn\}\}/g, kund_namn ?? ''))
+        setMeddelande(resolveVars(mall.meddelande_standard, kund_namn, projekt_namn))
       }
     })()
   }, [dokument_typ, kund_namn])
@@ -162,7 +169,7 @@ export function SkickaForSignaturModal({ dokument_typ, dokument_id, initialEmail
                   setMallId(v || null)
                   const mall = mallar.find(m => m.id === v)
                   if (mall?.meddelande_standard) {
-                    setMeddelande(mall.meddelande_standard.replace(/\{\{kund_namn\}\}/g, kund_namn ?? ''))
+                    setMeddelande(resolveVars(mall.meddelande_standard, kund_namn, projekt_namn))
                   } else {
                     setMeddelande('')
                   }
