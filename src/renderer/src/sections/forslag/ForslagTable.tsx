@@ -673,15 +673,17 @@ export function ForslagTable({ forslag, statusar, projektStatusar, signingEvents
               onSubmit={async (e) => {
                 e.preventDefault()
                 if (!nyTitel.trim() || !anteckModal) return
+                const projektId = anteckModal.projektId
                 setSavingNote(true)
                 try {
-                  const created = await window.api.invoke('db:projekt-anteckningar:create', {
-                    projekt_id: anteckModal.projektId,
+                  await window.api.invoke('db:projekt-anteckningar:create', {
+                    projekt_id: projektId,
                     titel: nyTitel.trim(),
                     innehall: nyInnehall.trim(),
                     farg: nyFarg,
-                  }) as ProjektAnteckning
-                  setAnteckningar((prev) => [...prev, created])
+                  })
+                  const fresh = await window.api.invoke('db:projekt-anteckningar:list', projektId)
+                  setAnteckningar(fresh as ProjektAnteckning[])
                   setNyTitel('')
                   setNyInnehall('')
                   setNyFarg('muted')
