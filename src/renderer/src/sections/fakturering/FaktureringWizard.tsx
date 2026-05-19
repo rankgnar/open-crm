@@ -139,6 +139,7 @@ export function FaktureringWizard({ onDone, onCancel }: Props) {
                     value={selectedKundId}
                     onChange={(v) => { setSelectedKundId(v); setSelectedForslagId('') }}
                     placeholder="Alla kunder"
+                    searchable
                     options={kunder.map((k) => ({ value: k.id, label: k.namn }))}
                   />
                 </div>

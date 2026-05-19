@@ -84,13 +84,15 @@ export function registerFaktureringHandlers(): void {
     }
 
     const [{ data: arbete }, { data: material }, { data: ue }] = await Promise.all([
-      subfasIds.length ? supabase.from('forslag_arbetskostnad').select('antal_timmar,timpris').in('subfas_id', subfasIds) : Promise.resolve({ data: [] }),
+      subfasIds.length ? supabase.from('forslag_arbetskostnad').select('antal_timmar,timpris,rot_berattigad').in('subfas_id', subfasIds) : Promise.resolve({ data: [] }),
       subfasIds.length ? supabase.from('forslag_materialkostnad').select('antal,a_pris').in('subfas_id', subfasIds) : Promise.resolve({ data: [] }),
       subfasIds.length ? supabase.from('forslag_underentreprenorer').select('kostnad').in('subfas_id', subfasIds) : Promise.resolve({ data: [] }),
     ])
 
     const totalArbete = (arbete ?? []).reduce((s: number, r: { antal_timmar: number; timpris: number }) => s + r.antal_timmar * r.timpris, 0)
-    const rotEligible = projekt.rot_avdrag ? totalArbete : 0
+    const rotEligible = projekt.rot_avdrag
+      ? (arbete ?? []).reduce((s: number, r: { antal_timmar: number; timpris: number; rot_berattigad: boolean }) => s + (r.rot_berattigad ? r.antal_timmar * r.timpris : 0), 0)
+      : 0
     const totalMaterial = (material ?? []).reduce((s: number, r: { antal: number; a_pris: number }) => s + r.antal * r.a_pris, 0)
     const totalUE = (ue ?? []).reduce((s: number, r: { kostnad: number }) => s + r.kostnad, 0)
     const totalNetto = totalArbete + totalMaterial + totalUE
@@ -99,9 +101,10 @@ export function registerFaktureringHandlers(): void {
     const snapshotEtapper: SnapshotEtapp[] = etapper.map((etapp) => {
       const pct = etapp.pct / 100
       const etappNetto = Math.round(totalNetto * pct * 100) / 100
-      const etappRot = Math.round(rotEligible * pct * 0.30 * 100) / 100
-      const etappMoms = Math.round((etappNetto - etappRot) * (moms / 100) * 100) / 100
-      const etappAtt = Math.round((etappNetto - etappRot + etappMoms) * 100) / 100
+      // ROT = 30% of eligible labour inkl moms (Skatteverket convention), capped at 50 000 per etapp
+      const etappRot = Math.round(Math.min(rotEligible * pct * 1.25 * 0.30, 50000) * 100) / 100
+      const etappMoms = Math.round(etappNetto * (moms / 100) * 100) / 100
+      const etappAtt = Math.round((etappNetto + etappMoms - etappRot) * 100) / 100
       return {
         pct: etapp.pct,
         beskrivning: etapp.beskrivning,
@@ -113,9 +116,9 @@ export function registerFaktureringHandlers(): void {
       }
     })
 
-    const rotAvdragTotalt = Math.round(rotEligible * 0.30 * 100) / 100
-    const momsTotalt = Math.round((totalNetto - rotAvdragTotalt) * (moms / 100) * 100) / 100
-    const attBetalaTotalt = Math.round((totalNetto - rotAvdragTotalt + momsTotalt) * 100) / 100
+    const rotAvdragTotalt = Math.round(snapshotEtapper.reduce((s, e) => s + e.rot, 0) * 100) / 100
+    const momsTotalt = Math.round(totalNetto * (moms / 100) * 100) / 100
+    const attBetalaTotalt = Math.round((totalNetto + momsTotalt - rotAvdragTotalt) * 100) / 100
 
     const { data: snapshot, error: sErr } = await supabase
       .from('fakturering_snapshots')
