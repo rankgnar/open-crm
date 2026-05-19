@@ -7,25 +7,37 @@ interface SmsForslagPanelProps {
   forslagId: string
   projektId: string
   kund_namn: string
+  kund_email: string
+  kund_telefon: string
+  kund_stad: string
   projekt_namn: string
   forslag_nummer: string
   foretag_namn: string
+  foretag_email: string
+  foretag_telefon: string
+  foretag_webbadress: string
   onNoteCreated: (note: ProjektAnteckning) => void
 }
 
 function resolveSmsMall(msg: string, vars: Record<string, string>): string {
   return msg
     .replace(/\{\{kund_namn\}\}/g, vars.kund_namn)
+    .replace(/\{\{kund_email\}\}/g, vars.kund_email)
+    .replace(/\{\{kund_telefon\}\}/g, vars.kund_telefon)
+    .replace(/\{\{kund_stad\}\}/g, vars.kund_stad)
     .replace(/\{\{projekt_namn\}\}/g, vars.projekt_namn)
     .replace(/\{\{forslag_nummer\}\}/g, vars.forslag_nummer)
     .replace(/\{\{foretag_namn\}\}/g, vars.foretag_namn)
+    .replace(/\{\{foretag_email\}\}/g, vars.foretag_email)
+    .replace(/\{\{foretag_telefon\}\}/g, vars.foretag_telefon)
+    .replace(/\{\{foretag_webbadress\}\}/g, vars.foretag_webbadress)
 }
 
 function formatDate(iso: string): string {
   return new Date(iso).toLocaleString('sv-SE', { dateStyle: 'short', timeStyle: 'short' })
 }
 
-export function SmsForslagPanel({ forslagId, projektId, kund_namn, projekt_namn, forslag_nummer, foretag_namn, onNoteCreated }: SmsForslagPanelProps) {
+export function SmsForslagPanel({ forslagId, projektId, kund_namn, kund_email, kund_telefon, kund_stad, projekt_namn, forslag_nummer, foretag_namn, foretag_email, foretag_telefon, foretag_webbadress, onNoteCreated }: SmsForslagPanelProps) {
   const [mallar, setMallar] = useState<SmsMall[]>([])
   const [log, setLog] = useState<ForslagSmsLog[]>([])
   const [loading, setLoading] = useState(true)
@@ -51,7 +63,7 @@ export function SmsForslagPanel({ forslagId, projektId, kund_namn, projekt_namn,
     if (!id) { setText(''); return }
     const mall = mallar.find((m) => m.id === id)
     if (!mall) return
-    setText(resolveSmsMall(mall.meddelande, { kund_namn, projekt_namn, forslag_nummer, foretag_namn }))
+    setText(resolveSmsMall(mall.meddelande, { kund_namn, kund_email, kund_telefon, kund_stad, projekt_namn, forslag_nummer, foretag_namn, foretag_email, foretag_telefon, foretag_webbadress }))
   }
 
   function toggleExpand(id: string) {

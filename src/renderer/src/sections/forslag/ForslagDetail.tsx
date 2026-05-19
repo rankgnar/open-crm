@@ -1848,9 +1848,15 @@ export function ForslagDetail({ forslag: forslagProp, statusar, allProjekt, onBa
                 forslagId={forslag.id}
                 projektId={forslag.projekt_id}
                 kund_namn={forslag.projekt.kunder.namn}
+                kund_email={forslag.projekt.kunder.email ?? ''}
+                kund_telefon={forslag.projekt.kunder.telefon ?? ''}
+                kund_stad={forslag.projekt.kunder.stad ?? ''}
                 projekt_namn={forslag.projekt.namn}
                 forslag_nummer={forslag.forslag_nummer}
                 foretag_namn={config?.foretag_namn ?? ''}
+                foretag_email={config?.foretag_email ?? ''}
+                foretag_telefon={config?.foretag_telefon ?? ''}
+                foretag_webbadress={config?.foretag_webbadress ?? ''}
                 onNoteCreated={(note) => setAnteckningar((prev) => [note, ...prev])}
               />
             </div>

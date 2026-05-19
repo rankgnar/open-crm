@@ -209,11 +209,13 @@ export function ForslagPanel() {
                 value={newSmsMeddelande}
                 onChange={(e) => setNewSmsMeddelande(e.target.value)}
                 rows={4}
-                placeholder={`Meddelande… Variabler: {{kund_namn}}, {{projekt_namn}}, {{forslag_nummer}}, {{foretag_namn}}`}
+                placeholder={`Meddelande… Variabler: {{kund_namn}}, {{kund_email}}, {{kund_telefon}}, {{kund_stad}}, {{projekt_namn}}, {{forslag_nummer}}, {{foretag_namn}}, {{foretag_email}}, {{foretag_telefon}}, {{foretag_webbadress}}`}
                 className="input resize-none text-xs"
               />
-              <p className="text-[10px] text-subtle">
-                Variabler: <span className="font-mono">{'{{kund_namn}}'}</span>, <span className="font-mono">{'{{projekt_namn}}'}</span>, <span className="font-mono">{'{{forslag_nummer}}'}</span>, <span className="font-mono">{'{{foretag_namn}}'}</span>
+              <p className="text-[10px] text-subtle leading-relaxed">
+                Kund: <span className="font-mono">{'{{kund_namn}}'}</span> <span className="font-mono">{'{{kund_email}}'}</span> <span className="font-mono">{'{{kund_telefon}}'}</span> <span className="font-mono">{'{{kund_stad}}'}</span><br />
+                Projekt: <span className="font-mono">{'{{projekt_namn}}'}</span> <span className="font-mono">{'{{forslag_nummer}}'}</span><br />
+                Företag: <span className="font-mono">{'{{foretag_namn}}'}</span> <span className="font-mono">{'{{foretag_email}}'}</span> <span className="font-mono">{'{{foretag_telefon}}'}</span> <span className="font-mono">{'{{foretag_webbadress}}'}</span>
               </p>
               <div className="flex items-center gap-2 justify-end">
                 <button onClick={() => { setSmsAdding(false); setNewSmsNamn(''); setNewSmsMeddelande('') }} className="text-xs text-muted hover:text-fg transition-colors">Avbryt</button>
