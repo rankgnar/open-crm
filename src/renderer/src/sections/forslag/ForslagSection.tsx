@@ -36,6 +36,7 @@ export function ForslagSection({ initialProjektId, onNavigateProjekt, initialFor
   const [statusar, setStatusar] = useState<ForslagStatusar[]>([])
   const [projektStatusar, setProjektStatusar] = useState<ProjektStatusar[]>([])
   const [signingEvents, setSigningEvents] = useState<Record<string, SignaturSummary>>({})
+  const [smsForslag, setSmsForslag] = useState<Set<string>>(new Set())
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [view, setView] = useState<View>('list')
@@ -43,18 +44,20 @@ export function ForslagSection({ initialProjektId, onNavigateProjekt, initialFor
 
   const loadData = useCallback(async () => {
     try {
-      const [forslagData, projektData, statusData, projektStatusData, signingData] = await Promise.all([
+      const [forslagData, projektData, statusData, projektStatusData, signingData, smsIds] = await Promise.all([
         window.api.invoke('db:forslag:list') as Promise<ForslagWithProjekt[]>,
         window.api.invoke('db:projekt:list') as Promise<ProjektWithKund[]>,
         window.api.invoke('db:forslag-statusar:list') as Promise<ForslagStatusar[]>,
         window.api.invoke('db:projekt-statusar:list') as Promise<ProjektStatusar[]>,
         window.api.invoke('db:signatur-lank:forslag-events') as Promise<Record<string, SignaturSummary>>,
+        window.api.invoke('db:forslag-sms-log:forslag-ids') as Promise<string[]>,
       ])
       setForslag(forslagData)
       setAllProjekt(projektData)
       setStatusar(statusData)
       setProjektStatusar(projektStatusData)
       setSigningEvents(signingData)
+      setSmsForslag(new Set(smsIds))
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Kunde inte ladda data')
     } finally {
@@ -301,6 +304,7 @@ export function ForslagSection({ initialProjektId, onNavigateProjekt, initialFor
         statusar={statusar}
         projektStatusar={projektStatusar}
         signingEvents={signingEvents}
+        smsForslag={smsForslag}
         onSelect={(f) => { setSelectedForslag(f); setView('detail') }}
         onNew={() => setView('create')}
         onDuplicate={() => setShowDuplicate(true)}

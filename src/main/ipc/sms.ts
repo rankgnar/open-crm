@@ -8,6 +8,7 @@ const CHANNELS = [
   'db:sms-mallar:delete',
   'db:forslag-sms-log:list',
   'db:forslag-sms-log:create',
+  'db:forslag-sms-log:forslag-ids',
 ] as const
 
 interface CreateSmsMallInput {
@@ -85,5 +86,13 @@ export function registerSmsHandlers(): void {
       .single()
     if (error) throw new Error(error.message)
     return data
+  })
+
+  ipcMain.handle('db:forslag-sms-log:forslag-ids', async () => {
+    const { data, error } = await supabase
+      .from('forslag_sms_log')
+      .select('forslag_id')
+    if (error) throw new Error(error.message)
+    return [...new Set((data ?? []).map((r: { forslag_id: string }) => r.forslag_id))]
   })
 }

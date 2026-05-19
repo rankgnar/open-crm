@@ -1,8 +1,8 @@
-import { Plus, FileDown, Loader2, Trash2, ArrowUp, ArrowDown, ArrowUpDown, Bell, Copy, ChevronDown, Check } from 'lucide-react'
+import { Plus, FileDown, Loader2, Trash2, ArrowUp, ArrowDown, ArrowUpDown, Bell, Copy, ChevronDown, ChevronUp, Check, MessageSquare, X } from 'lucide-react'
 import { RefreshButton } from '@/components/RefreshButton'
 import { KundPopover } from '@/components/KundPopover'
 import { useRef, useState, useEffect } from 'react'
-import type { ForslagWithProjekt, ForslagStatusar, SignaturSummary } from './types'
+import type { ForslagWithProjekt, ForslagStatusar, SignaturSummary, ForslagSmsLog } from './types'
 import type { ProjektStatusar } from '@/sections/projekt/types'
 import { FARG_DOT as PROJEKT_FARG_DOT, FARG_TEXT as PROJEKT_FARG_TEXT } from '@/sections/projekt/types'
 
@@ -18,6 +18,7 @@ interface Props {
   statusar: ForslagStatusar[]
   projektStatusar: ProjektStatusar[]
   signingEvents: Record<string, SignaturSummary>
+  smsForslag: Set<string>
   onSelect: (f: ForslagWithProjekt) => void
   onNew: () => void
   onDuplicate?: () => void
@@ -301,11 +302,15 @@ function StatusSelect({ value, onChange, statusar }: { value: string[]; onChange
   )
 }
 
-export function ForslagTable({ forslag, statusar, projektStatusar, signingEvents, onSelect, onNew, onDuplicate, onStatusChange, onExportPdf, onDeleteMany, onClickProjekt, onProjektStatusChange }: Props) {
+export function ForslagTable({ forslag, statusar, projektStatusar, signingEvents, smsForslag, onSelect, onNew, onDuplicate, onStatusChange, onExportPdf, onDeleteMany, onClickProjekt, onProjektStatusChange }: Props) {
   const [exportingId, setExportingId] = useState<string | null>(null)
   const [selected, setSelected] = useState<Set<string>>(new Set())
   const [confirmBulk, setConfirmBulk] = useState(false)
   const [deletingBulk, setDeletingBulk] = useState(false)
+  const [smsModal, setSmsModal] = useState<{ forslagId: string; nummer: string } | null>(null)
+  const [smsModalLog, setSmsModalLog] = useState<ForslagSmsLog[]>([])
+  const [smsModalLoading, setSmsModalLoading] = useState(false)
+  const [smsExpandedIds, setSmsExpandedIds] = useState<Set<string>>(new Set())
   const [sortCol, setSortCol] = useState<string | null>(() => localStorage.getItem('forslag-sort-col') || null)
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>(() => (localStorage.getItem('forslag-sort-dir') as 'asc' | 'desc') || 'asc')
   const [statusFilter, setStatusFilter] = useState<string[]>(() => {
@@ -493,7 +498,6 @@ export function ForslagTable({ forslag, statusar, projektStatusar, signingEvents
                 <th className="px-4 py-2.5 text-[11px] font-medium uppercase tracking-wider text-muted select-none">Påminnelse</th>
                 {([
                   ['status', 'Status', 'px-4'],
-                  ['giltig_till', 'Giltig till', 'px-4'],
                 ] as [string, string, string][]).map(([col, label, px]) => (
                   <th key={col} onClick={() => handleSort(col)}
                     className={`${px} py-2.5 text-[11px] font-medium uppercase tracking-wider text-muted cursor-pointer select-none hover:text-fg transition-colors group/th`}>
@@ -506,6 +510,7 @@ export function ForslagTable({ forslag, statusar, projektStatusar, signingEvents
                     </div>
                   </th>
                 ))}
+                <th className="px-4 py-2.5 text-[11px] font-medium uppercase tracking-wider text-muted select-none">SMS</th>
                 <th onClick={() => handleSort('skapad_at')}
                   className="px-4 py-2.5 text-[11px] font-medium uppercase tracking-wider text-muted cursor-pointer select-none hover:text-fg transition-colors group/th">
                   <div className="flex items-center gap-1">
@@ -581,8 +586,24 @@ export function ForslagTable({ forslag, statusar, projektStatusar, signingEvents
                   <td className="px-4 py-3 whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
                     <StatusPicker forslag={f} statusar={statusar} onStatusChange={onStatusChange} />
                   </td>
-                  <td className="px-4 py-3 text-muted text-xs whitespace-nowrap">
-                    {f.giltig_till ? new Date(f.giltig_till).toLocaleDateString('sv-SE') : '—'}
+                  <td className="px-4 py-3" onClick={(e) => e.stopPropagation()}>
+                    {smsForslag.has(f.id) && (
+                      <button
+                        onClick={() => {
+                          setSmsModal({ forslagId: f.id, nummer: f.forslag_nummer })
+                          setSmsModalLog([])
+                          setSmsExpandedIds(new Set())
+                          setSmsModalLoading(true)
+                          window.api.invoke('db:forslag-sms-log:list', f.id)
+                            .then((d) => setSmsModalLog(d as ForslagSmsLog[]))
+                            .finally(() => setSmsModalLoading(false))
+                        }}
+                        className="flex items-center gap-1.5 px-2 py-1 rounded text-xs text-blue-400 border border-blue-400/40 hover:bg-blue-400/10 transition-colors whitespace-nowrap"
+                      >
+                        <MessageSquare size={11} />
+                        Öppna SMS
+                      </button>
+                    )}
                   </td>
                   <td className="px-4 py-3 text-muted text-xs whitespace-nowrap">
                     {new Date(f.skapad_at).toLocaleDateString('sv-SE')}
@@ -605,6 +626,60 @@ export function ForslagTable({ forslag, statusar, projektStatusar, signingEvents
               )})}
             </tbody>
           </table>
+        </div>
+      )}
+
+      {/* SMS modal */}
+      {smsModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60" onClick={() => setSmsModal(null)}>
+          <div className="bg-elevated border border-border rounded-xl shadow-xl w-[480px] max-h-[70vh] flex flex-col" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between px-5 py-3.5 border-b border-border shrink-0">
+              <div className="flex items-center gap-2">
+                <MessageSquare size={14} className="text-blue-400" />
+                <p className="text-sm font-semibold text-fg">SMS — {smsModal.nummer}</p>
+              </div>
+              <button onClick={() => setSmsModal(null)} className="text-muted hover:text-fg transition-colors">
+                <X size={15} />
+              </button>
+            </div>
+            <div className="flex-1 overflow-auto px-5 py-4">
+              {smsModalLoading ? (
+                <p className="text-xs text-muted text-center py-8">Laddar…</p>
+              ) : smsModalLog.length === 0 ? (
+                <p className="text-xs text-muted text-center py-8">Inga skickade SMS.</p>
+              ) : (
+                <div className="flex flex-col gap-0">
+                  {smsModalLog.map((entry, i) => {
+                    const expanded = smsExpandedIds.has(entry.id)
+                    const isLast = i === smsModalLog.length - 1
+                    return (
+                      <div key={entry.id} className="flex gap-3">
+                        <div className="flex flex-col items-center shrink-0 pt-1">
+                          <div className="size-2 rounded-full bg-blue-400 shrink-0" />
+                          {!isLast && <div className="w-px flex-1 bg-border mt-1" />}
+                        </div>
+                        <div className={`flex-1 min-w-0 ${!isLast ? 'pb-4' : 'pb-1'}`}>
+                          <div className="flex items-start justify-between gap-2">
+                            <div className="flex-1 min-w-0">
+                              <p className="text-[10px] text-muted">{new Date(entry.skapad_at).toLocaleString('sv-SE', { dateStyle: 'short', timeStyle: 'short' })}</p>
+                              {entry.mall_namn && <p className="text-[11px] font-medium text-blue-400 mt-0.5">{entry.mall_namn}</p>}
+                              <p className={`text-xs text-fg mt-0.5 ${expanded ? 'whitespace-pre-wrap' : 'line-clamp-2'}`}>{entry.meddelande}</p>
+                            </div>
+                            <button
+                              onClick={() => setSmsExpandedIds((prev) => { const n = new Set(prev); n.has(entry.id) ? n.delete(entry.id) : n.add(entry.id); return n })}
+                              className="shrink-0 text-muted hover:text-fg transition-colors mt-0.5"
+                            >
+                              {expanded ? <ChevronUp size={13} /> : <ChevronDown size={13} />}
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
+              )}
+            </div>
+          </div>
         </div>
       )}
     </div>
