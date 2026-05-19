@@ -1506,7 +1506,12 @@ export function ForslagDetail({ forslag: forslagProp, statusar, allProjekt, onBa
                           {kundFull.webbadress && (
                             <div className="flex-1 min-w-0">
                               <p className="text-[10px] text-muted">Webb</p>
-                              <p className="text-xs text-fg mt-0.5 break-all">{kundFull.webbadress}</p>
+                              <button
+                                className="text-xs text-blue-400 mt-0.5 break-all text-left hover:underline cursor-pointer"
+                                onClick={() => window.open(kundFull.webbadress!.startsWith('http') ? kundFull.webbadress! : `https://${kundFull.webbadress}`, '_blank')}
+                              >
+                                {kundFull.webbadress}
+                              </button>
                             </div>
                           )}
                         </div>
