@@ -176,3 +176,11 @@ export interface SmsMall {
   skapad_at: string
   uppdaterad_at: string
 }
+
+export interface ForslagSmsLog {
+  id: string
+  forslag_id: string
+  mall_namn: string
+  meddelande: string
+  skapad_at: string
+}

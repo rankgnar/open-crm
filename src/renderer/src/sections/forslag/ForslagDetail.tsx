@@ -1840,6 +1840,7 @@ export function ForslagDetail({ forslag: forslagProp, statusar, allProjekt, onBa
                 <p className="text-[10px] uppercase tracking-widest text-muted">SMS</p>
               </div>
               <SmsForslagPanel
+                forslagId={forslag.id}
                 projektId={forslag.projekt_id}
                 kund_namn={forslag.projekt.kunder.namn}
                 projekt_namn={forslag.projekt.namn}
