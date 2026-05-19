@@ -656,7 +656,7 @@ export function ForslagDetail({ forslag: forslagProp, statusar, allProjekt, onBa
           const [pdf1b64, pdf2b64, tidplanb64] = await Promise.all([
             window.api.invoke('pdf:generate-buffer', { html: pdf1Html }) as Promise<string>,
             window.api.invoke('pdf:generate-buffer', { html: pdf2Html }) as Promise<string>,
-            window.api.invoke('pdf:generate-buffer', { html: tidplanHtml, landscape: true }) as Promise<string>,
+            window.api.invoke('pdf:generate-buffer', { html: tidplanHtml }) as Promise<string>,
           ])
           await window.api.invoke('pdf:save-pdfs', [
             { name: `${baseName}-offert`, data_base64: pdf1b64 },
@@ -681,7 +681,7 @@ export function ForslagDetail({ forslag: forslagProp, statusar, allProjekt, onBa
             buildTidplanHtmlForExport(),
             buildForslagHtml(titelOverride, { visa_portada_display: 'none', visa_desglose_display: 'none' }, sammanfattad),
           ])
-          parts.push({ html: forslagSinSammaf }, { html: tidplanHtml, landscape: true }, { html: sammafHtml })
+          parts.push({ html: forslagSinSammaf }, { html: tidplanHtml }, { html: sammafHtml })
         } else {
           parts.push({ html: await buildForslagHtml(titelOverride, undefined, sammanfattad) })
         }
@@ -2002,7 +2002,7 @@ export function ForslagDetail({ forslag: forslagProp, statusar, allProjekt, onBa
               label: 'Bifoga tidplan',
               generate: async () => {
                 const html = await buildTidplanHtmlForExport()
-                const data_base64 = await window.api.invoke('pdf:generate-buffer', { html, landscape: true }) as string
+                const data_base64 = await window.api.invoke('pdf:generate-buffer', { html }) as string
                 return { filnamn: `tidplan-${forslag.forslag_nummer}.pdf`, data_base64 }
               },
             },

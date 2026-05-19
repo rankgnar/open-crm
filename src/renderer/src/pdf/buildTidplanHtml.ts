@@ -5,8 +5,8 @@ import type { PdfMall, AppInstallningar } from '@/sections/installningar/types'
 const DAY_LABELS_BY_DOW = ['S', 'M', 'T', 'O', 'T', 'F', 'L']
 
 const LABEL_W = 160
-// A4 landscape ≈ 1122px at 96 DPI, minus 56px horizontal padding, minus LABEL_W
-const GANTT_AVAILABLE = 906
+// A4 portrait ≈ 794px at 96 DPI, minus 56px horizontal padding, minus LABEL_W
+const GANTT_AVAILABLE = 578
 
 function isoWeek(d: Date): number {
   const utc = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()))
@@ -177,12 +177,12 @@ export function buildTidplanHtml(
 <meta charset="UTF-8">
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
-  @page { size: A4 landscape; margin: 0; }
-  body { font-family: -apple-system, 'Helvetica Neue', Helvetica, Arial, sans-serif; background: #fff; width: 297mm; }
+  @page { size: A4 portrait; margin: 0; }
+  body { font-family: -apple-system, 'Helvetica Neue', Helvetica, Arial, sans-serif; background: #fff; width: 210mm; }
 </style>
 </head>
 <body>
-<div style="width:297mm;min-height:210mm;background:#fff;padding:22px 28px;display:flex;flex-direction:column;">
+<div style="width:210mm;min-height:297mm;background:#fff;padding:22px 28px;display:flex;flex-direction:column;">
 
   <!-- Header -->
   <div style="display:flex;justify-content:space-between;align-items:flex-start;padding-bottom:10px;border-bottom:1.5px solid ${accent};margin-bottom:16px;">

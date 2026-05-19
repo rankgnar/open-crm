@@ -681,7 +681,6 @@ export function TidplanSection({ onNavigateBack, navigateBackLabel, initialForsl
         html,
         name: `tidplan-${selected.forslag_nummer}-${selected.projekt.kunder.namn.replace(/\s+/g, '_')}`,
         save: true,
-        landscape: true,
       })
     } finally {
       setExportando(false)
