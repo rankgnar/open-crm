@@ -511,6 +511,8 @@ export function TidplanSection({ onNavigateBack, navigateBackLabel, initialForsl
   const [planerModalOpen, setPlanerModalOpen] = useState(false)
   const faserRef = useRef<ForslagFas[]>([])
   useEffect(() => { faserRef.current = faser }, [faser])
+  const synkadeFaserRef = useRef<Set<string>>(new Set())
+  useEffect(() => { synkadeFaserRef.current = synkadeFaser }, [synkadeFaser])
 
   const reloadForslag = useCallback(async () => {
     const d = await window.api.invoke('db:forslag:list') as ForslagWithProjekt[]
@@ -746,13 +748,11 @@ export function TidplanSection({ onNavigateBack, navigateBackLabel, initialForsl
     setFaser(prev => prev.map(f => f.id === id ? { ...f, ...patch } : f))
     try {
       await window.api.invoke('db:forslag-faser:update', id, patch)
-      // Auto-sync kalender event if this fas is already synced
-      const current = faserRef.current.find(f => f.id === id)
-      const merged = { ...current, ...patch }
-      if (merged.start_datum && merged.slut_datum) {
-        const isSynked = await window.api.invoke('db:tidplan:synka-status',
-          forslag.find(f => f.id === current?.forslag_id)?.projekt_id ?? '') as string[]
-        if (isSynked.includes(id)) {
+      // Auto-sync kalender event if this fas is already synced — use local ref, not a remote query
+      if (synkadeFaserRef.current.has(id)) {
+        const current = faserRef.current.find(f => f.id === id)
+        const merged = { ...current, ...patch }
+        if (merged.start_datum && merged.slut_datum) {
           await window.api.invoke('db:tidplan:synka-fas', {
             fas_id: id,
             start_datum: merged.start_datum,
@@ -763,7 +763,7 @@ export function TidplanSection({ onNavigateBack, navigateBackLabel, initialForsl
     } catch {
       window.api.invoke('db:forslag-faser:list', selected?.id ?? '').then((d) => setFaser(d as ForslagFas[]))
     }
-  }, [selected?.id, forslag])
+  }, [selected?.id])
 
   const filtered = useMemo(() => {
     const q = search.toLowerCase()
