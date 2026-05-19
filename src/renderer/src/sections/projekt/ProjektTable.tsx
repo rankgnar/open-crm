@@ -1,9 +1,9 @@
-import { Plus, Search, X, Trash2, ArrowUp, ArrowDown, ArrowUpDown, ChevronDown, Check, Globe, Copy } from 'lucide-react'
+import { Plus, Search, X, Trash2, ArrowUp, ArrowDown, ArrowUpDown, ChevronDown, Check, Globe, Copy, StickyNote, Send } from 'lucide-react'
 import { RefreshButton } from '@/components/RefreshButton'
 import { KundPopover } from '@/components/KundPopover'
 import { useRef, useState, useEffect } from 'react'
-import type { ProjektWithKund, ProjektStatusar } from './types'
-import { FARG_DOT, FARG_TEXT } from './types'
+import type { ProjektWithKund, ProjektStatusar, ProjektAnteckning, AnteckningFarg } from './types'
+import { FARG_DOT, FARG_TEXT, ANTECKNING_FARG_DOT } from './types'
 import { WorkflowTriggerInline } from '@/components/WorkflowTriggerInline'
 
 
@@ -153,6 +153,13 @@ function StatusSelect({ value, onChange, statusar }: { value: string[]; onChange
 }
 
 export function ProjektTable({ projekt, statusar, fragSummary, forslagSummary, onSelect, onNew, onDuplicate, onStatusChange, onStatusChangeMany, onDeleteMany }: Props) {
+  const [anteckModal, setAnteckModal] = useState<{ projektId: string; projektNamn: string; kundNamn: string } | null>(null)
+  const [anteckningar, setAnteckningar] = useState<ProjektAnteckning[]>([])
+  const [anteckLoading, setAnteckLoading] = useState(false)
+  const [nyTitel, setNyTitel] = useState('')
+  const [nyFarg, setNyFarg] = useState<AnteckningFarg>('muted')
+  const [nyInnehall, setNyInnehall] = useState('')
+  const [savingNote, setSavingNote] = useState(false)
   const [query, setQuery] = useState('')
   const [statusFilter, setStatusFilter] = useState<string[]>(() => {
     try {
@@ -367,6 +374,7 @@ const [selected, setSelected] = useState<Set<string>>(new Set())
                 ))}
                 <th className="px-4 py-2.5 text-[11px] font-medium uppercase tracking-wider text-muted select-none">Offert</th>
                 <th className="px-4 py-2.5 text-[11px] font-medium uppercase tracking-wider text-muted select-none">Formulär</th>
+                <th className="px-4 py-2.5 w-10"></th>
               </tr>
             </thead>
             <tbody>
@@ -431,11 +439,125 @@ const [selected, setSelected] = useState<Set<string>>(new Set())
                         </span>
                       ) : <span className="text-subtle text-xs">—</span>}
                     </td>
+                    <td className="px-4 py-3 text-right" onClick={(e) => e.stopPropagation()}>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          setAnteckModal({ projektId: p.id, projektNamn: p.namn, kundNamn: p.kunder.namn })
+                          setAnteckningar([])
+                          setAnteckLoading(true)
+                          window.api.invoke('db:projekt-anteckningar:list', p.id)
+                            .then((d) => setAnteckningar(d as ProjektAnteckning[]))
+                            .finally(() => setAnteckLoading(false))
+                        }}
+                        title="Anteckningar"
+                        className="inline-flex items-center gap-1.5 px-2 py-1 rounded text-xs text-muted border border-border hover:text-fg hover:bg-hover transition-colors"
+                      >
+                        <StickyNote size={12} />
+                        Anteckningar
+                      </button>
+                    </td>
                   </tr>
                 )
               })}
             </tbody>
           </table>
+        </div>
+      )}
+
+      {/* Anteckningar modal */}
+      {anteckModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60" onClick={() => setAnteckModal(null)}>
+          <div className="bg-elevated border border-border rounded-xl shadow-xl w-[520px] max-h-[70vh] flex flex-col" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between px-5 py-3.5 border-b border-border shrink-0">
+              <div className="flex items-center gap-2">
+                <StickyNote size={14} className="text-muted" />
+                <div>
+                  <p className="text-sm font-semibold text-fg">{anteckModal.kundNamn}</p>
+                  <p className="text-[11px] text-muted">{anteckModal.projektNamn}</p>
+                </div>
+              </div>
+              <button onClick={() => setAnteckModal(null)} className="text-muted hover:text-fg transition-colors">
+                <X size={15} />
+              </button>
+            </div>
+            <div className="flex-1 overflow-auto px-5 py-4">
+              {anteckLoading ? (
+                <p className="text-xs text-muted text-center py-8">Laddar…</p>
+              ) : anteckningar.length === 0 ? (
+                <p className="text-xs text-muted text-center py-6 italic">Inga anteckningar ännu.</p>
+              ) : (
+                <div className="flex flex-col gap-3">
+                  {anteckningar.map((a) => (
+                    <div key={a.id} className="flex gap-3">
+                      <div className={`w-1 rounded-full shrink-0 ${ANTECKNING_FARG_DOT[a.farg as AnteckningFarg] ?? 'bg-subtle'}`} />
+                      <div className="flex-1 min-w-0">
+                        <p className="text-xs font-medium text-fg">{a.titel}</p>
+                        {a.innehall && <p className="text-xs text-muted mt-0.5 whitespace-pre-wrap leading-relaxed">{a.innehall}</p>}
+                        <p className="text-[10px] text-subtle mt-1">{new Date(a.skapad_at).toLocaleDateString('sv-SE')}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+            <form
+              className="border-t border-border p-4 flex flex-col gap-2 shrink-0"
+              onSubmit={async (e) => {
+                e.preventDefault()
+                if (!nyTitel.trim() || !anteckModal) return
+                const projektId = anteckModal.projektId
+                setSavingNote(true)
+                try {
+                  await window.api.invoke('db:projekt-anteckningar:create', {
+                    projekt_id: projektId,
+                    titel: nyTitel.trim(),
+                    innehall: nyInnehall.trim(),
+                    farg: nyFarg,
+                  })
+                  const fresh = await window.api.invoke('db:projekt-anteckningar:list', projektId)
+                  setAnteckningar(fresh as ProjektAnteckning[])
+                  setNyTitel('')
+                  setNyInnehall('')
+                  setNyFarg('muted')
+                } finally {
+                  setSavingNote(false)
+                }
+              }}
+            >
+              <input
+                className="input text-xs"
+                placeholder="Titel *"
+                value={nyTitel}
+                onChange={(e) => setNyTitel(e.target.value)}
+              />
+              <div className="flex items-center gap-1.5">
+                {(['muted', 'emerald', 'amber', 'red', 'blue'] as AnteckningFarg[]).map((f) => (
+                  <button
+                    key={f}
+                    type="button"
+                    onClick={() => setNyFarg(f)}
+                    className={`size-3 rounded-full border-2 transition-transform ${ANTECKNING_FARG_DOT[f]} ${nyFarg === f ? 'scale-125' : 'opacity-50 hover:opacity-100'}`}
+                  />
+                ))}
+              </div>
+              <textarea
+                className="input resize-none text-xs"
+                rows={3}
+                placeholder="Innehåll (valfritt)..."
+                value={nyInnehall}
+                onChange={(e) => setNyInnehall(e.target.value)}
+              />
+              <button
+                type="submit"
+                disabled={savingNote || !nyTitel.trim()}
+                className="flex items-center justify-center gap-1.5 rounded-lg bg-fg text-bg px-3 py-1.5 text-xs font-medium hover:opacity-90 transition-opacity disabled:opacity-30"
+              >
+                <Send size={11} />
+                {savingNote ? 'Sparar...' : 'Lägg till anteckning'}
+              </button>
+            </form>
+          </div>
         </div>
       )}
     </div>
