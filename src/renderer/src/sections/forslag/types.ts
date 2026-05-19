@@ -75,6 +75,7 @@ export interface ForslagWithProjekt extends Forslag {
       org_nummer: string | null
       personnummer: string | null
       fastighetsbeteckning: string | null
+      login_anteckning: string | null
     }
   }
 }

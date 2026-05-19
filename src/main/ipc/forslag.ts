@@ -65,7 +65,7 @@ interface CreateForslagInput {
 const SELECT_WITH_PROJEKT = `
   *,
   projekt!inner(kund_id, namn, projekt_nummer, beskrivning, status, startdatum, slutdatum, arbetsplats_adress, arbetsplats_postnummer, arbetsplats_stad, rot_avdrag, rot_procent, rot_inkludera_medsokande, villkor, betalningsvillkor,
-    kunder!inner(namn, kundnummer, email, telefon, telefon_2, adress, adress_2, postnummer, stad, org_nummer, personnummer, fastighetsbeteckning)
+    kunder!inner(namn, kundnummer, email, telefon, telefon_2, adress, adress_2, postnummer, stad, org_nummer, personnummer, fastighetsbeteckning, login_anteckning)
   )
 `
 
