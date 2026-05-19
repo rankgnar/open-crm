@@ -1,5 +1,6 @@
 import { ipcMain } from 'electron'
 import { supabase } from '../supabase'
+import { broadcastChange } from '../broadcast'
 
 const CHANNELS = [
   'db:installningar:get',
@@ -173,18 +174,21 @@ export function registerInstallningarHandlers(): void {
   ipcMain.handle('db:leverantorer:create', async (_, input: { namn: string; kontaktperson?: string; email?: string; telefon?: string; webbadress?: string; org_nummer?: string; anteckning?: string }) => {
     const { data, error } = await supabase.from('leverantorer').insert(input).select('*').single()
     if (error) throw new Error(error.message)
+    broadcastChange('leverantorer')
     return data
   })
 
   ipcMain.handle('db:leverantorer:update', async (_, id: string, input: Record<string, unknown>) => {
     const { data, error } = await supabase.from('leverantorer').update(input).eq('id', id).select('*').single()
     if (error) throw new Error(error.message)
+    broadcastChange('leverantorer')
     return data
   })
 
   ipcMain.handle('db:leverantorer:delete', async (_, id: string) => {
     const { error } = await supabase.from('leverantorer').delete().eq('id', id)
     if (error) throw new Error(error.message)
+    broadcastChange('leverantorer')
   })
 
   ipcMain.handle('db:leverantorer:import-csv', async (_, rows: Array<{ namn: string; kontaktperson?: string; email?: string; telefon?: string; org_nummer?: string; webbadress?: string; anteckning?: string }>, mode: 'skip' | 'overwrite' = 'skip') => {
@@ -207,6 +211,7 @@ export function registerInstallningarHandlers(): void {
         else success++
       }
     }
+    broadcastChange('leverantorer')
     return { success, skipped, errors }
   })
 

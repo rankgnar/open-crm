@@ -1,5 +1,6 @@
 import { ipcMain } from 'electron'
 import { supabase } from '../supabase'
+import { broadcastChange } from '../broadcast'
 
 const CHANNELS = [
   'db:forslag:list',
@@ -122,6 +123,7 @@ export function registerForslagHandlers(): void {
       .select(SELECT_WITH_PROJEKT)
       .single()
     if (error) throw new Error(error.message)
+    broadcastChange('forslag')
     return data
   })
 
@@ -133,6 +135,7 @@ export function registerForslagHandlers(): void {
       .select(SELECT_WITH_PROJEKT)
       .single()
     if (error) throw new Error(error.message)
+    broadcastChange('forslag')
     return data
   })
 
@@ -152,6 +155,7 @@ export function registerForslagHandlers(): void {
     }
     const { error } = await supabase.from('forslag').delete().eq('id', id)
     if (error) throw new Error(error.message)
+    broadcastChange('forslag')
   })
 
   ipcMain.handle('db:forslag:delete-many', async (_, ids: string[]) => {
@@ -173,6 +177,7 @@ export function registerForslagHandlers(): void {
     }
     const { error } = await supabase.from('forslag').delete().in('id', ids)
     if (error) throw new Error(error.message)
+    broadcastChange('forslag')
   })
 
   ipcMain.handle('db:forslag:duplicate', async (_, input: { source_id: string; target_projekt_id: string; titel: string }) => {
@@ -239,6 +244,7 @@ export function registerForslagHandlers(): void {
       }
     }
 
+    broadcastChange('forslag')
     return newF
   })
 
@@ -270,6 +276,7 @@ export function registerForslagHandlers(): void {
       .select('*')
       .single()
     if (error) throw new Error(error.message)
+    broadcastChange('forslag')
     return data
   })
 
@@ -281,6 +288,7 @@ export function registerForslagHandlers(): void {
       .select('*')
       .single()
     if (error) throw new Error(error.message)
+    broadcastChange('forslag')
     return data
   })
 
@@ -292,6 +300,7 @@ export function registerForslagHandlers(): void {
     if (kalErr) throw new Error(kalErr.message)
     const { error } = await supabase.from('forslag_faser').delete().eq('id', id)
     if (error) throw new Error(error.message)
+    broadcastChange('forslag')
   })
 
   ipcMain.handle('db:forslag-faser:swap', async (_, id_a: string, id_b: string) => {
@@ -355,6 +364,7 @@ export function registerForslagHandlers(): void {
       .select('*')
       .single()
     if (error) throw new Error(error.message)
+    broadcastChange('forslag')
     return data
   })
 
@@ -366,12 +376,14 @@ export function registerForslagHandlers(): void {
       .select('*')
       .single()
     if (error) throw new Error(error.message)
+    broadcastChange('forslag')
     return data
   })
 
   ipcMain.handle('db:forslag-subfaser:delete', async (_, id: string) => {
     const { error } = await supabase.from('forslag_subfaser').delete().eq('id', id)
     if (error) throw new Error(error.message)
+    broadcastChange('forslag')
   })
 
   ipcMain.handle('db:forslag-subfaser:swap', async (_, id_a: string, id_b: string) => {
@@ -432,6 +444,7 @@ export function registerForslagHandlers(): void {
       .select('*')
       .single()
     if (error) throw new Error(error.message)
+    broadcastChange('forslag')
     return data
   })
 
@@ -445,12 +458,14 @@ export function registerForslagHandlers(): void {
       .select('*')
       .single()
     if (error) throw new Error(error.message)
+    broadcastChange('forslag')
     return data
   })
 
   ipcMain.handle('db:forslag-arbete:delete', async (_, id: string) => {
     const { error } = await supabase.from('forslag_arbetskostnad').delete().eq('id', id)
     if (error) throw new Error(error.message)
+    broadcastChange('forslag')
   })
 
   ipcMain.handle('db:forslag-arbete:apply-rot', async (_, forslag_id: string) => {
@@ -508,6 +523,7 @@ export function registerForslagHandlers(): void {
         if (error) throw new Error(error.message)
         totalUpdated += data?.length ?? 0
       }
+      broadcastChange('forslag')
       return { updated: totalUpdated }
     }
   )
@@ -555,6 +571,7 @@ export function registerForslagHandlers(): void {
       .select('*')
       .single()
     if (error) throw new Error(error.message)
+    broadcastChange('forslag')
     return data
   })
 
@@ -568,12 +585,14 @@ export function registerForslagHandlers(): void {
       .select('*')
       .single()
     if (error) throw new Error(error.message)
+    broadcastChange('forslag')
     return data
   })
 
   ipcMain.handle('db:forslag-material:delete', async (_, id: string) => {
     const { error } = await supabase.from('forslag_materialkostnad').delete().eq('id', id)
     if (error) throw new Error(error.message)
+    broadcastChange('forslag')
   })
 
   // --- Underentreprenörer (subfas-level) ---
@@ -619,6 +638,7 @@ export function registerForslagHandlers(): void {
       .select('*')
       .single()
     if (error) throw new Error(error.message)
+    broadcastChange('forslag')
     return data
   })
 
@@ -632,12 +652,14 @@ export function registerForslagHandlers(): void {
       .select('*')
       .single()
     if (error) throw new Error(error.message)
+    broadcastChange('forslag')
     return data
   })
 
   ipcMain.handle('db:forslag-ue:delete', async (_, id: string) => {
     const { error } = await supabase.from('forslag_underentreprenorer').delete().eq('id', id)
     if (error) throw new Error(error.message)
+    broadcastChange('forslag')
   })
 
   ipcMain.handle('db:forslag:apply-mall', async (_, forslag_id: string, mall_id: string) => {

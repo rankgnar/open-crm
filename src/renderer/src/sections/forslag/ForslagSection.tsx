@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { useRefreshHandler } from '@/context/RefreshContext'
+import { useChangeListener } from '@/hooks/useChangeListener'
 import { ForslagTable } from './ForslagTable'
 import { ProjektInfoModal } from './ProjektInfoModal'
 import { DuplikatForslagModal } from './DuplikatForslagModal'
@@ -63,6 +64,7 @@ export function ForslagSection({ initialProjektId, onNavigateProjekt, initialFor
 
   useEffect(() => { loadData() }, [loadData])
   useRefreshHandler(loadData)
+  useChangeListener(['forslag', 'projekt'], loadData)
 
   const initialForslagConsumed = useRef(false)
   useEffect(() => {

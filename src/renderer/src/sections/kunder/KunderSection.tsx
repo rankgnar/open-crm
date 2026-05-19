@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useRefreshHandler } from '@/context/RefreshContext'
+import { useChangeListener } from '@/hooks/useChangeListener'
 import { KunderTable } from './KunderTable'
 import { KundForm } from './KundForm'
 import { KundDetail } from './KundDetail'
@@ -38,6 +39,7 @@ export function KunderSection() {
 
   useEffect(() => { loadKunder() }, [loadKunder])
   useRefreshHandler(loadKunder)
+  useChangeListener(['kunder'], loadKunder)
 
   async function handleCreate(data: CreateKundInput) {
     const created = await window.api.invoke('db:kunder:create', data) as Kund

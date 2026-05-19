@@ -4,6 +4,7 @@ import { FaktureringWizard } from './FaktureringWizard'
 import type { FaktureringSnapshot } from './types'
 import { useAppConfig } from '@/context/AppConfig'
 import { useRefreshHandler } from '@/context/RefreshContext'
+import { useChangeListener } from '@/hooks/useChangeListener'
 import { RefreshButton } from '@/components/RefreshButton'
 
 type View = 'list' | 'create'
@@ -21,6 +22,7 @@ export function FaktureringSection() {
 
   useEffect(() => { void reload() }, [reload])
   useRefreshHandler(reload)
+  useChangeListener(['fakturering'], reload)
 
   async function handleDelete(id: string) {
     if (!confirm('Ta bort faktureringen?')) return

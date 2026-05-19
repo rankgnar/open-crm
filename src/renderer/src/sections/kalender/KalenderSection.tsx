@@ -244,8 +244,11 @@ function MultiVeckaGrid({
                   onDragOver={e => e.preventDefault()}
                   onDrop={() => onDrop(dag)}
                   className={`border-r border-border/40 p-1 flex flex-col cursor-pointer transition-colors min-h-[160px] ${erVald ? 'bg-hover' : 'hover:bg-hover/40'}`}
+                  style={erIdag && !erVald ? { backgroundColor: 'rgb(59 130 246 / 0.04)' } : undefined}
                 >
-                  <span className={`text-[11px] font-medium self-start shrink-0 ${erIdag ? 'text-emerald-400' : 'text-muted'}`}>{dag.getDate()}</span>
+                  <span className={`text-xs w-6 h-6 flex items-center justify-center rounded-full shrink-0 self-start
+                    ${erIdag ? 'bg-blue-500 text-white font-semibold' : 'text-muted'}`}
+                  >{dag.getDate()}</span>
                   {dagEvents.filter(e => e.hel_dag).map(e => (
                     <EventPill key={e.id} event={e} onClick={onValjEvent} onDragStart={onDragStart} selected={selectedIds.has(e.id)} />
                   ))}
@@ -1645,7 +1648,7 @@ interface EventPatch {
 }
 
 function TaskDetail({
-  event, onStang, onTabort, projektNamn, dokument, onUpload, onOpenDokument, onDeleteDokument, onRedigera, onToggleSlutford, onOpenEpost,
+  event, onStang, onTabort, projektNamn, dokument, onUpload, onOpenDokument, onDeleteDokument, onRedigera, onToggleSlutford, onOpenEpost, onColorChange,
 }: {
   event: KalenderEvent
   onStang: () => void
@@ -1658,14 +1661,21 @@ function TaskDetail({
   onRedigera: () => void
   onToggleSlutford: (id: string, slutford: boolean) => Promise<void>
   onOpenEpost?: () => void
+  onColorChange: (id: string, farg: string) => void
 }) {
+  const [showColorPicker, setShowColorPicker] = useState(false)
   const kalenderEtikett = event.fas_id ? 'Tidplan' : projektNamn ?? 'Lokal kalender'
 
   return (
     <div className="flex flex-col h-full">
       <div className="flex items-center justify-between px-4 py-3 border-b border-border shrink-0">
         <div className="flex items-center gap-2">
-          <span className="size-2.5 rounded-full shrink-0" style={{ backgroundColor: event.farg }} />
+          <button
+            onClick={() => setShowColorPicker(p => !p)}
+            className="size-2.5 rounded-full shrink-0 hover:ring-2 hover:ring-offset-1 hover:ring-offset-bg transition-all"
+            style={{ backgroundColor: event.farg }}
+            title="Byt färg"
+          />
           <span className="text-[11px] text-muted uppercase tracking-widest">{kalenderEtikett}</span>
         </div>
         <div className="flex items-center gap-1">
@@ -1704,6 +1714,30 @@ function TaskDetail({
           </button>
         </div>
       </div>
+
+      {showColorPicker && (
+        <div className="flex flex-wrap items-center gap-1.5 px-4 py-2.5 border-b border-border shrink-0 bg-elevated">
+          {PALETTE.map(c => (
+            <button
+              key={c}
+              onClick={() => { onColorChange(event.id, c); setShowColorPicker(false) }}
+              className="size-5 rounded-full transition-all"
+              style={{
+                backgroundColor: c,
+                outline: c === event.farg ? `2px solid ${c}` : undefined,
+                outlineOffset: c === event.farg ? '2px' : undefined,
+              }}
+            />
+          ))}
+          <input
+            type="color"
+            value={event.farg}
+            onChange={e => { onColorChange(event.id, e.target.value); setShowColorPicker(false) }}
+            className="size-5 rounded cursor-pointer border-0 bg-transparent p-0"
+            title="Anpassad färg"
+          />
+        </div>
+      )}
 
       <div className="flex-1 overflow-auto px-4 py-4 flex flex-col gap-4">
         <h3 className={`text-base font-semibold leading-snug ${event.slutford ? 'text-muted line-through' : 'text-fg'}`}>{event.titel}</h3>
@@ -2583,6 +2617,12 @@ export function KalenderSection({ onNavigate }: { onNavigate?: (section: string)
     }
   }
 
+  async function handleColorChange(id: string, farg: string) {
+    await window.api.invoke('db:kalender:update', { id, farg })
+    setValtEvent(prev => prev && prev.id === id ? { ...prev, farg } : prev)
+    setEvents(prev => prev.map(e => e.id === id ? { ...e, farg } : e))
+  }
+
   const panelOppen = valtEvent !== null || valtDag !== null
 
   const rubrik = vy === 'manad'
@@ -2967,6 +3007,7 @@ export function KalenderSection({ onNavigate }: { onNavigate?: (section: string)
                 onDeleteDokument={handleDeleteDokument}
                 onRedigera={() => setRedigerarEvent(valtEvent)}
                 onToggleSlutford={handleToggleSlutford}
+                onColorChange={handleColorChange}
                 onOpenEpost={valtEvent.epost_ref && onNavigate ? () => {
                   localStorage.setItem('open-crm:pending-email', JSON.stringify(valtEvent.epost_ref))
                   onNavigate('epost')

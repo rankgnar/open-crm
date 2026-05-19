@@ -2,6 +2,7 @@ import { ipcMain, shell } from 'electron'
 import fs from 'node:fs/promises'
 import path from 'node:path'
 import { supabase } from '../supabase'
+import { broadcastChange } from '../broadcast'
 
 const BUCKET = 'kvitton'
 
@@ -111,6 +112,7 @@ export function registerKvittoHandlers(): void {
       .select('*')
       .single()
     if (error) throw new Error(error.message)
+    broadcastChange('kvitto')
     return data
   })
 
@@ -121,6 +123,7 @@ export function registerKvittoHandlers(): void {
       .update(rest)
       .eq('id', id)
     if (error) throw new Error(error.message)
+    broadcastChange('kvitto')
   })
 
   ipcMain.handle('db:kvitto:set-status', async (_, input: { id: string; status: 'att_hantera' | 'hanterade' }) => {
@@ -129,6 +132,7 @@ export function registerKvittoHandlers(): void {
       .update({ status: input.status })
       .eq('id', input.id)
     if (error) throw new Error(error.message)
+    broadcastChange('kvitto')
   })
 
   ipcMain.handle('db:kvitto:delete', async (_, input: { id: string; storagePath: string }) => {
@@ -137,6 +141,7 @@ export function registerKvittoHandlers(): void {
     }
     const { error } = await supabase.from('kvitton').delete().eq('id', input.id)
     if (error) throw new Error(error.message)
+    broadcastChange('kvitto')
   })
 
   ipcMain.handle('db:kvitto:delete-many', async (_, ids: string[]) => {
@@ -152,6 +157,7 @@ export function registerKvittoHandlers(): void {
     }
     const { error } = await supabase.from('kvitton').delete().in('id', ids)
     if (error) throw new Error(error.message)
+    broadcastChange('kvitto')
   })
 
   ipcMain.handle('db:kvitto:open', async (_, storagePath: string) => {

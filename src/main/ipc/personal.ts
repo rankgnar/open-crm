@@ -2,6 +2,7 @@ import { ipcMain, shell } from 'electron'
 import fs from 'node:fs/promises'
 import path from 'node:path'
 import { supabase } from '../supabase'
+import { broadcastChange } from '../broadcast'
 import { executeChatWithAssistent } from './ai-chat-fn'
 import { readDbConfig } from '../config-store'
 
@@ -129,6 +130,7 @@ export function registerPersonalHandlers(): void {
       .select('*')
       .single()
     if (error) throw new Error(error.message)
+    broadcastChange('personal')
     return data
   })
 
@@ -140,6 +142,7 @@ export function registerPersonalHandlers(): void {
       .select('*')
       .single()
     if (error) throw new Error(error.message)
+    broadcastChange('personal')
     return data
   })
 
@@ -157,6 +160,7 @@ export function registerPersonalHandlers(): void {
     if (authId) {
       await supabase.auth.admin.deleteUser(authId).catch(() => {})
     }
+    broadcastChange('personal')
   })
 
   ipcMain.handle('db:personal:delete-many', async (_, ids: string[]) => {
@@ -175,6 +179,7 @@ export function registerPersonalHandlers(): void {
     for (const authId of authIds) {
       await supabase.auth.admin.deleteUser(authId).catch(() => {})
     }
+    broadcastChange('personal')
   })
 
   // CSV import from Fortnox personalregister
@@ -268,6 +273,7 @@ export function registerPersonalHandlers(): void {
       }
     }
 
+    broadcastChange('personal')
     return result
   })
 
@@ -289,6 +295,7 @@ export function registerPersonalHandlers(): void {
       .select('*')
       .single()
     if (error) throw new Error(error.message)
+    broadcastChange('personal')
     return data
   })
 
@@ -300,12 +307,14 @@ export function registerPersonalHandlers(): void {
       .select('*')
       .single()
     if (error) throw new Error(error.message)
+    broadcastChange('personal')
     return data
   })
 
   ipcMain.handle('db:personal-anteckningar:delete', async (_, id: string) => {
     const { error } = await supabase.from('personal_anteckningar').delete().eq('id', id)
     if (error) throw new Error(error.message)
+    broadcastChange('personal')
   })
 
   // Dokument
@@ -336,6 +345,7 @@ export function registerPersonalHandlers(): void {
       .select('*')
       .single()
     if (dbError) throw new Error(dbError.message)
+    broadcastChange('personal')
     return data
   })
 

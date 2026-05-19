@@ -7,3 +7,7 @@ export function broadcast(channel: string, ...args: unknown[]): void {
     }
   }
 }
+
+export function broadcastChange(entity: string): void {
+  broadcast('db:changed', entity)
+}

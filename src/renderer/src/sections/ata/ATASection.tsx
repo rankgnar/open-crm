@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useRefreshHandler } from '@/context/RefreshContext'
+import { useChangeListener } from '@/hooks/useChangeListener'
 import { ATATable } from './ATATable'
 import { ATAForm } from './ATAForm'
 import { ATADetail } from './ATADetail'
@@ -33,6 +34,7 @@ export function ATASection() {
 
   useEffect(() => { void reload() }, [reload])
   useRefreshHandler(reload)
+  useChangeListener(['ata'], reload)
 
   async function loadDetail(id: string) {
     const full = await window.api.invoke('db:ata:get', id) as ATAWithRader

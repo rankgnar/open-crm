@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useRefreshHandler } from '@/context/RefreshContext'
+import { useChangeListener } from '@/hooks/useChangeListener'
 import { EkonomiTable } from './EkonomiTable'
 import { EkonomiDetail } from './EkonomiDetail'
 import type { ProjektWithKund } from '@/sections/projekt/types'
@@ -32,6 +33,7 @@ export function EkonomiSection() {
 
   useEffect(() => { loadData() }, [loadData])
   useRefreshHandler(loadData)
+  useChangeListener(['ekonomi', 'forslag'], loadData)
 
   function utfallHandelse(kategori: 'arbete' | 'material' | 'ue' | 'övrigt', action: 'add' | 'remove'): string {
     if (kategori === 'arbete')   return action === 'add' ? 'arbetskostnad_lagt_till'   : 'arbetskostnad_borttagen'

@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { Settings, X } from 'lucide-react'
 import { useRefreshHandler } from '@/context/RefreshContext'
+import { useChangeListener } from '@/hooks/useChangeListener'
 import { PersonalTable } from './PersonalTable'
 import { PersonalForm } from './PersonalForm'
 import { PersonalDetail } from './PersonalDetail'
@@ -86,6 +87,7 @@ export function PersonalSection() {
 
   useEffect(() => { loadData() }, [loadData])
   useRefreshHandler(loadData)
+  useChangeListener(['personal'], loadData)
 
   async function loadDetail(personalId: string) {
     const [antData, dokData, loneData, projData, availData] = await Promise.all([

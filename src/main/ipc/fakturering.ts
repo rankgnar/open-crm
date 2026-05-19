@@ -1,5 +1,6 @@
 import { ipcMain } from 'electron'
 import { supabase } from '../supabase'
+import { broadcastChange } from '../broadcast'
 
 const CHANNELS = [
   'db:fakturering:list',
@@ -60,6 +61,7 @@ export function registerFaktureringHandlers(): void {
   ipcMain.handle('db:fakturering:delete', async (_, id: string) => {
     const { error } = await supabase.from('fakturering_snapshots').delete().eq('id', id)
     if (error) throw new Error(error.message)
+    broadcastChange('fakturering')
   })
 
   ipcMain.handle('db:fakturering:generate', async (_, forslag_id: string, etapper: EtappInput[]) => {
@@ -137,6 +139,7 @@ export function registerFaktureringHandlers(): void {
       .single()
     if (sErr) throw new Error(sErr.message)
 
+    broadcastChange('fakturering')
     return snapshot
   })
 }

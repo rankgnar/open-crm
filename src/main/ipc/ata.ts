@@ -1,5 +1,6 @@
 import { ipcMain } from 'electron'
 import { supabase } from '../supabase'
+import { broadcastChange } from '../broadcast'
 
 const CHANNELS = [
   'db:ata:list',
@@ -177,6 +178,7 @@ export function registerAtaHandlers(): void {
       await recomputeAtaTotals(ata.id)
     }
 
+    broadcastChange('ata')
     return ata
   })
 
@@ -188,18 +190,21 @@ export function registerAtaHandlers(): void {
       .select('*')
       .single()
     if (error) throw new Error(error.message)
+    broadcastChange('ata')
     return data
   })
 
   ipcMain.handle('db:ata:delete', async (_, id: string) => {
     const { error } = await supabase.from('ata').delete().eq('id', id)
     if (error) throw new Error(error.message)
+    broadcastChange('ata')
   })
 
   ipcMain.handle('db:ata:delete-many', async (_, ids: string[]) => {
     if (!Array.isArray(ids) || ids.length === 0) return
     const { error } = await supabase.from('ata').delete().in('id', ids)
     if (error) throw new Error(error.message)
+    broadcastChange('ata')
   })
 
   ipcMain.handle('db:ata:sign', async (_, id: string, godkand_av: string, signatur_data: string) => {
@@ -217,6 +222,7 @@ export function registerAtaHandlers(): void {
       .select('*')
       .single()
     if (error) throw new Error(error.message)
+    broadcastChange('ata')
     return data
   })
 
@@ -247,6 +253,7 @@ export function registerAtaHandlers(): void {
       .select('*')
       .single()
     if (error) throw new Error(error.message)
+    broadcastChange('ata')
     return data
   })
 
@@ -268,6 +275,7 @@ export function registerAtaHandlers(): void {
       .single()
     if (error) throw new Error(error.message)
     await recomputeAtaTotals(ata_id)
+    broadcastChange('ata')
     return data
   })
 
@@ -292,6 +300,7 @@ export function registerAtaHandlers(): void {
       .single()
     if (error) throw new Error(error.message)
     await recomputeAtaTotals(data.ata_id)
+    broadcastChange('ata')
     return data
   })
 
@@ -304,6 +313,7 @@ export function registerAtaHandlers(): void {
     const { error } = await supabase.from('ata_rader').delete().eq('id', id)
     if (error) throw new Error(error.message)
     if (current) await recomputeAtaTotals(current.ata_id)
+    broadcastChange('ata')
   })
 
   ipcMain.handle('db:ata-rader:reorder', async (_, ata_id: string, orderedIds: string[]) => {

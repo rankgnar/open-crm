@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useRefreshHandler } from '@/context/RefreshContext'
+import { useChangeListener } from '@/hooks/useChangeListener'
 import { ProjektTable } from './ProjektTable'
 import { ProjektForm } from './ProjektForm'
 import { ProjektDetail } from './ProjektDetail'
@@ -59,6 +60,7 @@ export function ProjektSection({ initialProjektId }: Props = {}) {
 
   useEffect(() => { loadData() }, [loadData])
   useRefreshHandler(loadData)
+  useChangeListener(['projekt', 'kunder'], loadData)
 
   useEffect(() => {
     if (!initialProjektId || projekt.length === 0) return

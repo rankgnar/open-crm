@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useRefreshHandler } from '@/context/RefreshContext'
+import { useChangeListener } from '@/hooks/useChangeListener'
 import { OrderTable } from './OrderTable'
 import { OrderForm } from './OrderForm'
 import { OrderDetail } from './OrderDetail'
@@ -33,6 +34,7 @@ export function OrderSection() {
 
   useEffect(() => { void reload() }, [reload])
   useRefreshHandler(reload)
+  useChangeListener(['order'], reload)
 
   async function loadDetail(id: string) {
     const full = await window.api.invoke('db:order:get', id) as OrderWithRader

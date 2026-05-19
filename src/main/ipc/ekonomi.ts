@@ -1,5 +1,6 @@
 import { ipcMain } from 'electron'
 import { supabase } from '../supabase'
+import { broadcastChange } from '../broadcast'
 
 const CHANNELS = [
   'db:ekonomi-utfall:list',
@@ -71,6 +72,7 @@ export function registerEkonomiHandlers(): void {
       .select('*')
       .single()
     if (error) throw new Error(error.message)
+    broadcastChange('ekonomi')
     return data
   })
 
@@ -82,12 +84,14 @@ export function registerEkonomiHandlers(): void {
       .select('*')
       .single()
     if (error) throw new Error(error.message)
+    broadcastChange('ekonomi')
     return data
   })
 
   ipcMain.handle('db:ekonomi-utfall:delete', async (_, id: string) => {
     const { error } = await supabase.from('ekonomi_utfall').delete().eq('id', id)
     if (error) throw new Error(error.message)
+    broadcastChange('ekonomi')
   })
 
   ipcMain.handle('db:ekonomi-utfall:list-fortnox-givennumbers', async (): Promise<number[]> => {
@@ -128,6 +132,7 @@ export function registerEkonomiHandlers(): void {
     const { error: insertErr } = await supabase.from('ekonomi_utfall').insert(toInsert)
     if (insertErr) throw new Error(insertErr.message)
 
+    broadcastChange('ekonomi')
     return { inserted: toInsert.length, skipped: input.invoices.length - toInsert.length }
   })
 }

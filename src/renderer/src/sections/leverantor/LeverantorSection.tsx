@@ -4,6 +4,7 @@ import type { Leverantor } from '@/sections/installningar/types'
 import { FORTNOX_LEVERANTORER } from '@/utils/fortnoxHeaders'
 import { parseCsv, type ParsedRow } from '@/utils/csvParsers'
 import { useRefreshHandler } from '@/context/RefreshContext'
+import { useChangeListener } from '@/hooks/useChangeListener'
 import { RefreshButton } from '@/components/RefreshButton'
 
 type ImportMode = 'skip' | 'overwrite'
@@ -88,6 +89,7 @@ export function LeverantorSection() {
 
   useEffect(() => { void reload() }, [reload])
   useRefreshHandler(reload)
+  useChangeListener(['leverantorer'], reload)
 
   function handleSort(col: keyof Leverantor) {
     if (sortCol === col) setSortDir((d) => d === 'asc' ? 'desc' : 'asc')

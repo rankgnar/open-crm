@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useRefreshHandler } from '@/context/RefreshContext'
+import { useChangeListener } from '@/hooks/useChangeListener'
 import { KvittoTable } from './KvittoTable'
 import { KvittoForm } from './KvittoForm'
 import { KvittoDetail } from './KvittoDetail'
@@ -33,6 +34,7 @@ export function KvittoSection() {
 
   useEffect(() => { void reload() }, [reload])
   useRefreshHandler(reload)
+  useChangeListener(['kvitto'], reload)
 
   async function handleCreate(input: CreateKvittoInput) {
     await window.api.invoke('db:kvitto:create', input)

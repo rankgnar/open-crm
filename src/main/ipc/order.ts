@@ -1,5 +1,6 @@
 import { ipcMain } from 'electron'
 import { supabase } from '../supabase'
+import { broadcastChange } from '../broadcast'
 
 const CHANNELS = [
   'db:order:list',
@@ -177,6 +178,7 @@ export function registerOrderHandlers(): void {
       await recomputeOrderTotals(order.id)
     }
 
+    broadcastChange('order')
     return order
   })
 
@@ -188,18 +190,21 @@ export function registerOrderHandlers(): void {
       .select('*')
       .single()
     if (error) throw new Error(error.message)
+    broadcastChange('order')
     return data
   })
 
   ipcMain.handle('db:order:delete', async (_, id: string) => {
     const { error } = await supabase.from('ordrar').delete().eq('id', id)
     if (error) throw new Error(error.message)
+    broadcastChange('order')
   })
 
   ipcMain.handle('db:order:delete-many', async (_, ids: string[]) => {
     if (!Array.isArray(ids) || ids.length === 0) return
     const { error } = await supabase.from('ordrar').delete().in('id', ids)
     if (error) throw new Error(error.message)
+    broadcastChange('order')
   })
 
   ipcMain.handle('db:order:sign', async (_, id: string, godkand_av: string, signatur_data: string) => {
@@ -217,6 +222,7 @@ export function registerOrderHandlers(): void {
       .select('*')
       .single()
     if (error) throw new Error(error.message)
+    broadcastChange('order')
     return data
   })
 
@@ -247,6 +253,7 @@ export function registerOrderHandlers(): void {
       .select('*')
       .single()
     if (error) throw new Error(error.message)
+    broadcastChange('order')
     return data
   })
 
@@ -268,6 +275,7 @@ export function registerOrderHandlers(): void {
       .single()
     if (error) throw new Error(error.message)
     await recomputeOrderTotals(order_id)
+    broadcastChange('order')
     return data
   })
 
@@ -292,6 +300,7 @@ export function registerOrderHandlers(): void {
       .single()
     if (error) throw new Error(error.message)
     await recomputeOrderTotals(data.order_id)
+    broadcastChange('order')
     return data
   })
 
@@ -304,6 +313,7 @@ export function registerOrderHandlers(): void {
     const { error } = await supabase.from('order_rader').delete().eq('id', id)
     if (error) throw new Error(error.message)
     if (current) await recomputeOrderTotals(current.order_id)
+    broadcastChange('order')
   })
 
   ipcMain.handle('db:order-rader:reorder', async (_, order_id: string, orderedIds: string[]) => {

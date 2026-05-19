@@ -4,6 +4,7 @@ import path from 'node:path'
 import os from 'node:os'
 import { supabase } from '../supabase'
 import { triggerAvslutFeedback } from './kund-avslut'
+import { broadcastChange } from '../broadcast'
 
 const CHANNELS = [
   'db:projekt:list',
@@ -172,6 +173,7 @@ export function registerProjektHandlers(): void {
       .select(SELECT_WITH_KUND)
       .single()
     if (error) throw new Error(error.message)
+    broadcastChange('projekt')
     return data
   })
 
@@ -183,6 +185,7 @@ export function registerProjektHandlers(): void {
       .select(SELECT_WITH_KUND)
       .single()
     if (error) throw new Error(error.message)
+    broadcastChange('projekt')
     return data
   })
 
@@ -203,6 +206,7 @@ export function registerProjektHandlers(): void {
 
     const { error } = await supabase.from('projekt').delete().eq('id', id)
     if (error) throw new Error(error.message)
+    broadcastChange('projekt')
   })
 
   ipcMain.handle('db:projekt:duplicate', async (_, input: { source_projekt_id: string; target_kund_id: string; namn: string }) => {
@@ -287,6 +291,7 @@ export function registerProjektHandlers(): void {
       }
     }
 
+    broadcastChange('projekt')
     return newP
   })
 
@@ -368,6 +373,7 @@ export function registerProjektHandlers(): void {
       }
     }
 
+    broadcastChange('projekt')
     return newP
   })
 
@@ -437,17 +443,20 @@ export function registerProjektHandlers(): void {
       }
     }
 
+    broadcastChange('projekt')
     return result
   })
 
   ipcMain.handle('db:projekt:delete-many', async (_, ids: string[]) => {
     const { error } = await supabase.from('projekt').delete().in('id', ids)
     if (error) throw new Error(error.message)
+    broadcastChange('projekt')
   })
 
   ipcMain.handle('db:projekt:update-status-many', async (_, ids: string[], status: string) => {
     const { error } = await supabase.from('projekt').update({ status }).in('id', ids)
     if (error) throw new Error(error.message)
+    broadcastChange('projekt')
   })
 
   ipcMain.handle('db:projekt-anteckningar:list', async (_, projekt_id: string) => {
@@ -467,6 +476,7 @@ export function registerProjektHandlers(): void {
       .select('*')
       .single()
     if (error) throw new Error(error.message)
+    broadcastChange('projekt')
     return data
   })
 
@@ -478,12 +488,14 @@ export function registerProjektHandlers(): void {
       .select('*')
       .single()
     if (error) throw new Error(error.message)
+    broadcastChange('projekt')
     return data
   })
 
   ipcMain.handle('db:projekt-anteckningar:delete', async (_, id: string) => {
     const { error } = await supabase.from('projekt_anteckningar').delete().eq('id', id)
     if (error) throw new Error(error.message)
+    broadcastChange('projekt')
   })
 
   ipcMain.handle('db:projekt-nummer:get', async () => {
@@ -515,6 +527,7 @@ export function registerProjektHandlers(): void {
       .select()
       .single()
     if (error) throw new Error(error.message)
+    broadcastChange('projekt')
     return data
   })
 
@@ -526,12 +539,14 @@ export function registerProjektHandlers(): void {
       .select()
       .single()
     if (error) throw new Error(error.message)
+    broadcastChange('projekt')
     return data
   })
 
   ipcMain.handle('db:projekt-statusar:delete', async (_, id: string) => {
     const { error } = await supabase.from('projekt_statusar').delete().eq('id', id)
     if (error) throw new Error(error.message)
+    broadcastChange('projekt')
   })
 
   const mimeMap: Record<string, string> = {
@@ -728,6 +743,7 @@ export function registerProjektHandlers(): void {
       .update({ kalender_farg: farg })
       .eq('id', projekt_id)
     if (error) throw new Error(error.message)
+    broadcastChange('projekt')
   })
 
   // Returns the most advanced frageblankett status per projekt_id

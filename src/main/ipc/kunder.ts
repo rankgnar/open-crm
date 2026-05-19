@@ -1,5 +1,6 @@
 import { ipcMain } from 'electron'
 import { supabase } from '../supabase'
+import { broadcastChange } from '../broadcast'
 
 const CHANNELS = [
   'db:kunder:list',
@@ -99,6 +100,7 @@ export function registerKunderHandlers(): void {
       .select()
       .single()
     if (error) throw new Error(error.message)
+    broadcastChange('kunder')
     return data
   })
 
@@ -113,22 +115,26 @@ export function registerKunderHandlers(): void {
       .select()
       .single()
     if (error) throw new Error(error.message)
+    broadcastChange('kunder')
     return data
   })
 
   ipcMain.handle('db:kunder:delete', async (_, id: string) => {
     const { error } = await supabase.from('kunder').delete().eq('id', id)
     if (error) throw new Error(error.message)
+    broadcastChange('kunder')
   })
 
   ipcMain.handle('db:kunder:delete-many', async (_, ids: string[]) => {
     const { error } = await supabase.from('kunder').delete().in('id', ids)
     if (error) throw new Error(error.message)
+    broadcastChange('kunder')
   })
 
   ipcMain.handle('db:kunder:update-status-many', async (_, ids: string[], status: string) => {
     const { error } = await supabase.from('kunder').update({ status }).in('id', ids)
     if (error) throw new Error(error.message)
+    broadcastChange('kunder')
   })
 
   ipcMain.handle('db:kunder:import-csv', async (_, rows: CreateKundInput[]) => {
@@ -165,6 +171,7 @@ export function registerKunderHandlers(): void {
       }
     }
 
+    broadcastChange('kunder')
     return result
   })
 
@@ -211,5 +218,6 @@ export function registerKunderHandlers(): void {
       .update({ kalender_farg: farg })
       .eq('id', kund_id)
     if (error) throw new Error(error.message)
+    broadcastChange('kunder')
   })
 }
