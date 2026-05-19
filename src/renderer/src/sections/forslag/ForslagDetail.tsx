@@ -12,6 +12,7 @@ import { SignaturTimeline } from '@/sections/signatur/SignaturTimeline'
 import { SignaturGodkannandeBlock } from '@/sections/signatur/SignaturGodkannandeBlock'
 import type { SignaturLank } from '@/sections/signatur/types'
 import { ForslagForm } from './ForslagForm'
+import { SmsForslagPanel } from './SmsForslagPanel'
 import { FasEditor } from './FasEditor'
 import { ForslagKostnadsPanel } from './ForslagKostnadsPanel'
 import { buildTidplanHtml } from '@/pdf/buildTidplanHtml'
@@ -103,7 +104,7 @@ export function ForslagDetail({ forslag: forslagProp, statusar, allProjekt, onBa
   const [sendingPaminnelse, setSendingPaminnelse]     = useState(false)
   const [paminnelseFeedback, setPaminnelseFeedback]   = useState<{ kind: 'success' | 'error'; message: string } | null>(null)
   const [paminnelseDefaultMsg, setPaminnelseDefaultMsg] = useState('')
-  const [rightTab, setRightTab] = useState<'signering' | 'uppgifter' | 'projekt' | 'kostnad' | 'epost' | 'villkor' | 'anteckningar' | 'dokument'>('signering')
+  const [rightTab, setRightTab] = useState<'signering' | 'uppgifter' | 'projekt' | 'kostnad' | 'epost' | 'villkor' | 'sms' | 'anteckningar' | 'dokument'>('signering')
   const [kundFull, setKundFull] = useState<Kund | null>(null)
   const [epostRefs, setEpostRefs] = useState<ForslagEpostRef[]>([])
   const [epostKo, setEpostKo] = useState<EpostKoRef[]>([])
@@ -1391,13 +1392,13 @@ export function ForslagDetail({ forslag: forslagProp, statusar, allProjekt, onBa
 
           {/* Tab bar — row 1: proposal tabs */}
           <div className="flex border-b border-border shrink-0 bg-sidebar">
-            {(['signering', 'uppgifter', 'projekt', 'kostnad', 'epost', 'villkor'] as const).map((tab) => (
+            {(['signering', 'uppgifter', 'projekt', 'kostnad', 'epost', 'villkor', 'sms'] as const).map((tab) => (
               <button
                 key={tab}
                 onClick={() => setRightTab(tab)}
                 className={`flex-1 py-2.5 text-[10px] font-semibold uppercase tracking-wider transition-colors ${rightTab === tab ? 'text-fg border-b-2 border-emerald-400' : 'text-muted hover:text-fg'}`}
               >
-                {tab === 'signering' ? 'Sign' : tab === 'uppgifter' ? 'Kund' : tab === 'projekt' ? 'Projekt' : tab === 'kostnad' ? 'Kostnad' : tab === 'epost' ? 'E-post' : 'Villkor'}
+                {tab === 'signering' ? 'Sign' : tab === 'uppgifter' ? 'Kund' : tab === 'projekt' ? 'Proj' : tab === 'kostnad' ? 'Kost' : tab === 'epost' ? 'E-post' : tab === 'villkor' ? 'Villkor' : 'SMS'}
               </button>
             ))}
           </div>
@@ -1829,6 +1830,23 @@ export function ForslagDetail({ forslag: forslagProp, statusar, allProjekt, onBa
                   </div>
                 )}
               </div>
+            </div>
+          )}
+
+          {/* SMS */}
+          {rightTab === 'sms' && (
+            <div className="flex-1 flex flex-col overflow-hidden">
+              <div className="px-5 py-3 border-b border-border shrink-0">
+                <p className="text-[10px] uppercase tracking-widest text-muted">SMS</p>
+              </div>
+              <SmsForslagPanel
+                projektId={forslag.projekt_id}
+                kund_namn={forslag.projekt.kunder.namn}
+                projekt_namn={forslag.projekt.namn}
+                forslag_nummer={forslag.forslag_nummer}
+                foretag_namn={config?.foretag_namn ?? ''}
+                onNoteCreated={(note) => setAnteckningar((prev) => [note, ...prev])}
+              />
             </div>
           )}
 

@@ -166,3 +166,13 @@ export interface ForslagEpostRef {
   datum: string
   skapad_at: string
 }
+
+export interface SmsMall {
+  id: string
+  namn: string
+  meddelande: string
+  aktiv: boolean
+  sortering: number
+  skapad_at: string
+  uppdaterad_at: string
+}
