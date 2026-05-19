@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { Plus, Trash2, Lock } from 'lucide-react'
+import { Plus, Trash2, Lock, ChevronDown, ChevronRight } from 'lucide-react'
 import { ConfigField } from './ConfigField'
 import type { ForslagStatusar, SmsMall } from '@/sections/forslag/types'
 import { FARG_DOT, FARG_TEXT } from '@/sections/forslag/types'
@@ -355,13 +355,14 @@ function SmsRow({ mall, isEditing, deleting, onStartEdit, onSave, onCancelEdit, 
   const [draftNamn, setDraftNamn] = useState(mall.namn)
   const [draftMeddelande, setDraftMeddelande] = useState(mall.meddelande)
   const [confirmDelete, setConfirmDelete] = useState(false)
+  const [expanded, setExpanded] = useState(false)
 
   useEffect(() => {
     if (isEditing) { setDraftNamn(mall.namn); setDraftMeddelande(mall.meddelande) }
   }, [isEditing, mall.namn, mall.meddelande])
 
   return (
-    <div className="px-4 py-3 group hover:bg-hover transition-colors">
+    <div className="px-4 py-2.5 group hover:bg-hover transition-colors">
       {isEditing ? (
         <div className="flex flex-col gap-2">
           <input autoFocus value={draftNamn} onChange={(e) => setDraftNamn(e.target.value)} className="input text-sm" />
@@ -372,23 +373,32 @@ function SmsRow({ mall, isEditing, deleting, onStartEdit, onSave, onCancelEdit, 
           </div>
         </div>
       ) : (
-        <div className="flex items-start justify-between gap-2">
-          <div className="flex-1 min-w-0 cursor-text" onDoubleClick={onStartEdit} title="Dubbelklicka för att redigera">
-            <p className="text-sm font-medium text-fg truncate">{mall.namn}</p>
-            {mall.meddelande && <p className="text-[11px] text-muted mt-0.5 line-clamp-2">{mall.meddelande}</p>}
+        <div className="flex flex-col gap-1">
+          <div className="flex items-center justify-between gap-2">
+            <button
+              onClick={() => setExpanded((v) => !v)}
+              className="flex items-center gap-1.5 flex-1 min-w-0 text-left"
+            >
+              {expanded ? <ChevronDown size={12} className="text-muted shrink-0" /> : <ChevronRight size={12} className="text-muted shrink-0" />}
+              <p className="text-sm font-medium text-fg truncate">{mall.namn}</p>
+            </button>
+            <div className="flex items-center gap-1 shrink-0">
+              <button onClick={onStartEdit} className="opacity-0 group-hover:opacity-100 transition-opacity text-[10px] text-muted hover:text-fg">Redigera</button>
+              {confirmDelete ? (
+                <>
+                  <button onClick={onDelete} disabled={deleting} className="text-xs text-red-400 hover:text-red-300 disabled:opacity-40 font-medium transition-colors">{deleting ? '…' : 'Ja'}</button>
+                  <button onClick={() => setConfirmDelete(false)} className="text-xs text-muted hover:text-fg transition-colors">Nej</button>
+                </>
+              ) : (
+                <button onClick={() => setConfirmDelete(true)} className="opacity-0 group-hover:opacity-100 transition-opacity text-muted hover:text-red-400">
+                  <Trash2 size={13} />
+                </button>
+              )}
+            </div>
           </div>
-          <div className="flex items-center gap-1 shrink-0 mt-0.5">
-            {confirmDelete ? (
-              <>
-                <button onClick={onDelete} disabled={deleting} className="text-xs text-red-400 hover:text-red-300 disabled:opacity-40 font-medium transition-colors">{deleting ? '…' : 'Ja'}</button>
-                <button onClick={() => setConfirmDelete(false)} className="text-xs text-muted hover:text-fg transition-colors">Nej</button>
-              </>
-            ) : (
-              <button onClick={() => setConfirmDelete(true)} className="opacity-0 group-hover:opacity-100 transition-opacity text-muted hover:text-red-400">
-                <Trash2 size={13} />
-              </button>
-            )}
-          </div>
+          {expanded && mall.meddelande && (
+            <p className="text-[11px] text-muted whitespace-pre-wrap pl-[18px]">{mall.meddelande}</p>
+          )}
         </div>
       )}
     </div>
