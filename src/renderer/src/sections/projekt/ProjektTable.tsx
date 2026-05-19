@@ -4,7 +4,6 @@ import { KundPopover } from '@/components/KundPopover'
 import { useRef, useState, useEffect } from 'react'
 import type { ProjektWithKund, ProjektStatusar, ProjektAnteckning, AnteckningFarg } from './types'
 import { FARG_DOT, FARG_TEXT, ANTECKNING_FARG_DOT } from './types'
-import { WorkflowTriggerInline } from '@/components/WorkflowTriggerInline'
 
 
 interface Props {
@@ -285,10 +284,6 @@ const [selected, setSelected] = useState<Set<string>>(new Set())
         </div>
         <StatusSelect value={statusFilter} onChange={setStatusFilter} statusar={statusar} />
 <div className="ml-auto flex items-center gap-2 shrink-0">
-          <WorkflowTriggerInline
-            seccion="projekt"
-            context={selected.size === 1 ? { projekt_id: [...selected][0] } : {}}
-          />
           <RefreshButton iconOnly />
           {onDuplicate && (
             <button onClick={onDuplicate} className="inline-flex items-center gap-1.5 px-3 py-2.5 text-[10px] font-semibold uppercase tracking-wider text-muted hover:text-fg transition-colors">

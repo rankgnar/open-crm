@@ -158,3 +158,11 @@ export interface FrageblanktEpostDraft {
   projekt_id: string
   kund_id: string
 }
+
+export interface ProjektSmsLog {
+  id: string
+  projekt_id: string
+  mall_namn: string
+  meddelande: string
+  skapad_at: string
+}

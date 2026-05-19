@@ -9,6 +9,8 @@ const CHANNELS = [
   'db:forslag-sms-log:list',
   'db:forslag-sms-log:create',
   'db:forslag-sms-log:forslag-ids',
+  'db:projekt-sms-log:list',
+  'db:projekt-sms-log:create',
 ] as const
 
 interface CreateSmsMallInput {
@@ -18,6 +20,12 @@ interface CreateSmsMallInput {
 
 interface CreateSmsLogInput {
   forslag_id: string
+  mall_namn: string
+  meddelande: string
+}
+
+interface CreateProjektSmsLogInput {
+  projekt_id: string
   mall_namn: string
   meddelande: string
 }
@@ -94,5 +102,25 @@ export function registerSmsHandlers(): void {
       .select('forslag_id')
     if (error) throw new Error(error.message)
     return [...new Set((data ?? []).map((r: { forslag_id: string }) => r.forslag_id))]
+  })
+
+  ipcMain.handle('db:projekt-sms-log:list', async (_, projekt_id: string) => {
+    const { data, error } = await supabase
+      .from('projekt_sms_log')
+      .select('*')
+      .eq('projekt_id', projekt_id)
+      .order('skapad_at', { ascending: false })
+    if (error) throw new Error(error.message)
+    return data
+  })
+
+  ipcMain.handle('db:projekt-sms-log:create', async (_, input: CreateProjektSmsLogInput) => {
+    const { data, error } = await supabase
+      .from('projekt_sms_log')
+      .insert(input)
+      .select('*')
+      .single()
+    if (error) throw new Error(error.message)
+    return data
   })
 }
