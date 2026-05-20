@@ -348,6 +348,29 @@ export function registerInstallningarHandlers(): void {
     return { fasCount, subfasCount }
   })
 
+  ipcMain.handle('db:fas-mall:export-csv', async (_, mall_id: string) => {
+    const { data: faser, error } = await supabase
+      .from('fas_mall_faser')
+      .select('id, namn, sortering, fas_mall_subfaser(id, namn, sortering)')
+      .eq('mall_id', mall_id)
+      .order('sortering', { ascending: true })
+    if (error) throw new Error(error.message)
+
+    const rows: { fas: string; subfas: string }[] = []
+    for (const fas of faser ?? []) {
+      const subfaser = ((fas as { fas_mall_subfaser: { namn: string; sortering: number }[] }).fas_mall_subfaser ?? [])
+        .sort((a, b) => a.sortering - b.sortering)
+      if (subfaser.length === 0) {
+        rows.push({ fas: fas.namn, subfas: '' })
+      } else {
+        for (const s of subfaser) {
+          rows.push({ fas: fas.namn, subfas: s.namn })
+        }
+      }
+    }
+    return rows
+  })
+
   // ── Kund statusar ──────────────────────────────────────────────────────────
 
   ipcMain.handle('db:kund-statusar:list', async () => {

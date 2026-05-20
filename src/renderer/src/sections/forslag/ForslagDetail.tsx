@@ -92,6 +92,7 @@ export function ForslagDetail({ forslag: forslagProp, statusar, allProjekt, onBa
   const [confirmDelete, setConfirmDelete] = useState(false)
   const [deleting, setDeleting] = useState(false)
   const [exportingPdf, setExportingPdf] = useState(false)
+  const [exportingCsv, setExportingCsv] = useState(false)
   const [showSendModal, setShowSendModal] = useState(false)
   const [showVilkorReminder, setShowVilkorReminder] = useState(false)
   const [showTidplanReminder, setShowTidplanReminder] = useState(false)
@@ -549,6 +550,26 @@ export function ForslagDetail({ forslag: forslagProp, statusar, allProjekt, onBa
     return totalArbete + totalMaterial + totalUE
   }
 
+  async function handleExportCsv() {
+    setExportingCsv(true)
+    try {
+      const rows = await window.api.invoke('db:forslag:export-csv', forslag.id) as Record<string, string>[]
+      const cols = ['type','fas','subfas','titel','moms_procent','giltig_till','sammanfattning','fas_beskrivning','fas_start','fas_slut','fas_notat','fas_aktiv','subfas_beskrivning','beskrivning','yrkesroll','timmar','timpris','rot_berattigad','enhet','antal','a_pris','leverantor','ue_namn','ue_beskrivning','ue_kostnad','inkl_material']
+      const esc = (v: string) => (v.includes(',') || v.includes('"') || v.includes('\n')) ? '"' + v.replace(/"/g, '""') + '"' : v
+      const lines = [cols.join(','), ...rows.map((r) => cols.map((c) => esc(r[c] ?? '')).join(','))]
+      const content = '﻿' + lines.join('\n') + '\n'
+      const blob = new Blob([content], { type: 'text/csv;charset=utf-8;' })
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `${forslag.forslag_nummer}.csv`
+      a.click()
+      URL.revokeObjectURL(url)
+    } finally {
+      setExportingCsv(false)
+    }
+  }
+
   async function handleExportPdf() {
     const mall = await window.api.invoke('db:pdf-mall:get', 'forslag') as PdfMall | null
     const titel1 = mall?.portada_titel || 'FÖRSLAG'
@@ -960,6 +981,9 @@ export function ForslagDetail({ forslag: forslagProp, statusar, allProjekt, onBa
               </button>
               <button onClick={() => setShowBulkTimpris(true)} className="inline-flex items-center gap-1.5 px-3 py-2.5 text-[10px] font-semibold uppercase tracking-wider text-muted hover:text-fg transition-colors">
                 <Tags size={11} />Timpriser
+              </button>
+              <button onClick={handleExportCsv} disabled={exportingCsv} className="inline-flex items-center gap-1.5 px-3 py-2.5 text-[10px] font-semibold uppercase tracking-wider text-muted hover:text-fg transition-colors disabled:opacity-40">
+                <FileDown size={11} />{exportingCsv ? 'Exporterar...' : 'CSV'}
               </button>
               <button onClick={handleExportPdf} disabled={exportingPdf} className="inline-flex items-center gap-1.5 px-3 py-2.5 text-[10px] font-semibold uppercase tracking-wider text-muted hover:text-fg transition-colors disabled:opacity-40">
                 <FileDown size={11} />{exportingPdf ? 'Genererar...' : 'PDF'}

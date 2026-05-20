@@ -41,6 +41,13 @@ function downloadCSV(content: string, filename: string) {
   URL.revokeObjectURL(url)
 }
 
+function csvEscape(val: string): string {
+  if (val.includes(',') || val.includes('"') || val.includes('\n')) {
+    return '"' + val.replace(/"/g, '""') + '"'
+  }
+  return val
+}
+
 function InlineText({ value, onSave, placeholder = '', doubleClickToEdit = false }: { value: string; onSave: (v: string) => void; placeholder?: string; doubleClickToEdit?: boolean }) {
   const [editing, setEditing] = useState(false)
   const [local, setLocal] = useState(value)
@@ -209,8 +216,19 @@ export function FasMallarPanel() {
 
   // ── CSV import ──────────────────────────────────────────────────────────────
 
-  function handleDownloadTemplate() {
-    downloadCSV(CSV_TEMPLATE, 'fas_subfas_mall.csv')
+  async function handleDownloadMall() {
+    if (!selectedMallId) {
+      downloadCSV(CSV_TEMPLATE, 'fas_subfas_mall.csv')
+      return
+    }
+    const rows = await window.api.invoke('db:fas-mall:export-csv', selectedMallId) as { fas: string; subfas: string }[]
+    if (rows.length === 0) {
+      downloadCSV(CSV_TEMPLATE, 'fas_subfas_mall.csv')
+      return
+    }
+    const mallNamn = mallar.find((m) => m.id === selectedMallId)?.namn ?? 'mall'
+    const lines = ['fas,subfas', ...rows.map((r) => `${csvEscape(r.fas)},${csvEscape(r.subfas)}`)]
+    downloadCSV(lines.join('\n') + '\n', `${mallNamn}.csv`)
   }
 
   function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
@@ -360,8 +378,8 @@ export function FasMallarPanel() {
               ) : (
                 <>
                   <button
-                    onClick={handleDownloadTemplate}
-                    title="Ladda ner CSV-mall"
+                    onClick={handleDownloadMall}
+                    title={selectedMallId ? 'Exportera mall som CSV' : 'Ladda ner CSV-mall'}
                     className="text-muted hover:text-fg transition-colors"
                   >
                     <Download size={13} />

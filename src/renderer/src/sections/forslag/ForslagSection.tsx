@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
+import { AlertTriangle, CheckCircle } from 'lucide-react'
 import { useRefreshHandler } from '@/context/RefreshContext'
 import { useChangeListener } from '@/hooks/useChangeListener'
 import { ForslagTable } from './ForslagTable'
@@ -32,6 +33,13 @@ export function ForslagSection({ initialProjektId, onNavigateProjekt, initialFor
   const [error, setError] = useState<string | null>(null)
   const [view, setView] = useState<View>('list')
   const [selectedForslag, setSelectedForslag] = useState<ForslagWithProjekt | null>(null)
+
+  const csvFileRef = useRef<HTMLInputElement>(null)
+  const [importRows, setImportRows] = useState<Record<string, string>[] | null>(null)
+  const [importTargetProjektId, setImportTargetProjektId] = useState('')
+  const [importing, setImporting] = useState(false)
+  const [importError, setImportError] = useState('')
+  const [importSuccess, setImportSuccess] = useState('')
 
   const loadData = useCallback(async () => {
     try {
@@ -142,6 +150,57 @@ export function ForslagSection({ initialProjektId, onNavigateProjekt, initialFor
     setShowDuplicate(false)
   }
 
+  function handleImportFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    if (!file) return
+    e.target.value = ''
+    const reader = new FileReader()
+    reader.onload = (ev) => {
+      const text = (ev.target?.result as string ?? '').replace(/^﻿/, '').replace(/\r/g, '')
+      const lines = text.trim().split('\n')
+      if (lines.length < 2) { setImportError('Filen är tom eller har fel format.'); return }
+      const headers = lines[0].split(',')
+      const rows: Record<string, string>[] = []
+      for (const line of lines.slice(1)) {
+        const cols: string[] = []
+        let cur = '', inQ = false
+        for (const ch of line) {
+          if (ch === '"') { inQ = !inQ }
+          else if (ch === ',' && !inQ) { cols.push(cur); cur = '' }
+          else { cur += ch }
+        }
+        cols.push(cur)
+        const row: Record<string, string> = {}
+        headers.forEach((h, i) => { row[h.trim()] = (cols[i] ?? '').trim() })
+        rows.push(row)
+      }
+      if (!rows.some((r) => r.type === 'meta')) { setImportError('CSV saknar meta-rad (type=meta).'); return }
+      setImportRows(rows)
+      setImportTargetProjektId(initialProjektId ?? allProjekt[0]?.id ?? '')
+      setImportError('')
+      setImportSuccess('')
+    }
+    reader.readAsText(file, 'utf-8')
+  }
+
+  async function handleConfirmImport() {
+    if (!importRows || !importTargetProjektId) return
+    setImporting(true)
+    setImportError('')
+    try {
+      const newF = await window.api.invoke('db:forslag:import-csv', importTargetProjektId, importRows) as ForslagWithProjekt
+      setForslag((prev) => [newF, ...prev])
+      setImportRows(null)
+      setImportSuccess(`Förslag ${newF.forslag_nummer} importerat.`)
+      setSelectedForslag(newF)
+      setView('detail')
+    } catch (err) {
+      setImportError(err instanceof Error ? err.message : 'Import misslyckades.')
+    } finally {
+      setImporting(false)
+    }
+  }
+
   async function handleProjektStatusChange(projektId: string, status: string) {
     await window.api.invoke('db:projekt:update', projektId, { status })
     setForslag((prev) => prev.map((f) => f.projekt_id === projektId ? { ...f, projekt: { ...f.projekt, status } } : f))
@@ -198,8 +257,73 @@ export function ForslagSection({ initialProjektId, onNavigateProjekt, initialFor
     ? forslag.filter((f) => f.projekt_id === initialProjektId)
     : forslag
 
+  const importFaserCount = importRows ? [...new Set(importRows.filter((r) => r.type === 'fas').map((r) => r.fas))].length : 0
+  const importArbeteCount = importRows ? importRows.filter((r) => r.type === 'arbete').length : 0
+  const importMaterialCount = importRows ? importRows.filter((r) => r.type === 'material').length : 0
+  const importMeta = importRows?.find((r) => r.type === 'meta')
+
   return (
     <>
+      <input ref={csvFileRef} type="file" accept=".csv,text/csv" className="hidden" onChange={handleImportFileChange} />
+
+      {importRows && (
+        <div className="flex items-start gap-3 px-5 py-3 bg-amber-400/10 border-b border-amber-400/20 shrink-0">
+          <AlertTriangle size={14} className="text-amber-400 shrink-0 mt-0.5" />
+          <div className="flex-1 min-w-0">
+            <p className="text-xs text-fg font-medium">
+              Importera förslag "{importMeta?.titel}"?
+            </p>
+            <p className="text-[11px] text-muted mt-0.5">
+              {importFaserCount} faser · {importArbeteCount} arbetsrader · {importMaterialCount} materialrader
+            </p>
+            <div className="flex items-center gap-2 mt-2">
+              <span className="text-[11px] text-muted shrink-0">Projekt:</span>
+              <select
+                value={importTargetProjektId}
+                onChange={(e) => setImportTargetProjektId(e.target.value)}
+                className="text-[11px] bg-elevated border border-border rounded px-2 py-0.5 text-fg focus:outline-none"
+              >
+                <option value="">Välj projekt...</option>
+                {allProjekt.map((p) => (
+                  <option key={p.id} value={p.id}>{p.namn}</option>
+                ))}
+              </select>
+            </div>
+          </div>
+          <div className="flex items-center gap-3 shrink-0">
+            <button
+              onClick={handleConfirmImport}
+              disabled={importing || !importTargetProjektId}
+              className="text-xs font-medium text-amber-400 hover:text-amber-300 disabled:opacity-50 transition-colors"
+            >
+              {importing ? 'Importerar...' : 'Bekräfta'}
+            </button>
+            <button
+              onClick={() => { setImportRows(null); setImportError('') }}
+              className="text-xs text-muted hover:text-fg transition-colors"
+            >
+              Avbryt
+            </button>
+          </div>
+        </div>
+      )}
+
+      {importSuccess && (
+        <div className="flex items-center gap-3 px-5 py-2.5 bg-emerald-400/10 border-b border-emerald-400/20 shrink-0">
+          <CheckCircle size={13} className="text-emerald-400 shrink-0" />
+          <p className="text-xs text-fg flex-1">{importSuccess}</p>
+          <button onClick={() => setImportSuccess('')} className="text-xs text-muted hover:text-fg transition-colors">×</button>
+        </div>
+      )}
+
+      {importError && (
+        <div className="flex items-center gap-2 px-5 py-2.5 border-b border-border shrink-0">
+          <AlertTriangle size={13} className="text-red-400 shrink-0" />
+          <p className="text-xs text-red-400 flex-1">{importError}</p>
+          <button onClick={() => setImportError('')} className="text-xs text-muted hover:text-fg transition-colors">×</button>
+        </div>
+      )}
+
       <ForslagTable
         forslag={visibleForslag}
         statusar={statusar}
@@ -209,6 +333,7 @@ export function ForslagSection({ initialProjektId, onNavigateProjekt, initialFor
         onSelect={(f) => { setSelectedForslag(f); setView('detail') }}
         onNew={() => setView('create')}
         onDuplicate={() => setShowDuplicate(true)}
+        onImportCsv={() => csvFileRef.current?.click()}
         onStatusChange={handleStatusChange}
         onDeleteMany={handleDeleteMany}
         onClickProjekt={(id) => setProjektModalId(id)}

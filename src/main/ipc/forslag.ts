@@ -48,6 +48,8 @@ const CHANNELS = [
   'db:forslag-epost:create',
   'db:forslag-epost:delete',
   'db:forslag:status-summary',
+  'db:forslag:export-csv',
+  'db:forslag:import-csv',
 ] as const
 
 type ForslagStatus = 'utkast' | 'skickat' | 'accepterat' | 'avvisat'
@@ -806,5 +808,188 @@ export function registerForslagHandlers(): void {
       }
     }
     return result
+  })
+
+  ipcMain.handle('db:forslag:export-csv', async (_, forslag_id: string) => {
+    type SubWithCosts = {
+      id: string; fas_id: string; namn: string; beskrivning: string | null; sortering: number
+      forslag_arbetskostnad: { beskrivning: string; yrkesroll: string; antal_timmar: number; timpris: number; rot_berattigad: boolean }[]
+      forslag_materialkostnad: { beskrivning: string; enhet: string; antal: number; a_pris: number; leverantor: string }[]
+      forslag_underentreprenorer: { namn: string; beskrivning: string; kostnad: number; inkl_material: boolean }[]
+    }
+    type FasWithSubs = { id: string; namn: string; beskrivning: string | null; sortering: number; start_datum: string | null; slut_datum: string | null; notat: string | null; aktiv: boolean; forslag_subfaser: SubWithCosts[] }
+
+    const [{ data: forslag, error: fErr }, { data: fasRaw, error: fasErr }] = await Promise.all([
+      supabase.from('forslag').select('*').eq('id', forslag_id).single(),
+      supabase.from('forslag_faser')
+        .select('*, forslag_subfaser(*, forslag_arbetskostnad(*), forslag_materialkostnad(*), forslag_underentreprenorer(*))')
+        .eq('forslag_id', forslag_id)
+        .order('sortering', { ascending: true }),
+    ])
+    if (fErr) throw new Error(fErr.message)
+    if (fasErr) throw new Error(fasErr.message)
+
+    const faser = (fasRaw ?? []) as unknown as FasWithSubs[]
+    const rows: Record<string, string>[] = []
+
+    rows.push({
+      type: 'meta', fas: '', subfas: '',
+      titel: forslag!.titel ?? '', moms_procent: String(forslag!.moms_procent ?? 25),
+      giltig_till: forslag!.giltig_till ?? '', sammanfattning: forslag!.sammanfattning ?? '',
+      fas_beskrivning: '', fas_start: '', fas_slut: '', fas_notat: '', fas_aktiv: '',
+      subfas_beskrivning: '', beskrivning: '', yrkesroll: '', timmar: '', timpris: '', rot_berattigad: '',
+      enhet: '', antal: '', a_pris: '', leverantor: '', ue_namn: '', ue_beskrivning: '', ue_kostnad: '', inkl_material: '',
+    })
+
+    for (const fas of faser.sort((a, b) => a.sortering - b.sortering)) {
+      const fasNamn = fas.namn
+      rows.push({
+        type: 'fas', fas: fasNamn, subfas: '',
+        titel: '', moms_procent: '', giltig_till: '', sammanfattning: '',
+        fas_beskrivning: fas.beskrivning ?? '', fas_start: fas.start_datum ?? '',
+        fas_slut: fas.slut_datum ?? '', fas_notat: fas.notat ?? '',
+        fas_aktiv: fas.aktiv === false ? 'false' : 'true',
+        subfas_beskrivning: '', beskrivning: '', yrkesroll: '', timmar: '', timpris: '', rot_berattigad: '',
+        enhet: '', antal: '', a_pris: '', leverantor: '', ue_namn: '', ue_beskrivning: '', ue_kostnad: '', inkl_material: '',
+      })
+      for (const sub of (fas.forslag_subfaser ?? []).sort((a, b) => a.sortering - b.sortering)) {
+        rows.push({
+          type: 'subfas', fas: fasNamn, subfas: sub.namn,
+          titel: '', moms_procent: '', giltig_till: '', sammanfattning: '',
+          fas_beskrivning: '', fas_start: '', fas_slut: '', fas_notat: '', fas_aktiv: '',
+          subfas_beskrivning: sub.beskrivning ?? '',
+          beskrivning: '', yrkesroll: '', timmar: '', timpris: '', rot_berattigad: '',
+          enhet: '', antal: '', a_pris: '', leverantor: '', ue_namn: '', ue_beskrivning: '', ue_kostnad: '', inkl_material: '',
+        })
+        for (const a of sub.forslag_arbetskostnad ?? []) {
+          rows.push({
+            type: 'arbete', fas: fasNamn, subfas: sub.namn,
+            titel: '', moms_procent: '', giltig_till: '', sammanfattning: '',
+            fas_beskrivning: '', fas_start: '', fas_slut: '', fas_notat: '', fas_aktiv: '',
+            subfas_beskrivning: '', beskrivning: a.beskrivning, yrkesroll: a.yrkesroll,
+            timmar: String(a.antal_timmar), timpris: String(a.timpris),
+            rot_berattigad: a.rot_berattigad ? 'true' : 'false',
+            enhet: '', antal: '', a_pris: '', leverantor: '', ue_namn: '', ue_beskrivning: '', ue_kostnad: '', inkl_material: '',
+          })
+        }
+        for (const m of sub.forslag_materialkostnad ?? []) {
+          rows.push({
+            type: 'material', fas: fasNamn, subfas: sub.namn,
+            titel: '', moms_procent: '', giltig_till: '', sammanfattning: '',
+            fas_beskrivning: '', fas_start: '', fas_slut: '', fas_notat: '', fas_aktiv: '',
+            subfas_beskrivning: '', beskrivning: m.beskrivning, yrkesroll: '', timmar: '', timpris: '', rot_berattigad: '',
+            enhet: m.enhet, antal: String(m.antal), a_pris: String(m.a_pris), leverantor: m.leverantor,
+            ue_namn: '', ue_beskrivning: '', ue_kostnad: '', inkl_material: '',
+          })
+        }
+        for (const u of sub.forslag_underentreprenorer ?? []) {
+          rows.push({
+            type: 'ue', fas: fasNamn, subfas: sub.namn,
+            titel: '', moms_procent: '', giltig_till: '', sammanfattning: '',
+            fas_beskrivning: '', fas_start: '', fas_slut: '', fas_notat: '', fas_aktiv: '',
+            subfas_beskrivning: '', beskrivning: '', yrkesroll: '', timmar: '', timpris: '', rot_berattigad: '',
+            enhet: '', antal: '', a_pris: '', leverantor: '',
+            ue_namn: u.namn, ue_beskrivning: u.beskrivning,
+            ue_kostnad: String(u.kostnad), inkl_material: u.inkl_material ? 'true' : 'false',
+          })
+        }
+      }
+    }
+    return rows
+  })
+
+  ipcMain.handle('db:forslag:import-csv', async (_, projekt_id: string, rows: Record<string, string>[]) => {
+    const metaRow = rows.find((r) => r.type === 'meta')
+    if (!metaRow) throw new Error('CSV saknar meta-rad')
+
+    const forslag_nummer = await nextForslagNummer()
+    const { data: newF, error: newFErr } = await supabase
+      .from('forslag')
+      .insert({
+        projekt_id,
+        forslag_nummer,
+        titel: metaRow.titel || 'Importerat förslag',
+        status: 'Utkast',
+        moms_procent: parseFloat(metaRow.moms_procent) || 25,
+        giltig_till: metaRow.giltig_till || null,
+        sammanfattning: metaRow.sammanfattning || null,
+      })
+      .select(SELECT_WITH_PROJEKT)
+      .single()
+    if (newFErr) throw new Error(newFErr.message)
+
+    const fasMap = new Map<string, string>()
+    const subfasMap = new Map<string, string>()
+
+    let fasSortering = 0
+    for (const row of rows.filter((r) => r.type === 'fas')) {
+      const { data: fas, error } = await supabase
+        .from('forslag_faser')
+        .insert({
+          forslag_id: newF.id, namn: row.fas,
+          beskrivning: row.fas_beskrivning || null,
+          sortering: fasSortering++,
+          start_datum: row.fas_start || null,
+          slut_datum: row.fas_slut || null,
+          notat: row.fas_notat || null,
+          aktiv: row.fas_aktiv !== 'false',
+        })
+        .select('id').single()
+      if (error) throw new Error(error.message)
+      fasMap.set(row.fas, fas.id)
+    }
+
+    const subfasSortByFas = new Map<string, number>()
+    for (const row of rows.filter((r) => r.type === 'subfas')) {
+      const fas_id = fasMap.get(row.fas)
+      if (!fas_id) continue
+      const sortering = subfasSortByFas.get(row.fas) ?? 0
+      subfasSortByFas.set(row.fas, sortering + 1)
+      const { data: sub, error } = await supabase
+        .from('forslag_subfaser')
+        .insert({ fas_id, namn: row.subfas, beskrivning: row.subfas_beskrivning || null, sortering })
+        .select('id').single()
+      if (error) throw new Error(error.message)
+      subfasMap.set(`${row.fas}::${row.subfas}`, sub.id)
+    }
+
+    const arbeteBySubfas = new Map<string, object[]>()
+    for (const row of rows.filter((r) => r.type === 'arbete')) {
+      const subfas_id = subfasMap.get(`${row.fas}::${row.subfas}`)
+      if (!subfas_id) continue
+      if (!arbeteBySubfas.has(subfas_id)) arbeteBySubfas.set(subfas_id, [])
+      arbeteBySubfas.get(subfas_id)!.push({ subfas_id, beskrivning: row.beskrivning, yrkesroll: row.yrkesroll, antal_timmar: parseFloat(row.timmar) || 0, timpris: parseFloat(row.timpris) || 0, rot_berattigad: row.rot_berattigad === 'true' })
+    }
+    for (const [, items] of arbeteBySubfas) {
+      const { error } = await supabase.from('forslag_arbetskostnad').insert(items)
+      if (error) throw new Error(error.message)
+    }
+
+    const materialBySubfas = new Map<string, object[]>()
+    for (const row of rows.filter((r) => r.type === 'material')) {
+      const subfas_id = subfasMap.get(`${row.fas}::${row.subfas}`)
+      if (!subfas_id) continue
+      if (!materialBySubfas.has(subfas_id)) materialBySubfas.set(subfas_id, [])
+      materialBySubfas.get(subfas_id)!.push({ subfas_id, beskrivning: row.beskrivning, enhet: row.enhet || 'st', antal: parseFloat(row.antal) || 0, a_pris: parseFloat(row.a_pris) || 0, leverantor: row.leverantor })
+    }
+    for (const [, items] of materialBySubfas) {
+      const { error } = await supabase.from('forslag_materialkostnad').insert(items)
+      if (error) throw new Error(error.message)
+    }
+
+    const ueBySubfas = new Map<string, object[]>()
+    for (const row of rows.filter((r) => r.type === 'ue')) {
+      const subfas_id = subfasMap.get(`${row.fas}::${row.subfas}`)
+      if (!subfas_id) continue
+      if (!ueBySubfas.has(subfas_id)) ueBySubfas.set(subfas_id, [])
+      ueBySubfas.get(subfas_id)!.push({ subfas_id, namn: row.ue_namn, beskrivning: row.ue_beskrivning, kostnad: parseFloat(row.ue_kostnad) || 0, inkl_material: row.inkl_material === 'true' })
+    }
+    for (const [, items] of ueBySubfas) {
+      const { error } = await supabase.from('forslag_underentreprenorer').insert(items)
+      if (error) throw new Error(error.message)
+    }
+
+    broadcastChange('forslag')
+    return newF
   })
 }

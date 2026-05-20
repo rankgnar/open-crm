@@ -1,4 +1,4 @@
-import { Plus, Trash2, ArrowUp, ArrowDown, ArrowUpDown, Bell, Copy, ChevronDown, ChevronUp, Check, MessageSquare, X, StickyNote, Send } from 'lucide-react'
+import { Plus, Trash2, ArrowUp, ArrowDown, ArrowUpDown, Bell, Copy, ChevronDown, ChevronUp, Check, MessageSquare, X, StickyNote, Send, Upload } from 'lucide-react'
 import { RefreshButton } from '@/components/RefreshButton'
 import { KundPopover } from '@/components/KundPopover'
 import { useRef, useState, useEffect } from 'react'
@@ -22,6 +22,7 @@ interface Props {
   onSelect: (f: ForslagWithProjekt) => void
   onNew: () => void
   onDuplicate?: () => void
+  onImportCsv?: () => void
   onStatusChange: (id: string, status: string) => Promise<void>
   onDeleteMany: (ids: string[]) => Promise<void>
   onClickProjekt?: (projektId: string) => void
@@ -301,7 +302,7 @@ function StatusSelect({ value, onChange, statusar }: { value: string[]; onChange
   )
 }
 
-export function ForslagTable({ forslag, statusar, projektStatusar, signingEvents, smsForslag, onSelect, onNew, onDuplicate, onStatusChange, onDeleteMany, onClickProjekt, onProjektStatusChange }: Props) {
+export function ForslagTable({ forslag, statusar, projektStatusar, signingEvents, smsForslag, onSelect, onNew, onDuplicate, onImportCsv, onStatusChange, onDeleteMany, onClickProjekt, onProjektStatusChange }: Props) {
   const [anteckModal, setAnteckModal] = useState<{ projektId: string; projektNamn: string; kundNamn: string } | null>(null)
   const [anteckningar, setAnteckningar] = useState<ProjektAnteckning[]>([])
   const [anteckLoading, setAnteckLoading] = useState(false)
@@ -412,6 +413,14 @@ export function ForslagTable({ forslag, statusar, projektStatusar, signingEvents
               className="inline-flex items-center gap-1.5 px-3 py-2.5 text-[10px] font-semibold uppercase tracking-wider text-muted hover:text-fg transition-colors"
             >
               <Copy size={11} />Duplicera
+            </button>
+          )}
+          {onImportCsv && (
+            <button
+              onClick={onImportCsv}
+              className="inline-flex items-center gap-1.5 px-3 py-2.5 text-[10px] font-semibold uppercase tracking-wider text-muted hover:text-fg transition-colors"
+            >
+              <Upload size={11} />Importera CSV
             </button>
           )}
           <button
