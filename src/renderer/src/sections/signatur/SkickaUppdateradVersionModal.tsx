@@ -1,29 +1,37 @@
 import { useEffect, useState } from 'react'
 import { X, Send, Loader2, AlertCircle, MessageSquarePlus } from 'lucide-react'
 
+export interface RevisedOpts {
+  sammanfattad:  boolean
+  splitPdf:      boolean
+  bifogaTidplan: boolean
+}
+
 interface Props {
   isOpen:         boolean
   onClose:        () => void
-  onSubmit:       (meddelande: string) => Promise<void>
+  onSubmit:       (meddelande: string, opts: RevisedOpts) => Promise<void>
   senasteAndring?: string
-  /**
-   * Forslag also re-renders the PDF before resending — that step is owned by
-   * the caller. The modal just shows a different submit label so the admin
-   * understands what's about to happen.
-   */
+  hasTidplan?:    boolean
   reRendersPdf?:  boolean
 }
 
 export function SkickaUppdateradVersionModal({
-  isOpen, onClose, onSubmit, senasteAndring, reRendersPdf,
+  isOpen, onClose, onSubmit, senasteAndring, hasTidplan, reRendersPdf,
 }: Props) {
-  const [meddelande, setMeddelande] = useState('')
-  const [submitting, setSubmitting] = useState(false)
-  const [error, setError]           = useState<string | null>(null)
+  const [meddelande, setMeddelande]       = useState('')
+  const [sammanfattad, setSammanfattad]   = useState(false)
+  const [splitPdf, setSplitPdf]           = useState(false)
+  const [bifogaTidplan, setBifogaTidplan] = useState(false)
+  const [submitting, setSubmitting]       = useState(false)
+  const [error, setError]                 = useState<string | null>(null)
 
   useEffect(() => {
     if (isOpen) {
       setMeddelande('')
+      setSammanfattad(false)
+      setSplitPdf(false)
+      setBifogaTidplan(false)
       setError(null)
       setSubmitting(false)
     }
@@ -35,7 +43,7 @@ export function SkickaUppdateradVersionModal({
     setError(null)
     setSubmitting(true)
     try {
-      await onSubmit(meddelande.trim())
+      await onSubmit(meddelande.trim(), { sammanfattad, splitPdf, bifogaTidplan })
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e))
       setSubmitting(false)
@@ -74,7 +82,7 @@ export function SkickaUppdateradVersionModal({
               rows={5}
               value={meddelande}
               onChange={(e) => setMeddelande(e.target.value)}
-              placeholder="T.ex. ”Vi har justerat materialvalet enligt din begäran. Hör gärna av dig om något fortfarande inte stämmer.”"
+              placeholder={'T.ex. “Vi har justerat materialvalet enligt din begäran. Hör gärna av dig om något fortfarande inte stämmer.”'}
             />
             <p className="text-[11px] text-subtle">
               Visas för kunden direkt under sammanfattningen av deras senaste begäran.
@@ -89,19 +97,53 @@ export function SkickaUppdateradVersionModal({
           )}
         </div>
 
-        <div className="flex items-center justify-end gap-2 px-6 py-3 border-t border-border bg-sidebar">
-          <button onClick={onClose} className="text-sm text-muted hover:text-fg transition-colors px-3 py-1.5">
-            Avbryt
-          </button>
-          <button
-            onClick={handleSubmit}
-            disabled={submitting}
-            className="inline-flex items-center gap-1.5 rounded-md bg-emerald-400 text-bg px-4 py-1.5 text-sm font-medium hover:opacity-90 transition-opacity disabled:opacity-30"
-          >
-            {submitting
-              ? <><Loader2 size={13} className="animate-spin" />{reRendersPdf ? 'Genererar & skickar…' : 'Skickar…'}</>
-              : <><Send size={13} />Skicka uppdaterad version</>}
-          </button>
+        <div className="flex items-center justify-between gap-3 px-6 py-3 border-t border-border bg-sidebar">
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
+            <label className={`flex items-center gap-2 text-xs transition-colors cursor-pointer select-none ${sammanfattad ? 'text-emerald-400 font-medium' : 'text-muted hover:text-fg'}`}>
+              <input
+                type="checkbox"
+                checked={sammanfattad}
+                onChange={(e) => setSammanfattad(e.target.checked)}
+                className="w-4 h-4 accent-emerald-400"
+              />
+              <span>Dölj raddetaljer</span>
+            </label>
+            <label className={`flex items-center gap-2 text-xs transition-colors cursor-pointer select-none ${splitPdf ? 'text-emerald-400 font-medium' : 'text-muted hover:text-fg'}`}>
+              <input
+                type="checkbox"
+                checked={splitPdf}
+                onChange={(e) => setSplitPdf(e.target.checked)}
+                className="w-4 h-4 accent-emerald-400"
+              />
+              <span>Dela upp i 2 PDF (offert + spec)</span>
+            </label>
+            {hasTidplan && (
+              <label className={`flex items-center gap-2 text-xs transition-colors cursor-pointer select-none ${bifogaTidplan ? 'text-emerald-400 font-medium' : 'text-muted hover:text-fg'}`}>
+                <input
+                  type="checkbox"
+                  checked={bifogaTidplan}
+                  onChange={(e) => setBifogaTidplan(e.target.checked)}
+                  className="w-4 h-4 accent-emerald-400"
+                />
+                <span>Bifoga tidplan</span>
+              </label>
+            )}
+          </div>
+
+          <div className="flex items-center gap-2 shrink-0">
+            <button onClick={onClose} className="text-sm text-muted hover:text-fg transition-colors px-3 py-1.5">
+              Avbryt
+            </button>
+            <button
+              onClick={handleSubmit}
+              disabled={submitting}
+              className="inline-flex items-center gap-1.5 rounded-md bg-emerald-400 text-bg px-4 py-1.5 text-sm font-medium hover:opacity-90 transition-opacity disabled:opacity-30"
+            >
+              {submitting
+                ? <><Loader2 size={13} className="animate-spin" />{reRendersPdf ? 'Genererar & skickar…' : 'Skickar…'}</>
+                : <><Send size={13} />Skicka uppdaterad version</>}
+            </button>
+          </div>
         </div>
       </div>
     </div>

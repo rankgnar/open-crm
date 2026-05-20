@@ -23,6 +23,12 @@ const CHANNELS = [
 
 export type DokumentTyp = 'forslag' | 'order' | 'fritt' | 'ata'
 
+interface PdfOpts {
+  sammanfattad?:  boolean
+  splitPdf?:      boolean
+  bifogaTidplan?: boolean
+}
+
 interface CreateInput {
   dokument_typ:    DokumentTyp
   dokument_id:     string
@@ -36,6 +42,7 @@ interface CreateInput {
   // handler uploads them to Zoho and stores the resulting refs on the
   // queued email row so the queue worker sends them as real attachments.
   bilagor?:        { filnamn: string; data_base64: string }[]
+  pdf_opts?:       PdfOpts
 }
 
 interface ResendOpts {
@@ -43,6 +50,7 @@ interface ResendOpts {
   revised?:    boolean
   reminder?:   boolean
   meddelande?: string
+  pdf_opts?:   PdfOpts
 }
 
 function tokenStr(): string {
@@ -307,6 +315,7 @@ export function registerSignaturHandlers(): void {
       projekt_id:   bundle.projekt_id,
       forslag_id:   input.dokument_typ === 'forslag' ? input.dokument_id : null,
       bilagor:      bilagor.length > 0 ? bilagor : undefined,
+      metadata:     input.pdf_opts,
       vars: {
         kund_namn:               bundle.kund_namn ?? '',
         projekt_namn:            bundle.projekt_namn ?? '',
@@ -398,6 +407,7 @@ export function registerSignaturHandlers(): void {
       kund_id:        bundle.kund_id,
       projekt_id:     bundle.projekt_id,
       forslag_id:     dokTyp === 'forslag' ? link.dokument_id : null,
+      metadata:       opts.pdf_opts,
       vars: {
         kund_namn:               bundle.kund_namn ?? '',
         projekt_namn:            bundle.projekt_namn ?? '',
@@ -661,6 +671,7 @@ interface QueueArgs {
   projekt_id:   string | null
   forslag_id:   string | null
   bilagor?:     EpostBilagaRef[]
+  metadata?:    PdfOpts
   vars:         Record<string, string>
 }
 
@@ -683,6 +694,7 @@ async function queueSignatureEmail(args: QueueArgs): Promise<void> {
     projekt_id:      args.projekt_id,
     forslag_id:      args.forslag_id,
     bilagor:         args.bilagor ?? [],
+    metadata:        args.metadata ?? null,
     schemalagd_till: new Date().toISOString(),
     status:          'väntar',
   })

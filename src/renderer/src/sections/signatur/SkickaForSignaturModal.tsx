@@ -93,6 +93,11 @@ export function SkickaForSignaturModal({ dokument_typ, dokument_id, initialEmail
         giltig_dagar: days,
         meddelande: meddelande.trim() || undefined,
         mall_id: mallId ?? undefined,
+        pdf_opts: {
+          sammanfattad:  sammanfattad || undefined,
+          splitPdf:      splitPdf || undefined,
+          bifogaTidplan: enabledBifoga.has('tidplan') || undefined,
+        },
       }) as SignaturLank
       onSent(link, {
         ...(showTitelPicker ? { titel: titel || titelOptions?.titel1 } : {}),

@@ -62,6 +62,8 @@ interface EpostKoRef {
   schemalagd_till: string
   skickad_at: string | null
   fel_meddelande: string
+  kropp_html?: string
+  metadata?: { sammanfattad?: boolean; splitPdf?: boolean; bifogaTidplan?: boolean }
 }
 
 interface Props {
@@ -110,6 +112,7 @@ export function ForslagDetail({ forslag: forslagProp, statusar, allProjekt, onBa
   const [epostKo, setEpostKo] = useState<EpostKoRef[]>([])
   const [epostLoading, setEpostLoading] = useState(false)
   const [epostOpenHint, setEpostOpenHint] = useState(false)
+  const [previewKo, setPreviewKo] = useState<EpostKoRef | null>(null)
   const [villkorEditing, setVillkorEditing] = useState(false)
   const [villkorDraft, setVillkorDraft] = useState('')
   const [villkorSaving, setVillkorSaving] = useState(false)
@@ -722,34 +725,63 @@ export function ForslagDetail({ forslag: forslagProp, statusar, allProjekt, onBa
     }
   }
 
-  async function handleSendRevisedVersion(linkId: string, meddelande: string): Promise<void> {
+  async function handleSendRevisedVersion(
+    linkId: string,
+    meddelande: string,
+    opts: { sammanfattad: boolean; splitPdf: boolean; bifogaTidplan: boolean },
+  ): Promise<void> {
     setSendingRevised(true)
     setRevisedFeedback(null)
     try {
-      // Re-render the document PDF first. We do it inline (not via
-      // renderSigningPdf) so a render failure aborts the chain instead of
-      // silently sending a stale PDF.
       const mall = await window.api.invoke('db:pdf-mall:get', 'forslag') as PdfMall | null
       const titel1 = mall?.portada_titel || 'FÖRSLAG'
       const titel2 = mall?.portada_titel_2?.trim() || ''
-      const html = await buildForslagHtml(titel1)
+      const splitOverride = opts.splitPdf ? { visa_desglose_display: 'none' } : undefined
+
+      const html = await buildForslagHtml(titel1, splitOverride, opts.sammanfattad)
       await window.api.invoke('db:signatur-lank:render-document-pdf', { link_id: linkId, html })
 
-      // If a Slutlig title is configured, also re-render the final version so
-      // the post-sign copy reflects the latest revision instead of a stale one
-      // pre-rendered when the link was first created. Non-critical: if it
-      // fails the customer can still sign the revised preliminary.
       if (titel2 && titel2 !== titel1) {
         try {
-          const finalHtml = await buildForslagHtml(titel2)
+          const finalHtml = await buildForslagHtml(titel2, splitOverride, opts.sammanfattad)
           await window.api.invoke('db:signatur-lank:render-final-document-pdf', { link_id: linkId, html: finalHtml })
         } catch (e) {
           console.error('Render final PDF (revised) failed:', e)
         }
       }
 
+      if (opts.splitPdf) {
+        try {
+          const specHtml = await buildForslagHtml(
+            titel1,
+            { visa_portada_display: 'none', visa_sammanfattning_display: 'none', visa_villkor_display: 'none' },
+            opts.sammanfattad,
+          )
+          await window.api.invoke('db:signatur-lank:render-specifikation-pdf', { link_id: linkId, html: specHtml })
+        } catch (e) {
+          console.error('Render specifikation PDF (revised) failed:', e)
+        }
+      }
+
+      if (opts.bifogaTidplan) {
+        try {
+          const tidplanHtml = await buildTidplanHtmlForExport()
+          await window.api.invoke('db:signatur-lank:render-tidplan-pdf', { link_id: linkId, html: tidplanHtml })
+        } catch (e) {
+          console.error('Render tidplan PDF (revised) failed:', e)
+        }
+      }
+
       await window.api.invoke('db:signatur-lank:clear-change-request', linkId)
-      await window.api.invoke('db:signatur-lank:resend', linkId, { revised: true, meddelande })
+      await window.api.invoke('db:signatur-lank:resend', linkId, {
+        revised: true,
+        meddelande,
+        pdf_opts: {
+          sammanfattad:  opts.sammanfattad || undefined,
+          splitPdf:      opts.splitPdf || undefined,
+          bifogaTidplan: opts.bifogaTidplan || undefined,
+        },
+      })
       setLinksRefresh(k => k + 1)
       setShowRevisedModal(false)
       setRevisedFeedback({ kind: 'success', message: 'Uppdaterad version skickad till kunden. E-postet hamnar i kön och skickas inom en minut.' })
@@ -1041,12 +1073,13 @@ export function ForslagDetail({ forslag: forslagProp, statusar, allProjekt, onBa
         <SkickaUppdateradVersionModal
           isOpen={showRevisedModal}
           onClose={() => { if (!sendingRevised) setShowRevisedModal(false) }}
-          onSubmit={(meddelande) => handleSendRevisedVersion(latestLink.id, meddelande)}
+          onSubmit={(meddelande, opts) => handleSendRevisedVersion(latestLink.id, meddelande, opts)}
           senasteAndring={
             latestLink.andring_historik.length > 0
               ? latestLink.andring_historik[latestLink.andring_historik.length - 1].reason
               : undefined
           }
+          hasTidplan={faser.length > 0}
           reRendersPdf
         />
       )}
@@ -1686,14 +1719,19 @@ export function ForslagDetail({ forslag: forslagProp, statusar, allProjekt, onBa
                   {epostKo.map(ko => {
                     const statusColor = ko.status === 'skickat' ? 'text-emerald-400' : ko.status === 'misslyckades' ? 'text-red-400' : ko.status === 'skickar' ? 'text-blue-400' : 'text-amber-400'
                     return (
-                      <div key={ko.id} className="px-4 py-3 flex flex-col gap-0.5">
+                      <div
+                        key={ko.id}
+                        className="px-4 py-3 flex flex-col gap-0.5 cursor-pointer hover:bg-hover transition-colors"
+                        onClick={() => ko.kropp_html && setPreviewKo(ko)}
+                      >
                         <div className="flex items-center gap-2">
                           <Send size={11} className="text-muted shrink-0" />
                           <p className="text-xs text-fg truncate flex-1">{ko.amne || '(inget ämne)'}</p>
                           <span className={`text-[10px] font-medium ${statusColor}`}>{ko.status}</span>
                           {ko.status !== 'skickar' && (
                             <button
-                              onClick={async () => {
+                              onClick={async (e) => {
+                                e.stopPropagation()
                                 await window.api.invoke('db:epost-ko:delete', ko.id)
                                 setEpostKo(prev => prev.filter(k => k.id !== ko.id))
                               }}
@@ -1707,6 +1745,13 @@ export function ForslagDetail({ forslag: forslagProp, statusar, allProjekt, onBa
                         <p className="text-[11px] text-subtle ml-[19px]">
                           {new Date(ko.skickad_at ?? ko.schemalagd_till).toLocaleString('sv-SE')}
                         </p>
+                        {ko.metadata && (ko.metadata.sammanfattad || ko.metadata.splitPdf || ko.metadata.bifogaTidplan) && (
+                          <div className="flex items-center gap-1 ml-[19px] mt-0.5 flex-wrap">
+                            {ko.metadata.sammanfattad  && <span className="text-[10px] border border-border text-muted px-1 rounded">Dölj rader</span>}
+                            {ko.metadata.splitPdf      && <span className="text-[10px] border border-border text-muted px-1 rounded">2 PDF</span>}
+                            {ko.metadata.bifogaTidplan && <span className="text-[10px] border border-border text-muted px-1 rounded">+ Tidplan</span>}
+                          </div>
+                        )}
                       </div>
                     )
                   })}
@@ -2160,6 +2205,33 @@ export function ForslagDetail({ forslag: forslagProp, statusar, allProjekt, onBa
               >
                 <FileDown size={12} />Exportera
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {previewKo && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70" onClick={() => setPreviewKo(null)}>
+          <div
+            className="bg-bg border border-border rounded-xl shadow-2xl w-full max-w-2xl max-h-[85vh] flex flex-col overflow-hidden"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-start justify-between px-5 py-3 border-b border-border bg-sidebar shrink-0">
+              <div className="flex flex-col gap-0.5 min-w-0">
+                <p className="text-sm font-medium text-fg truncate">{previewKo.amne || '(inget ämne)'}</p>
+                <p className="text-[11px] text-muted truncate">Till: {previewKo.till}</p>
+              </div>
+              <button onClick={() => setPreviewKo(null)} className="text-muted hover:text-fg transition-colors ml-3 shrink-0">
+                <XIcon size={16} />
+              </button>
+            </div>
+            <div className="flex-1 overflow-hidden">
+              <iframe
+                srcDoc={previewKo.kropp_html}
+                sandbox="allow-same-origin"
+                className="w-full h-full border-0"
+                style={{ minHeight: '500px' }}
+              />
             </div>
           </div>
         </div>

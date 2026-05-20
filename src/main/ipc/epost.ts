@@ -843,7 +843,7 @@ export function registerEpostHandlers(): void {
   ipcMain.handle('db:epost-ko:list-by-forslag', async (_, forslag_id: string) => {
     const { data, error } = await supabase
       .from('epost_ko')
-      .select('id, amne, till, status, schemalagd_till, skickad_at, fel_meddelande')
+      .select('id, amne, till, status, schemalagd_till, skickad_at, fel_meddelande, kropp_html, metadata')
       .eq('forslag_id', forslag_id)
       .order('schemalagd_till', { ascending: false })
     if (error) throw new Error(error.message)
