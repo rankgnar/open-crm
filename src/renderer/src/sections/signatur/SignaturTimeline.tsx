@@ -6,8 +6,10 @@ export interface SignaturTimelineLink {
   signerad_at:          string | null
   signerad_namn:        string | null
   revoked_at:           string | null
-  signed_pdf_url:       string | null
-  andring_begard_at:    string | null
+  signed_pdf_url:           string | null
+  specifikation_pdf_url?:   string | null
+  tidplan_pdf_url?:         string | null
+  andring_begard_at:        string | null
   andring_historik?:    { at: string; reason: string }[]
   revisioner_historik?: { at: string }[]
   paminnelse_historik?: { at: string }[]
@@ -167,19 +169,46 @@ export function SignaturTimeline({ docStatus, acceptedStatuses, rejectedStatuses
         )}
       </div>
 
-      {latestLink.signerad_at && latestLink.signed_pdf_url && (
-        <a
-          href={latestLink.signed_pdf_url}
-          target="_blank"
-          rel="noreferrer"
-          className="mt-1 inline-flex items-center justify-center gap-2 rounded-lg border border-emerald-400/30 bg-emerald-400/10 px-3 py-2 text-xs text-emerald-400 hover:bg-emerald-400/20 transition-colors"
-        >
-          <FileDown size={12} />
-          Ladda ner signerat PDF
-        </a>
-      )}
-      {latestLink.signerad_at && !latestLink.signed_pdf_url && (
-        <p className="text-[11px] text-subtle italic mt-2">PDF inte tillgänglig (signerades före PDF-stödet).</p>
+      {latestLink.signerad_at && (
+        latestLink.signed_pdf_url || latestLink.specifikation_pdf_url || latestLink.tidplan_pdf_url ? (
+          <div className="mt-1 flex flex-wrap gap-2">
+            {latestLink.signed_pdf_url && (
+              <a
+                href={latestLink.signed_pdf_url}
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex items-center justify-center gap-2 rounded-lg border border-emerald-400/30 bg-emerald-400/10 px-3 py-2 text-xs text-emerald-400 hover:bg-emerald-400/20 transition-colors"
+              >
+                <FileDown size={12} />
+                Offert
+              </a>
+            )}
+            {latestLink.specifikation_pdf_url && (
+              <a
+                href={latestLink.specifikation_pdf_url}
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex items-center justify-center gap-2 rounded-lg border border-emerald-400/30 bg-emerald-400/10 px-3 py-2 text-xs text-emerald-400 hover:bg-emerald-400/20 transition-colors"
+              >
+                <FileDown size={12} />
+                Specifikation
+              </a>
+            )}
+            {latestLink.tidplan_pdf_url && (
+              <a
+                href={latestLink.tidplan_pdf_url}
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex items-center justify-center gap-2 rounded-lg border border-emerald-400/30 bg-emerald-400/10 px-3 py-2 text-xs text-emerald-400 hover:bg-emerald-400/20 transition-colors"
+              >
+                <FileDown size={12} />
+                Tidplan
+              </a>
+            )}
+          </div>
+        ) : (
+          <p className="text-[11px] text-subtle italic mt-2">PDF inte tillgänglig (signerades före PDF-stödet).</p>
+        )
       )}
     </div>
   )

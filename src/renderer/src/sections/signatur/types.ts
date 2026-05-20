@@ -29,8 +29,11 @@ export interface SignaturLank {
   signerad_ua:   string | null
   signatur_data:    string | null
   revoked_at:       string | null
-  document_pdf_url: string | null
-  signed_pdf_url:   string | null
+  document_pdf_url:         string | null
+  signed_pdf_url:           string | null
+  final_document_pdf_url:   string | null
+  specifikation_pdf_url:    string | null
+  tidplan_pdf_url:          string | null
   andring_begard_at:    string | null
   andring_historik:     AndringEntry[]
   revisioner_historik:  { at: string }[]
