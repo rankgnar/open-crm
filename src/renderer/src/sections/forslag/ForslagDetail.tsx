@@ -1012,11 +1012,23 @@ export function ForslagDetail({ forslag: forslagProp, statusar, allProjekt, onBa
               <p className="text-xs font-semibold text-amber-400 uppercase tracking-wider mb-1">
                 Kunden begärde ändringar
               </p>
-              {latestLink.andring_historik.length > 0 && (
-                <p className="text-sm text-fg whitespace-pre-wrap">
-                  "{latestLink.andring_historik[latestLink.andring_historik.length - 1].reason}"
-                </p>
-              )}
+              {latestLink.andring_historik.length > 0 && (() => {
+                const latest = latestLink.andring_historik[latestLink.andring_historik.length - 1]
+                return (
+                  <>
+                    <p className="text-sm text-fg whitespace-pre-wrap">"{latest.reason}"</p>
+                    {latest.bilder && latest.bilder.length > 0 && (
+                      <div className="flex flex-wrap gap-2 mt-2">
+                        {latest.bilder.map((url, i) => (
+                          <a key={i} href={url} target="_blank" rel="noreferrer">
+                            <img src={url} className="w-14 h-14 object-cover rounded border border-amber-400/30" />
+                          </a>
+                        ))}
+                      </div>
+                    )}
+                  </>
+                )
+              })()}
               <p className="text-[11px] text-muted mt-1">
                 {new Date(latestLink.andring_begard_at).toLocaleString('sv-SE', { dateStyle: 'long', timeStyle: 'short' })}
               </p>
@@ -1113,6 +1125,15 @@ export function ForslagDetail({ forslag: forslagProp, statusar, allProjekt, onBa
                     {new Date(entry.at).toLocaleString('sv-SE', { dateStyle: 'long', timeStyle: 'short' })}
                   </p>
                   <p className="text-sm text-fg whitespace-pre-wrap">{entry.reason}</p>
+                  {entry.bilder && entry.bilder.length > 0 && (
+                    <div className="flex flex-wrap gap-2 mt-2">
+                      {entry.bilder.map((url, j) => (
+                        <a key={j} href={url} target="_blank" rel="noreferrer">
+                          <img src={url} className="w-16 h-16 object-cover rounded border border-border" />
+                        </a>
+                      ))}
+                    </div>
+                  )}
                 </div>
               ))}
             </div>

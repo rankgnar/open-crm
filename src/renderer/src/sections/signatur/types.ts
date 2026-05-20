@@ -1,10 +1,11 @@
 export type DokumentTyp = 'forslag' | 'order' | 'fritt' | 'ata'
 
 export interface AndringEntry {
-  at:     string
-  reason: string
-  ip?:    string | null
-  ua?:    string | null
+  at:      string
+  reason:  string
+  ip?:     string | null
+  ua?:     string | null
+  bilder?: string[]
 }
 
 export interface SignaturLank {
