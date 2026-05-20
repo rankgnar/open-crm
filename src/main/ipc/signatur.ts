@@ -213,7 +213,7 @@ async function pickEmailMall(
 function buildMeddelandeBlock(meddelande: string | null | undefined): string {
   const m = meddelande?.trim()
   if (!m) return ''
-  return `<div style="margin:20px 0;padding:14px 16px;background:#f5f5f5;border-left:3px solid #5363f2;border-radius:4px;font-size:14px;color:#444;line-height:1.5"><strong style="display:block;margin:0 0 6px;color:#1a1a1a;font-size:12px;text-transform:uppercase;letter-spacing:0.5px">Meddelande från avsändaren</strong>${m.replace(/\n/g, '<br>')}</div>`
+  return `<div style="margin:20px 0;padding:14px 16px;background:#f5f5f5;border-left:3px solid #5363f2;border-radius:4px;font-size:14px;color:#444;line-height:1.5"><strong style="display:block;margin:0 0 6px;color:#1a1a1a;font-size:12px;text-transform:uppercase;letter-spacing:0.5px">Meddelande</strong>${m.replace(/\n/g, '<br>')}</div>`
 }
 
 function buildDokumentTitelBlock(titel: string | null | undefined): string {
