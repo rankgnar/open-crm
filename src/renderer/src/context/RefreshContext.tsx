@@ -1,4 +1,4 @@
-import { createContext, useCallback, useContext, useEffect, useRef } from 'react'
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef } from 'react'
 
 type Handler = () => void | Promise<void>
 
@@ -36,7 +36,8 @@ export function RefreshProvider({ children }: { children: React.ReactNode }): JS
     return () => window.removeEventListener('keydown', onKey)
   }, [trigger])
 
-  return <RefreshCtx.Provider value={{ register, trigger }}>{children}</RefreshCtx.Provider>
+  const value = useMemo(() => ({ register, trigger }), [register, trigger])
+  return <RefreshCtx.Provider value={value}>{children}</RefreshCtx.Provider>
 }
 
 export function useRefreshHandler(fn: Handler): void {
