@@ -26,6 +26,7 @@ export interface KalenderEvent {
   fas_id: string | null
   kalender_id: string | null
   personal_id: string | null
+  personal_ids: string[]
   epost_ref: EpostRef | null
 }
 
@@ -41,6 +42,7 @@ export interface NyttEventForm {
   projekt_id: string
   kalender_id: string
   personal_id: string
+  personal_ids: string[]
 }
 
 export interface Kalender {

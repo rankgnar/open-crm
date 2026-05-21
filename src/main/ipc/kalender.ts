@@ -22,6 +22,7 @@ interface CreateKalenderEventInput {
   fas_id?: string | null
   kalender_id?: string | null
   personal_id?: string | null
+  personal_ids?: string[]
   farg?: string
   epost_ref?: Record<string, unknown> | null
 }
@@ -72,6 +73,7 @@ export function registerKalenderHandlers(): void {
         fas_id: input.fas_id ?? null,
         kalender_id: input.kalender_id ?? null,
         personal_id: input.personal_id ?? null,
+        personal_ids: input.personal_ids ?? [],
         farg: input.farg ?? '#6366f1',
         epost_ref: input.epost_ref ?? null,
       })

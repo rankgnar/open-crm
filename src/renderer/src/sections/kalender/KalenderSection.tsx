@@ -4,7 +4,7 @@ import { RefreshButton } from '@/components/RefreshButton'
 import {
   ChevronLeft, ChevronRight, ChevronDown, Plus, X, MapPin, Link,
   Check, CheckCircle2, Circle, Clock, Trash2, FolderOpen, Paperclip, File, FileText, Image as ImageIcon, LayoutList, Pencil, Download,
-  MoreHorizontal, Share2, Eraser, Palette, Mail,
+  MoreHorizontal, Share2, Eraser, Palette, Mail, Users,
 } from 'lucide-react'
 import type { Kalender, KalenderDokument, KalenderEvent, KalenderVy, NyttEventForm } from './types'
 import { buildKalenderDagHtml } from '@/pdf/buildKalenderDagHtml'
@@ -74,6 +74,7 @@ const EMPTY_FORM: NyttEventForm = {
   projekt_id: '',
   kalender_id: '',
   personal_id: '',
+  personal_ids: [],
 }
 
 interface KundRef { id: string; namn: string; kalender_farg?: string | null }
@@ -1355,6 +1356,7 @@ function TaskForm({
     slut: initialSlut,
   })
   const [koppling, setKoppling] = useState<Kopplingstyp>('ingen')
+  const [anstalldSearch, setAnstalldSearch] = useState('')
   const [stagedFiles, setStagedFiles] = useState<StagedFile[]>([])
   const [sparar, setSparar] = useState(false)
   const [fel, setFel] = useState<string | null>(null)
@@ -1362,15 +1364,15 @@ function TaskForm({
   function handleKoppling(typ: Kopplingstyp) {
     setKoppling(typ)
     if (typ === 'kund') {
-      setForm(f => ({ ...f, projekt_id: '', kalender_id: '', personal_id: '' }))
+      setForm(f => ({ ...f, projekt_id: '', kalender_id: '', personal_id: '', personal_ids: [] }))
     } else if (typ === 'projekt') {
-      setForm(f => ({ ...f, kund_id: '', kalender_id: '', personal_id: '' }))
+      setForm(f => ({ ...f, kund_id: '', kalender_id: '', personal_id: '', personal_ids: [] }))
     } else if (typ === 'kalender') {
-      setForm(f => ({ ...f, kund_id: '', projekt_id: '', personal_id: '' }))
+      setForm(f => ({ ...f, kund_id: '', projekt_id: '', personal_id: '', personal_ids: [] }))
     } else if (typ === 'anstalld') {
       setForm(f => ({ ...f, kund_id: '', projekt_id: '', kalender_id: '' }))
     } else {
-      setForm(f => ({ ...f, kund_id: '', projekt_id: '', kalender_id: '', personal_id: '' }))
+      setForm(f => ({ ...f, kund_id: '', projekt_id: '', kalender_id: '', personal_id: '', personal_ids: [] }))
     }
   }
 
@@ -1546,14 +1548,55 @@ function TaskForm({
           />
         )}
 
-        {koppling === 'anstalld' && (
-          <SearchableSelect
-            value={form.personal_id}
-            onChange={v => setForm(f => ({ ...f, personal_id: v }))}
-            options={anstallda.map(p => ({ id: p.id, label: p.namn }))}
-            placeholder="— Välj anställd —"
-          />
-        )}
+        {koppling === 'anstalld' && (() => {
+          const filtered = anstallda.filter(p =>
+            !anstalldSearch || p.namn.toLowerCase().includes(anstalldSearch.toLowerCase())
+          )
+          return (
+            <div className="flex flex-col gap-1.5">
+              <div className="bg-elevated border border-border rounded-lg overflow-hidden">
+                <input
+                  type="text"
+                  value={anstalldSearch}
+                  onChange={e => setAnstalldSearch(e.target.value)}
+                  placeholder="Sök anställd…"
+                  className="w-full px-3 py-2 text-sm text-fg bg-transparent outline-none border-b border-border placeholder:text-subtle"
+                />
+                <div className="max-h-40 overflow-auto">
+                  {filtered.map(p => {
+                    const checked = form.personal_ids.includes(p.id)
+                    return (
+                      <button
+                        key={p.id}
+                        type="button"
+                        onClick={() => setForm(f => ({
+                          ...f,
+                          personal_ids: checked
+                            ? f.personal_ids.filter(id => id !== p.id)
+                            : [...f.personal_ids, p.id],
+                        }))}
+                        className={`w-full flex items-center gap-2.5 px-3 py-2 text-sm text-left transition-colors hover:bg-hover ${checked ? 'text-fg' : 'text-muted'}`}
+                      >
+                        <div className={`size-3.5 rounded border flex items-center justify-center shrink-0 ${checked ? 'bg-fg/20 border-fg/40' : 'border-border'}`}>
+                          {checked && <Check size={9} className="text-fg" />}
+                        </div>
+                        {p.namn}
+                      </button>
+                    )
+                  })}
+                  {filtered.length === 0 && (
+                    <p className="px-3 py-2 text-sm text-subtle">Inga träffar</p>
+                  )}
+                </div>
+              </div>
+              {form.personal_ids.length > 0 && (
+                <p className="text-xs text-muted">
+                  {form.personal_ids.length} anställd{form.personal_ids.length === 1 ? '' : 'a'} valda
+                </p>
+              )}
+            </div>
+          )
+        })()}
 
         <div className="flex flex-col gap-1.5">
           <label className="text-[11px] uppercase tracking-widest text-muted">Plats</label>
@@ -1663,12 +1706,13 @@ interface EventPatch {
 }
 
 function TaskDetail({
-  event, onStang, onTabort, projektNamn, dokument, onUpload, onOpenDokument, onDeleteDokument, onRedigera, onToggleSlutford, onOpenEpost, onColorChange,
+  event, onStang, onTabort, projektNamn, personalNamn, dokument, onUpload, onOpenDokument, onDeleteDokument, onRedigera, onToggleSlutford, onOpenEpost, onColorChange,
 }: {
   event: KalenderEvent
   onStang: () => void
   onTabort: (id: string) => void
   projektNamn: string | null
+  personalNamn: string[]
   dokument: KalenderDokument[]
   onUpload: () => Promise<void>
   onOpenDokument: (storagePath: string) => Promise<void>
@@ -1775,6 +1819,13 @@ function TaskDetail({
           <div className="flex items-start gap-2.5 text-sm">
             <FolderOpen size={14} className="text-muted shrink-0 mt-0.5" />
             <span className="text-fg">{projektNamn}</span>
+          </div>
+        )}
+
+        {personalNamn.length > 0 && (
+          <div className="flex items-start gap-2.5 text-sm">
+            <Users size={14} className="text-muted shrink-0 mt-0.5" />
+            <span className="text-fg">{personalNamn.join(', ')}</span>
           </div>
         )}
 
@@ -2164,6 +2215,7 @@ export function KalenderSection({ onNavigate }: { onNavigate?: (section: string)
         if (e.projekt_id) return synligaProjekt.has(e.projekt_id)
         if (e.kund_id) return synligaKunder.has(e.kund_id)
         if (e.kalender_id) return synligaKalendrar.has(e.kalender_id)
+        if (e.personal_ids?.length) return e.personal_ids.some(id => synligaAnstallda.has(id))
         if (e.personal_id) return synligaAnstallda.has(e.personal_id)
         return lokalVisas
       })
@@ -2180,9 +2232,11 @@ export function KalenderSection({ onNavigate }: { onNavigate?: (section: string)
   }, [events, alleProjekt])
 
   const anstaelldaMedEvents = useMemo(() => {
-    const ids = new Set(
-      events.filter(e => e.personal_id && !e.projekt_id && !e.kund_id).map(e => e.personal_id!)
-    )
+    const ids = new Set<string>()
+    events.filter(e => !e.projekt_id && !e.kund_id).forEach(e => {
+      if (e.personal_ids?.length) e.personal_ids.forEach(id => ids.add(id))
+      else if (e.personal_id) ids.add(e.personal_id)
+    })
     return anstallda.filter(p => ids.has(p.id))
   }, [events, anstallda])
 
@@ -2412,6 +2466,7 @@ export function KalenderSection({ onNavigate }: { onNavigate?: (section: string)
       projekt_id: form.projekt_id || null,
       kalender_id: form.kalender_id || null,
       personal_id: form.personal_id || null,
+      personal_ids: form.personal_ids,
       farg: form.projekt_id
         ? getProjektFarg(form.projekt_id, alleProjekt)
         : form.kund_id
@@ -2707,6 +2762,20 @@ export function KalenderSection({ onNavigate }: { onNavigate?: (section: string)
   const valtProjektNamn = valtEvent?.projekt_id
     ? (alleProjekt.find(p => p.id === valtEvent.projekt_id)?.namn ?? null)
     : null
+
+  const valtPersonalNamn = useMemo(() => {
+    if (!valtEvent) return []
+    if (valtEvent.personal_ids?.length) {
+      return valtEvent.personal_ids
+        .map(id => anstallda.find(p => p.id === id)?.namn ?? '')
+        .filter(Boolean)
+    }
+    if (valtEvent.personal_id) {
+      const namn = anstallda.find(p => p.id === valtEvent.personal_id)?.namn
+      return namn ? [namn] : []
+    }
+    return []
+  }, [valtEvent, anstallda])
 
   return (
     <div className="flex flex-col h-full">
@@ -3058,6 +3127,7 @@ export function KalenderSection({ onNavigate }: { onNavigate?: (section: string)
                 onStang={() => setValtEvent(null)}
                 onTabort={(id) => void handleTabort(id)}
                 projektNamn={valtProjektNamn}
+                personalNamn={valtPersonalNamn}
                 dokument={valtEventDokument}
                 onUpload={handleUploadDokument}
                 onOpenDokument={handleOpenDokument}
