@@ -1,37 +1,15 @@
 import { useState, useRef, useEffect } from 'react'
 import { Plus, Search, X, Trash2, ArrowUp, ArrowDown, ArrowUpDown, ChevronDown } from 'lucide-react'
-import type { Kund, KundStatusar, KundProjektCounts, KundForslagCounts } from './types'
+import type { Kund, KundStatusar, KundLastProjekt, KundLastForslag } from './types'
 import { RefreshButton } from '@/components/RefreshButton'
 import { SelectField } from '@/components/SelectField'
 
-const FORSLAG_FARG: Record<string, string> = {
+const FORSLAG_STATUS_DOT: Record<string, string> = {
   'Accepterat':     'bg-emerald-400',
   'Skickat':        'bg-blue-400',
   'Ändring begärd': 'bg-amber-400',
   'Utkast':         'bg-muted',
   'Avvisat':        'bg-red-400',
-}
-
-const FORSLAG_ORDER = ['Accepterat', 'Skickat', 'Ändring begärd', 'Utkast', 'Avvisat']
-
-function ForslagDots({ counts }: { counts: Record<string, number> | undefined }) {
-  if (!counts) return <span className="text-subtle">—</span>
-  const entries = FORSLAG_ORDER
-    .filter((s) => (counts[s] ?? 0) > 0)
-    .map((s) => ({ status: s, count: counts[s] }))
-  const extra = Object.entries(counts).filter(([s, c]) => c > 0 && !FORSLAG_ORDER.includes(s))
-  const all = [...entries, ...extra.map(([s, c]) => ({ status: s, count: c }))]
-  if (all.length === 0) return <span className="text-subtle">—</span>
-  return (
-    <div className="flex items-center gap-2 flex-wrap">
-      {all.map(({ status, count }) => (
-        <span key={status} className="inline-flex items-center gap-1" title={status}>
-          <span className={`size-1.5 rounded-full shrink-0 ${FORSLAG_FARG[status] ?? 'bg-muted'}`} />
-          <span className="text-xs text-muted">{count}</span>
-        </span>
-      ))}
-    </div>
-  )
 }
 
 const FARG_DOT: Record<string, string> = {
@@ -53,13 +31,15 @@ const FARG_TEXT: Record<string, string> = {
 interface Props {
   kunder: Kund[]
   statusar: KundStatusar[]
-  projektCounts: KundProjektCounts
-  forslagCounts: KundForslagCounts
+  lastProjekt: KundLastProjekt
+  lastForslag: KundLastForslag
   onSelect: (kund: Kund) => void
   onStatusChange: (id: string, status: string) => Promise<void>
   onStatusChangeMany: (ids: string[], status: string) => Promise<void>
   onDeleteMany: (ids: string[]) => Promise<void>
   onNew: () => void
+  onNavigateProjekt?: (projektId: string) => void
+  onNavigateForslag?: (forslagId: string) => void
 }
 
 
@@ -168,7 +148,7 @@ function BulkStatusPicker({ statusar, saving, onPick }: {
   )
 }
 
-export function KunderTable({ kunder, statusar, projektCounts, forslagCounts, onSelect, onStatusChange, onStatusChangeMany, onDeleteMany, onNew }: Props) {
+export function KunderTable({ kunder, statusar, lastProjekt, lastForslag, onSelect, onStatusChange, onStatusChangeMany, onDeleteMany, onNew, onNavigateProjekt, onNavigateForslag }: Props) {
   const [query, setQuery] = useState('')
   const [statusFilter, setStatusFilter] = useState('')
   const [selected, setSelected] = useState<Set<string>>(new Set())
@@ -274,10 +254,10 @@ export function KunderTable({ kunder, statusar, projektCounts, forslagCounts, on
           options={statusar.map((s) => ({ value: s.namn, label: s.namn }))}
           className="w-48 shrink-0"
         />
-        <RefreshButton className="ml-auto" iconOnly />
-        <button onClick={onNew} className="inline-flex items-center gap-1.5 px-3 py-2.5 text-[10px] font-semibold uppercase tracking-wider text-muted hover:text-fg transition-colors">
+        <button onClick={onNew} className="ml-auto inline-flex items-center gap-1.5 px-3 py-2.5 text-[10px] font-semibold uppercase tracking-wider text-muted hover:text-fg transition-colors">
           <Plus size={11} />Ny kund
         </button>
+        <RefreshButton iconOnly />
       </div>
 
       {/* Selection action bar */}
@@ -379,13 +359,34 @@ export function KunderTable({ kunder, statusar, projektCounts, forslagCounts, on
                     <td className="px-4 py-3 text-muted text-xs whitespace-nowrap">
                       {new Date(kund.skapad_at).toLocaleDateString('sv-SE')}
                     </td>
-                    <td className="px-4 py-3 whitespace-nowrap">
-                      {projektCounts[kund.id]
-                        ? <span className="font-medium text-fg text-xs">{projektCounts[kund.id]}</span>
-                        : <span className="text-subtle text-xs">—</span>}
+                    <td className="px-4 py-3 whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
+                      {lastProjekt[kund.id] ? (
+                        <button
+                          onClick={() => onNavigateProjekt?.(lastProjekt[kund.id].id)}
+                          className="inline-flex items-center gap-1.5 px-2 py-1 rounded border border-border bg-elevated hover:bg-hover hover:border-border text-xs text-fg transition-colors max-w-[140px]"
+                          title={lastProjekt[kund.id].namn}
+                        >
+                          <span className="font-mono text-muted shrink-0">{lastProjekt[kund.id].projekt_nummer}</span>
+                          <span className="truncate">{lastProjekt[kund.id].namn}</span>
+                        </button>
+                      ) : (
+                        <span className="text-subtle text-xs">—</span>
+                      )}
                     </td>
-                    <td className="px-4 py-3 whitespace-nowrap">
-                      <ForslagDots counts={forslagCounts[kund.id]} />
+                    <td className="px-4 py-3 whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
+                      {lastForslag[kund.id] ? (
+                        <button
+                          onClick={() => onNavigateForslag?.(lastForslag[kund.id].id)}
+                          className="inline-flex items-center gap-1.5 px-2 py-1 rounded border border-border bg-elevated hover:bg-hover hover:border-border text-xs text-fg transition-colors max-w-[140px]"
+                          title={lastForslag[kund.id].titel}
+                        >
+                          <span className={`size-1.5 rounded-full shrink-0 ${FORSLAG_STATUS_DOT[lastForslag[kund.id].status] ?? 'bg-muted'}`} />
+                          <span className="font-mono text-muted shrink-0">{lastForslag[kund.id].forslag_nummer}</span>
+                          <span className="truncate">{lastForslag[kund.id].titel}</span>
+                        </button>
+                      ) : (
+                        <span className="text-subtle text-xs">—</span>
+                      )}
                     </td>
                     <td className="pr-4 py-3 whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
                       {isConfirmRow ? (

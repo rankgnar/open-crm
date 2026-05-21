@@ -53,16 +53,18 @@ export default function App() {
   const [setupChecked, setSetupChecked] = useState(false)
   const [needsSetup, setNeedsSetup] = useState(false)
   const [projektFromForslagId, setProjektFromForslagId] = useState<string | undefined>(undefined)
+  const [projektFromKundId, setProjektFromKundId] = useState<string | undefined>(undefined)
+  const [forslagFromKundId, setForslagFromKundId] = useState<string | undefined>(undefined)
   const [tidplanReturnForslagId, setTidplanReturnForslagId] = useState<string | undefined>(undefined)
   const [tidplanReturnMode, setTidplanReturnMode] = useState<'send' | 'direct'>('send')
   const [openTidplanReminderForForslagId, setOpenTidplanReminderForForslagId] = useState<string | undefined>(undefined)
   const [forslagDirectReturnId, setForslagDirectReturnId] = useState<string | undefined>(undefined)
 
   useEffect(() => {
-    if (activeSection !== 'projekt') setProjektFromForslagId(undefined)
+    if (activeSection !== 'projekt') { setProjektFromForslagId(undefined); setProjektFromKundId(undefined) }
     if (activeSection !== 'tidplan') setTidplanReturnForslagId(undefined)
     if (activeSection !== 'forslag') setOpenTidplanReminderForForslagId(undefined)
-    if (activeSection !== 'forslag') setForslagDirectReturnId(undefined)
+    if (activeSection !== 'forslag') { setForslagDirectReturnId(undefined); setForslagFromKundId(undefined) }
   }, [activeSection])
 
   const checkSetup = useCallback(async () => {
@@ -139,15 +141,20 @@ export default function App() {
   const sectionContent = (
     <>
       {activeSection === 'workspace' && <WorkspaceSection onNavigate={handleNavigate} />}
-      {activeSection === 'kunder' && <KunderSection />}
+      {activeSection === 'kunder' && (
+        <KunderSection
+          onNavigateProjekt={(id) => { setProjektFromKundId(id); handleNavigate('projekt') }}
+          onNavigateForslag={(id) => { setForslagFromKundId(id); handleNavigate('forslag') }}
+        />
+      )}
       {activeSection === 'projekt' && (
-        <ProjektSection initialProjektId={projektFromForslagId} />
+        <ProjektSection initialProjektId={projektFromForslagId ?? projektFromKundId} />
       )}
       {activeSection === 'forslag' && (
         <ForslagSection
           initialProjektId={isPopout ? popoutQueryParam('projekt_id') : undefined}
           onNavigateProjekt={!isPopout ? (projektId) => { setProjektFromForslagId(projektId); handleNavigate('projekt') } : undefined}
-          initialForslagId={!isPopout ? (openTidplanReminderForForslagId ?? forslagDirectReturnId) : undefined}
+          initialForslagId={!isPopout ? (openTidplanReminderForForslagId ?? forslagDirectReturnId ?? forslagFromKundId) : undefined}
           openTidplanReminderOnLoad={!isPopout && !!openTidplanReminderForForslagId}
           onNavigateTidplan={!isPopout ? (forslagId, mode) => { setTidplanReturnForslagId(forslagId); setTidplanReturnMode(mode); handleNavigate('tidplan') } : undefined}
         />

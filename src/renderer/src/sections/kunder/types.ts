@@ -74,8 +74,8 @@ export interface CreateKundInput {
 
 export type UpdateKundInput = Partial<CreateKundInput>
 
-export type KundProjektCounts = Record<string, number>
-export type KundForslagCounts = Record<string, Record<string, number>>
+export type KundLastProjekt = Record<string, { id: string; projekt_nummer: string; namn: string }>
+export type KundLastForslag = Record<string, { id: string; forslag_nummer: string; titel: string; status: string }>
 
 export interface KundAvslutsfeedback {
   id: string

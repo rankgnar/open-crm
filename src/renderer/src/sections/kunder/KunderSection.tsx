@@ -4,15 +4,20 @@ import { useChangeListener } from '@/hooks/useChangeListener'
 import { KunderTable } from './KunderTable'
 import { KundForm } from './KundForm'
 import { KundDetail } from './KundDetail'
-import type { Kund, CreateKundInput, KundStatusar, KundProjektCounts, KundForslagCounts } from './types'
+import type { Kund, CreateKundInput, KundStatusar, KundLastProjekt, KundLastForslag } from './types'
 
 type View = 'list' | 'create' | 'detail'
 
-export function KunderSection() {
+interface Props {
+  onNavigateProjekt?: (projektId: string) => void
+  onNavigateForslag?: (forslagId: string) => void
+}
+
+export function KunderSection({ onNavigateProjekt, onNavigateForslag }: Props = {}) {
   const [kunder, setKunder] = useState<Kund[]>([])
   const [statusar, setStatusar] = useState<KundStatusar[]>([])
-  const [projektCounts, setProjektCounts] = useState<KundProjektCounts>({})
-  const [forslagCounts, setForslagCounts] = useState<KundForslagCounts>({})
+  const [projektCounts, setProjektCounts] = useState<KundLastProjekt>({})
+  const [forslagCounts, setForslagCounts] = useState<KundLastForslag>({})
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [view, setView] = useState<View>('list')
@@ -23,8 +28,8 @@ export function KunderSection() {
       const [data, s, pc, fc] = await Promise.all([
         window.api.invoke('db:kunder:list') as Promise<Kund[]>,
         window.api.invoke('db:kund-statusar:list') as Promise<KundStatusar[]>,
-        window.api.invoke('db:kunder:projekt-counts') as Promise<KundProjektCounts>,
-        window.api.invoke('db:kunder:forslag-counts') as Promise<KundForslagCounts>,
+        window.api.invoke('db:kunder:projekt-counts') as Promise<KundLastProjekt>,
+        window.api.invoke('db:kunder:forslag-counts') as Promise<KundLastForslag>,
       ])
       setKunder(data)
       setStatusar(s)
@@ -119,13 +124,15 @@ export function KunderSection() {
     <KunderTable
       kunder={kunder}
       statusar={statusar}
-      projektCounts={projektCounts}
-      forslagCounts={forslagCounts}
+      lastProjekt={projektCounts}
+      lastForslag={forslagCounts}
       onSelect={(kund) => { setSelectedKund(kund); setView('detail') }}
       onStatusChange={handleStatusChange}
       onStatusChangeMany={handleStatusChangeMany}
       onDeleteMany={handleDeleteMany}
       onNew={() => setView('create')}
+      onNavigateProjekt={onNavigateProjekt}
+      onNavigateForslag={onNavigateForslag}
     />
   )
 }

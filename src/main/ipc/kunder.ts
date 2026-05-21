@@ -189,27 +189,34 @@ export function registerKunderHandlers(): void {
   })
 
   ipcMain.handle('db:kunder:projekt-counts', async () => {
-    const { data, error } = await supabase.from('projekt').select('kund_id')
+    const { data, error } = await supabase
+      .from('projekt')
+      .select('id, kund_id, projekt_nummer, namn, skapad_at')
+      .order('skapad_at', { ascending: false })
     if (error) throw new Error(error.message)
-    const counts: Record<string, number> = {}
+    const last: Record<string, { id: string; projekt_nummer: string; namn: string }> = {}
     for (const row of data ?? []) {
-      counts[row.kund_id] = (counts[row.kund_id] ?? 0) + 1
+      if (!last[row.kund_id]) {
+        last[row.kund_id] = { id: row.id, projekt_nummer: row.projekt_nummer, namn: row.namn }
+      }
     }
-    return counts
+    return last
   })
 
   ipcMain.handle('db:kunder:forslag-counts', async () => {
     const { data, error } = await supabase
       .from('forslag')
-      .select('status, projekt!inner(kund_id)')
+      .select('id, forslag_nummer, titel, status, skapad_at, projekt!inner(kund_id)')
+      .order('skapad_at', { ascending: false })
     if (error) throw new Error(error.message)
-    const counts: Record<string, Record<string, number>> = {}
+    const last: Record<string, { id: string; forslag_nummer: string; titel: string; status: string }> = {}
     for (const row of data ?? []) {
       const kund_id = (row.projekt as unknown as { kund_id: string }).kund_id
-      if (!counts[kund_id]) counts[kund_id] = {}
-      counts[kund_id][row.status] = (counts[kund_id][row.status] ?? 0) + 1
+      if (!last[kund_id]) {
+        last[kund_id] = { id: row.id, forslag_nummer: row.forslag_nummer, titel: row.titel, status: row.status }
+      }
     }
-    return counts
+    return last
   })
 
   ipcMain.handle('db:kund:set-kalender-farg', async (_, kund_id: string, farg: string | null) => {
