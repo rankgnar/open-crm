@@ -40,6 +40,7 @@ const CHANNELS = [
   'db:personal-tidrapport:reject',
   'db:personal-tidrapport:delete',
   'db:personal-tidrapport:delete-many',
+  'db:personal-tidrapport:import-csv',
   'db:personal-tidrapport:report',
   'db:personal-loneposter:list',
   'db:personal-loneposter:list-all',
@@ -624,6 +625,98 @@ export function registerPersonalHandlers(): void {
     if (!Array.isArray(ids) || ids.length === 0) return
     const { error } = await supabase.from('personal_tidrapport').delete().in('id', ids)
     if (error) throw new Error(error.message)
+  })
+
+  ipcMain.handle('db:personal-tidrapport:import-csv', async (_, filePath: string) => {
+    const result = { importados: 0, omitidos: 0, errores: [] as string[] }
+
+    const raw = await fs.readFile(filePath, 'utf-8')
+    const lines = raw.split('\n').map(l => l.trimEnd()).filter(l => l.trim())
+    if (lines.length < 2) return result
+
+    const headers = parseCSVLine(lines[0])
+
+    // Load lookup tables
+    const [{ data: personalRows }, { data: projektRows }] = await Promise.all([
+      supabase.from('personal').select('id, personal_nummer'),
+      supabase.from('projekt').select('id, projekt_nummer'),
+    ])
+    const personalMap = new Map<string, string>()
+    for (const p of (personalRows ?? [])) personalMap.set(p.personal_nummer, p.id)
+    const projektMap = new Map<string, string>()
+    for (const p of (projektRows ?? [])) projektMap.set(p.projekt_nummer, p.id)
+
+    // Load existing (personal_id, datum) pairs to skip duplicates
+    const { data: existing } = await supabase
+      .from('personal_tidrapport')
+      .select('personal_id, datum')
+    const existingSet = new Set<string>()
+    for (const e of (existing ?? [])) existingSet.add(`${e.personal_id}|${e.datum}`)
+
+    for (let i = 1; i < lines.length; i++) {
+      const cols = parseCSVLine(lines[i])
+      const row: Record<string, string> = {}
+      headers.forEach((h, idx) => { row[h] = cols[idx]?.trim() ?? '' })
+
+      const pNummer = row['personal_nummer']?.trim()
+      const datum = row['datum']?.trim()
+      const timmarRaw = row['timmar']?.trim()
+
+      if (!pNummer || !datum || !timmarRaw) {
+        result.errores.push(`Row ${i + 1}: missing personal_nummer, datum or timmar`)
+        continue
+      }
+
+      const personal_id = personalMap.get(pNummer)
+      if (!personal_id) {
+        result.errores.push(`Row ${i + 1}: employee not found (${pNummer})`)
+        continue
+      }
+
+      const timmar = parseNum(timmarRaw)
+      if (timmar === null || timmar <= 0) {
+        result.errores.push(`Row ${i + 1}: invalid timmar value (${timmarRaw})`)
+        continue
+      }
+
+      const key = `${personal_id}|${datum}`
+      if (existingSet.has(key)) {
+        result.omitidos++
+        continue
+      }
+
+      const pjNummer = row['projekt_nummer']?.trim()
+      const projekt_id = pjNummer ? projektMap.get(pjNummer) ?? null : null
+
+      const record: Record<string, unknown> = {
+        personal_id,
+        datum,
+        timmar,
+        typ: (['normal', 'övertid', 'jour'].includes(row['typ'] ?? '')) ? row['typ'] : 'normal',
+        status: (['inskickad', 'godkänd', 'nekad'].includes(row['status'] ?? '')) ? row['status'] : 'inskickad',
+      }
+      if (projekt_id) record['projekt_id'] = projekt_id
+      const incheckning = row['incheckning']?.trim()
+      if (incheckning) record['incheckning'] = incheckning
+      const utcheckning = row['utcheckning']?.trim()
+      if (utcheckning) record['utcheckning'] = utcheckning
+      const paus = parseNum(row['paustid_minuter'])
+      if (paus !== null && paus >= 0) record['paustid_minuter'] = Math.round(paus)
+      const transport = row['transportmedel']?.trim()
+      if (transport === 'firmabil' || transport === 'kollektivtrafik') record['transportmedel'] = transport
+      const beskrivning = row['beskrivning']?.trim()
+      if (beskrivning) record['beskrivning'] = beskrivning
+
+      const { error } = await supabase.from('personal_tidrapport').insert(record)
+      if (error) {
+        result.errores.push(`Row ${i + 1} (${pNummer} ${datum}): ${error.message}`)
+      } else {
+        result.importados++
+        existingSet.add(key)
+      }
+    }
+
+    return result
   })
 
   // Ledighet global list and approval

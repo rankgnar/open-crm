@@ -1,5 +1,6 @@
 import { Fragment, useState, useEffect, useCallback } from 'react'
-import { Check, X, Plus, Trash2, ChevronDown, Bus, Car, Camera, Coffee, ExternalLink, Languages, ArrowUp, ArrowDown, ArrowUpDown } from 'lucide-react'
+import { Check, X, Plus, Trash2, ChevronDown, Bus, Car, Camera, Coffee, ExternalLink, Languages, ArrowUp, ArrowDown, ArrowUpDown, Upload, Download } from 'lucide-react'
+import type { CsvImportResult } from './types'
 import { Toggle } from '../../components/Toggle'
 import type { TidrapportGlobal, TidrapportBild, TidrapportTyp, TidrapportStatus } from './types'
 import { TIDRAPPORT_TYPER } from './types'
@@ -54,6 +55,8 @@ export function TidrapporterView() {
   const [translateError, setTranslateError] = useState<Map<string, string>>(new Map())
   const [sortCol, setSortCol] = useState<string | null>(null)
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc')
+  const [importing, setImporting] = useState(false)
+  const [importResult, setImportResult] = useState<CsvImportResult | null>(null)
 
   function handleSort(col: string) {
     if (sortCol === col) setSortDir((d) => d === 'asc' ? 'desc' : 'asc')
@@ -300,6 +303,53 @@ export function TidrapporterView() {
     }
   }
 
+  function handleExport() {
+    const CSV_COLS = [
+      'personal_nummer', 'projekt_nummer', 'datum', 'timmar', 'typ', 'status',
+      'incheckning', 'utcheckning', 'paustid_minuter', 'transportmedel', 'beskrivning',
+    ]
+    function csvCell(v: unknown): string {
+      const s = v == null ? '' : String(v)
+      return s.includes(',') || s.includes('"') || s.includes('\n') ? `"${s.replace(/"/g, '""')}"` : s
+    }
+    const header = CSV_COLS.join(',')
+    const dataRows = sortedRows.map((r) => [
+      r.personal?.personal_nummer ?? '',
+      r.projekt?.projekt_nummer ?? '',
+      r.datum,
+      r.timmar,
+      r.typ,
+      r.status,
+      r.incheckning ?? '',
+      r.utcheckning ?? '',
+      r.paustid_minuter ?? 0,
+      r.transportmedel ?? '',
+      r.beskrivning ?? '',
+    ].map(csvCell).join(','))
+    const csv = [header, ...dataRows].join('\n')
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `tidrapporter_${new Date().toISOString().split('T')[0]}.csv`
+    a.click()
+    URL.revokeObjectURL(url)
+  }
+
+  async function handleImport() {
+    const file = await window.api.invoke('dialog:open-file') as { filePath: string } | null
+    if (!file) return
+    setImporting(true)
+    setImportResult(null)
+    try {
+      const result = await window.api.invoke('db:personal-tidrapport:import-csv', file.filePath) as CsvImportResult
+      setImportResult(result)
+      if (result.importados > 0) await load()
+    } finally {
+      setImporting(false)
+    }
+  }
+
   const inskickadeSelected = rows.filter((r) => selected.has(r.id) && r.status === 'inskickad').length
 
   const counts = { alla: rows.length } as Record<string, number>
@@ -338,6 +388,23 @@ export function TidrapporterView() {
             onChange={(e) => setFilterMånad(e.target.value)}
           />
           <button
+            onClick={handleExport}
+            title="Export CSV"
+            className="flex items-center gap-1.5 h-7 px-3 rounded-md text-xs bg-elevated border border-border text-muted hover:text-fg hover:bg-hover transition-colors whitespace-nowrap"
+          >
+            <Download size={12} />
+            Export
+          </button>
+          <button
+            onClick={handleImport}
+            disabled={importing}
+            title="Import CSV"
+            className="flex items-center gap-1.5 h-7 px-3 rounded-md text-xs bg-elevated border border-border text-muted hover:text-fg hover:bg-hover disabled:opacity-40 transition-colors whitespace-nowrap"
+          >
+            <Upload size={12} />
+            {importing ? '...' : 'Import'}
+          </button>
+          <button
             onClick={openForm}
             className="flex items-center gap-1.5 h-7 px-3 rounded-md text-xs bg-elevated border border-border text-muted hover:text-fg hover:bg-hover transition-colors whitespace-nowrap"
           >
@@ -347,6 +414,22 @@ export function TidrapporterView() {
           </button>
         </div>
       </div>
+
+      {/* Import result banner */}
+      {importResult && (
+        <div className="flex items-start gap-4 px-6 py-2.5 border-b border-border bg-elevated shrink-0 text-xs">
+          <span className="text-emerald-400 font-medium shrink-0">{importResult.importados} imported</span>
+          {importResult.omitidos > 0 && <span className="text-muted shrink-0">{importResult.omitidos} skipped (duplicates)</span>}
+          {importResult.errores.length > 0 && (
+            <span className="text-red-400 min-w-0 truncate" title={importResult.errores.join('\n')}>
+              {importResult.errores.length} error{importResult.errores.length > 1 ? 's' : ''}: {importResult.errores[0]}
+            </span>
+          )}
+          <button onClick={() => setImportResult(null)} className="ml-auto text-subtle hover:text-fg transition-colors shrink-0">
+            <X size={12} />
+          </button>
+        </div>
+      )}
 
       {/* Bulk action bar */}
       {selected.size > 0 && (
