@@ -937,6 +937,16 @@ export function registerPersonalHandlers(): void {
     return projects.map((p) => ({ ...p, forslag_status: statusMap.get(p.id) ?? null }))
   })
 
+  ipcMain.handle('db:projekt-personal:list', async (_, projekt_id: string) => {
+    const { data, error } = await supabase
+      .from('projekt_personal')
+      .select('personal_id, personal(id, namn, status)')
+      .eq('projekt_id', projekt_id)
+      .order('skapad_at', { ascending: true })
+    if (error) throw new Error(error.message)
+    return data
+  })
+
   ipcMain.handle('db:personal-projekt:assign', async (_, personal_id: string, projekt_id: string) => {
     const { error } = await supabase.from('projekt_personal').insert({ personal_id, projekt_id })
     if (error) throw new Error(error.message)

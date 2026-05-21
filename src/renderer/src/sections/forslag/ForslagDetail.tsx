@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
-import { ArrowLeft, ArrowUp, ArrowDown, Pencil, Trash2, Plus, X as XIcon, Check, ChevronRight, ChevronDown, CalendarDays, FileDown, Send, Mail, RefreshCw, FolderOpen, ChevronsUpDown, StickyNote, Eye, EyeOff, Sparkles, Loader2, Bell, Tags } from 'lucide-react'
+import { ArrowLeft, ArrowUp, ArrowDown, Pencil, Trash2, Plus, X as XIcon, Check, ChevronRight, ChevronDown, CalendarDays, FileDown, Send, Mail, RefreshCw, FolderOpen, ChevronsUpDown, StickyNote, Eye, EyeOff, Sparkles, Loader2, Bell, Tags, Users } from 'lucide-react'
 import { WorkflowTriggerBar } from '@/components/WorkflowTriggerBar'
 import { SkickaForSignaturModal } from '@/sections/signatur/SkickaForSignaturModal'
 import { SkickaUppdateradVersionModal } from '@/sections/signatur/SkickaUppdateradVersionModal'
@@ -97,6 +97,11 @@ export function ForslagDetail({ forslag: forslagProp, statusar, allProjekt, onBa
   const [showVilkorReminder, setShowVilkorReminder] = useState(false)
   const [showTidplanReminder, setShowTidplanReminder] = useState(false)
   const [showBulkTimpris, setShowBulkTimpris] = useState(false)
+  const [showAnstallda, setShowAnstallda] = useState(false)
+  const [anstallda, setAnstallda] = useState<{ id: string; namn: string }[]>([])
+  const [assignedIds, setAssignedIds] = useState<Set<string>>(new Set())
+  const [anstalldasok, setAnstalldasok] = useState('')
+  const anstaldaRef = useRef<HTMLDivElement>(null)
   const [linksRefresh, setLinksRefresh] = useState(0)
   const [latestLink, setLatestLink] = useState<SignaturLank | null>(null)
   const [sendingRevised, setSendingRevised] = useState(false)
@@ -235,12 +240,16 @@ export function ForslagDetail({ forslag: forslagProp, statusar, allProjekt, onBa
   const [ueBySubfas, setUeBySubfas] = useState<Record<string, ForslagUnderentreprenor[]>>({})
 
   const loadAll = useCallback(async () => {
-    const [faserData, arbeteData, materialData, ueData] = await Promise.all([
+    const [faserData, arbeteData, materialData, ueData, allPersonal, assignedPersonal] = await Promise.all([
       window.api.invoke('db:forslag-faser:list', forslag.id) as Promise<ForslagFas[]>,
       window.api.invoke('db:forslag-arbete:list-by-forslag', forslag.id) as Promise<ForslagArbete[]>,
       window.api.invoke('db:forslag-material:list-by-forslag', forslag.id) as Promise<ForslagMaterial[]>,
       window.api.invoke('db:forslag-ue:list-by-forslag', forslag.id) as Promise<ForslagUnderentreprenor[]>,
+      window.api.invoke('db:personal:list') as Promise<{ id: string; namn: string; status: string }[]>,
+      window.api.invoke('db:projekt-personal:list', forslag.projekt_id) as Promise<{ personal_id: string }[]>,
     ])
+    setAnstallda(allPersonal.filter(p => p.status !== 'inaktiv'))
+    setAssignedIds(new Set(assignedPersonal.map(r => r.personal_id)))
     setFaser(faserData)
     setCollapsedFaser(new Set())
 
@@ -306,6 +315,30 @@ export function ForslagDetail({ forslag: forslagProp, statusar, allProjekt, onBa
     })()
   }, [forslag.id, linksRefresh])
 
+
+  // --- Anställda handlers ---
+  useEffect(() => {
+    if (!showAnstallda) return
+    function onOutside(e: MouseEvent) {
+      if (anstaldaRef.current && !anstaldaRef.current.contains(e.target as Node)) {
+        setShowAnstallda(false)
+        setAnstalldasok('')
+      }
+    }
+    document.addEventListener('mousedown', onOutside)
+    return () => document.removeEventListener('mousedown', onOutside)
+  }, [showAnstallda])
+
+  async function handleToggleAnstald(personalId: string) {
+    const projektId = forslag.projekt_id
+    if (assignedIds.has(personalId)) {
+      await window.api.invoke('db:personal-projekt:remove', personalId, projektId)
+      setAssignedIds(prev => { const s = new Set(prev); s.delete(personalId); return s })
+    } else {
+      await window.api.invoke('db:personal-projekt:assign', personalId, projektId)
+      setAssignedIds(prev => new Set([...prev, personalId]))
+    }
+  }
 
   // --- Fas handlers ---
   async function handleAddFas() {
@@ -976,9 +1009,6 @@ export function ForslagDetail({ forslag: forslagProp, statusar, allProjekt, onBa
             </>
           ) : (
             <>
-              <button onClick={loadAll} className="inline-flex items-center gap-1.5 px-3 py-2.5 text-[10px] font-semibold uppercase tracking-wider text-muted hover:text-fg transition-colors">
-                <RefreshCw size={11} />
-              </button>
               <button onClick={() => setShowBulkTimpris(true)} className="inline-flex items-center gap-1.5 px-3 py-2.5 text-[10px] font-semibold uppercase tracking-wider text-muted hover:text-fg transition-colors">
                 <Tags size={11} />Timpriser
               </button>
@@ -991,6 +1021,62 @@ export function ForslagDetail({ forslag: forslagProp, statusar, allProjekt, onBa
               <button onClick={() => onNavigateTidplan ? onNavigateTidplan('direct') : window.api.invoke('window:open-tidplan', forslag.id)} className="inline-flex items-center gap-1.5 px-3 py-2.5 text-[10px] font-semibold uppercase tracking-wider text-muted hover:text-fg transition-colors">
                 <CalendarDays size={11} />Tidplan
               </button>
+              <div className="relative" ref={anstaldaRef}>
+                <button
+                  onClick={() => { setShowAnstallda(p => !p); setAnstalldasok('') }}
+                  className="inline-flex items-center gap-1.5 px-3 py-2.5 text-[10px] font-semibold uppercase tracking-wider text-muted hover:text-fg transition-colors"
+                >
+                  <Users size={11} />Anställda
+                  {assignedIds.size > 0 && (
+                    <span className="px-1 py-0.5 rounded text-[9px] bg-emerald-500/20 text-emerald-400">
+                      {assignedIds.size}
+                    </span>
+                  )}
+                </button>
+                {showAnstallda && (() => {
+                  const filtered = anstallda.filter(p =>
+                    !anstalldasok || p.namn.toLowerCase().includes(anstalldasok.toLowerCase())
+                  )
+                  return (
+                    <div className="absolute top-full left-0 mt-1 z-50 w-60 bg-elevated border border-border rounded-lg shadow-2xl overflow-hidden">
+                      <input
+                        type="text"
+                        value={anstalldasok}
+                        onChange={e => setAnstalldasok(e.target.value)}
+                        placeholder="Sök anställd…"
+                        className="w-full px-3 py-2 text-sm text-fg bg-transparent outline-none border-b border-border placeholder:text-subtle"
+                        autoFocus
+                      />
+                      <div className="max-h-48 overflow-auto">
+                        {filtered.map(p => {
+                          const checked = assignedIds.has(p.id)
+                          return (
+                            <button
+                              key={p.id}
+                              type="button"
+                              onClick={() => void handleToggleAnstald(p.id)}
+                              className={`w-full flex items-center gap-2.5 px-3 py-2 text-sm text-left transition-colors hover:bg-hover ${checked ? 'text-fg' : 'text-muted'}`}
+                            >
+                              <div className={`size-3.5 rounded border flex items-center justify-center shrink-0 ${checked ? 'bg-fg/20 border-fg/40' : 'border-border'}`}>
+                                {checked && <Check size={9} className="text-fg" />}
+                              </div>
+                              {p.namn}
+                            </button>
+                          )
+                        })}
+                        {filtered.length === 0 && (
+                          <p className="px-3 py-2 text-sm text-subtle">Inga träffar</p>
+                        )}
+                      </div>
+                      {assignedIds.size > 0 && (
+                        <div className="px-3 py-1.5 border-t border-border">
+                          <p className="text-[10px] text-muted">{assignedIds.size} anställd{assignedIds.size === 1 ? '' : 'a'} tillagda</p>
+                        </div>
+                      )}
+                    </div>
+                  )
+                })()}
+              </div>
               <button onClick={() => setShowVilkorReminder(true)} className="inline-flex items-center gap-1.5 px-3 py-2.5 text-[10px] font-semibold uppercase tracking-wider text-muted hover:text-emerald-400 transition-colors">
                 <Send size={11} />Skicka för signatur
               </button>
@@ -1008,6 +1094,9 @@ export function ForslagDetail({ forslag: forslagProp, statusar, allProjekt, onBa
               </button>
               <button onClick={() => setConfirmDelete(true)} className="inline-flex items-center gap-1.5 px-3 py-2.5 text-[10px] font-semibold uppercase tracking-wider text-muted hover:text-red-400 transition-colors">
                 <Trash2 size={11} />Ta bort
+              </button>
+              <button onClick={loadAll} className="inline-flex items-center gap-1.5 px-3 py-2.5 text-[10px] font-semibold uppercase tracking-wider text-muted hover:text-fg transition-colors">
+                <RefreshCw size={11} />
               </button>
             </>
           )}
