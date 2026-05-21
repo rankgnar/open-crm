@@ -21,6 +21,7 @@ interface CreateKalenderEventInput {
   projekt_id?: string | null
   fas_id?: string | null
   kalender_id?: string | null
+  personal_id?: string | null
   farg?: string
   epost_ref?: Record<string, unknown> | null
 }
@@ -70,6 +71,7 @@ export function registerKalenderHandlers(): void {
         projekt_id: input.projekt_id ?? null,
         fas_id: input.fas_id ?? null,
         kalender_id: input.kalender_id ?? null,
+        personal_id: input.personal_id ?? null,
         farg: input.farg ?? '#6366f1',
         epost_ref: input.epost_ref ?? null,
       })

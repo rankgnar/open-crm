@@ -73,10 +73,12 @@ const EMPTY_FORM: NyttEventForm = {
   kund_id: '',
   projekt_id: '',
   kalender_id: '',
+  personal_id: '',
 }
 
 interface KundRef { id: string; namn: string; kalender_farg?: string | null }
 interface ProjektRef { id: string; namn: string; projekt_nummer: string; kund_id: string; kalender_farg?: string | null }
+interface AnstaelldRef { id: string; namn: string; status: string }
 
 type IcsFilter =
   | { kalender_id: string }
@@ -1333,7 +1335,7 @@ function SearchableSelect({
 // ─── TaskForm ────────────────────────────────────────────────────────────────
 
 function TaskForm({
-  onSpara, onStang, onAddFile, kunder, projekt, kalendrar, initialStart, initialSlut,
+  onSpara, onStang, onAddFile, kunder, projekt, kalendrar, anstallda, initialStart, initialSlut,
 }: {
   onSpara: (data: NyttEventForm, files: StagedFile[]) => Promise<void>
   onStang: () => void
@@ -1341,10 +1343,11 @@ function TaskForm({
   kunder: KundRef[]
   projekt: ProjektRef[]
   kalendrar: Kalender[]
+  anstallda: AnstaelldRef[]
   initialStart: string
   initialSlut: string
 }) {
-  type Kopplingstyp = 'ingen' | 'kund' | 'projekt' | 'kalender'
+  type Kopplingstyp = 'ingen' | 'kund' | 'projekt' | 'kalender' | 'anstalld'
 
   const [form, setForm] = useState<NyttEventForm>({
     ...EMPTY_FORM,
@@ -1359,13 +1362,15 @@ function TaskForm({
   function handleKoppling(typ: Kopplingstyp) {
     setKoppling(typ)
     if (typ === 'kund') {
-      setForm(f => ({ ...f, projekt_id: '', kalender_id: '' }))
+      setForm(f => ({ ...f, projekt_id: '', kalender_id: '', personal_id: '' }))
     } else if (typ === 'projekt') {
-      setForm(f => ({ ...f, kund_id: '', kalender_id: '' }))
+      setForm(f => ({ ...f, kund_id: '', kalender_id: '', personal_id: '' }))
     } else if (typ === 'kalender') {
-      setForm(f => ({ ...f, kund_id: '', projekt_id: '' }))
-    } else {
+      setForm(f => ({ ...f, kund_id: '', projekt_id: '', personal_id: '' }))
+    } else if (typ === 'anstalld') {
       setForm(f => ({ ...f, kund_id: '', projekt_id: '', kalender_id: '' }))
+    } else {
+      setForm(f => ({ ...f, kund_id: '', projekt_id: '', kalender_id: '', personal_id: '' }))
     }
   }
 
@@ -1391,6 +1396,7 @@ function TaskForm({
     { typ: 'kund', label: 'Kund' },
     { typ: 'projekt', label: 'Projekt' },
     ...(kalendrar.length > 0 ? [{ typ: 'kalender' as const, label: 'Kalender' }] : []),
+    ...(anstallda.length > 0 ? [{ typ: 'anstalld' as const, label: 'Anställd' }] : []),
   ]
 
   return (
@@ -1537,6 +1543,15 @@ function TaskForm({
             onChange={v => setForm(f => ({ ...f, kalender_id: v }))}
             options={kalendrar.map(k => ({ id: k.id, label: k.namn }))}
             placeholder="— Välj kalender —"
+          />
+        )}
+
+        {koppling === 'anstalld' && (
+          <SearchableSelect
+            value={form.personal_id}
+            onChange={v => setForm(f => ({ ...f, personal_id: v }))}
+            options={anstallda.map(p => ({ id: p.id, label: p.namn }))}
+            placeholder="— Välj anställd —"
           />
         )}
 
@@ -2104,6 +2119,8 @@ export function KalenderSection({ onNavigate }: { onNavigate?: (section: string)
   const [synligaKunder, setSynligaKunder] = useState<Set<string>>(new Set())
   const [synligaProjekt, setSynligaProjekt] = useState<Set<string>>(new Set())
   const [synligaKalendrar, setSynligaKalendrar] = useState<Set<string>>(new Set())
+  const [anstallda, setAnstallda] = useState<AnstaelldRef[]>([])
+  const [synligaAnstallda, setSynligaAnstallda] = useState<Set<string>>(new Set())
   const [events, setEvents] = useState<KalenderEvent[]>([])
   const [kunder, setKunder] = useState<KundRef[]>([])
   const [alleProjekt, setAlleProjekt] = useState<ProjektRef[]>([])
@@ -2147,9 +2164,10 @@ export function KalenderSection({ onNavigate }: { onNavigate?: (section: string)
         if (e.projekt_id) return synligaProjekt.has(e.projekt_id)
         if (e.kund_id) return synligaKunder.has(e.kund_id)
         if (e.kalender_id) return synligaKalendrar.has(e.kalender_id)
+        if (e.personal_id) return synligaAnstallda.has(e.personal_id)
         return lokalVisas
       })
-  }, [events, alleProjekt, kunder, kalendrar, lokalVisas, synligaKunder, synligaProjekt, synligaKalendrar])
+  }, [events, alleProjekt, kunder, kalendrar, lokalVisas, synligaKunder, synligaProjekt, synligaKalendrar, synligaAnstallda])
 
   const kundMedEvents = useMemo(() => {
     const ids = new Set(events.filter(e => e.kund_id && !e.projekt_id).map(e => e.kund_id!))
@@ -2160,6 +2178,13 @@ export function KalenderSection({ onNavigate }: { onNavigate?: (section: string)
     const ids = new Set(events.filter(e => e.projekt_id).map(e => e.projekt_id!))
     return alleProjekt.filter(p => ids.has(p.id))
   }, [events, alleProjekt])
+
+  const anstaelldaMedEvents = useMemo(() => {
+    const ids = new Set(
+      events.filter(e => e.personal_id && !e.projekt_id && !e.kund_id).map(e => e.personal_id!)
+    )
+    return anstallda.filter(p => ids.has(p.id))
+  }, [events, anstallda])
 
   const ar = anchor.getFullYear()
   const manad = anchor.getMonth()
@@ -2240,17 +2265,20 @@ export function KalenderSection({ onNavigate }: { onNavigate?: (section: string)
 
   async function hamtaKunderOchProjekt() {
     try {
-      const [k, p, c] = await Promise.all([
+      const [k, p, c, a] = await Promise.all([
         window.api.invoke('db:kunder:list') as Promise<KundRef[]>,
         window.api.invoke('db:projekt:list') as Promise<ProjektRef[]>,
         window.api.invoke('db:kalendrar:list') as Promise<Kalender[]>,
+        window.api.invoke('db:personal:list') as Promise<AnstaelldRef[]>,
       ])
       setKunder(k)
       setAlleProjekt(p)
       setKalendrar(c)
+      setAnstallda(a.filter(p => p.status !== 'inaktiv'))
       setSynligaKunder(new Set(k.map(ku => ku.id)))
       setSynligaProjekt(new Set(p.map(pr => pr.id)))
       setSynligaKalendrar(new Set(c.map(ka => ka.id)))
+      setSynligaAnstallda(new Set(a.map(an => an.id)))
     } catch {
       // ignore
     }
@@ -2279,6 +2307,15 @@ export function KalenderSection({ onNavigate }: { onNavigate?: (section: string)
       const next = new Set(prev)
       if (next.has(id)) next.delete(id)
       else next.add(id)
+      return next
+    })
+  }
+
+  function toggleAnstaelldKalender(personalId: string) {
+    setSynligaAnstallda(prev => {
+      const next = new Set(prev)
+      if (next.has(personalId)) next.delete(personalId)
+      else next.add(personalId)
       return next
     })
   }
@@ -2374,6 +2411,7 @@ export function KalenderSection({ onNavigate }: { onNavigate?: (section: string)
       kund_id: form.kund_id || null,
       projekt_id: form.projekt_id || null,
       kalender_id: form.kalender_id || null,
+      personal_id: form.personal_id || null,
       farg: form.projekt_id
         ? getProjektFarg(form.projekt_id, alleProjekt)
         : form.kund_id
@@ -2884,6 +2922,25 @@ export function KalenderSection({ onNavigate }: { onNavigate?: (section: string)
               })}
             </div>
           )}
+
+          {anstaelldaMedEvents.length > 0 && (
+            <div>
+              <p className="px-4 mb-1.5 text-[10px] uppercase tracking-widest text-subtle">Anställda</p>
+              {anstaelldaMedEvents.map(p => {
+                const visas = synligaAnstallda.has(p.id)
+                return (
+                  <SidebarRow
+                    key={p.id}
+                    label={p.namn}
+                    farg="#8b5cf6"
+                    visible={visas}
+                    onToggle={() => toggleAnstaelldKalender(p.id)}
+                    onMenu={() => {}}
+                  />
+                )
+              })}
+            </div>
+          )}
         </nav>
         ) : (
           <div className="w-10 shrink-0 border-r border-border flex flex-col items-center py-3 bg-sidebar">
@@ -3044,6 +3101,7 @@ export function KalenderSection({ onNavigate }: { onNavigate?: (section: string)
               kunder={kunder}
               projekt={alleProjekt}
               kalendrar={kalendrar}
+              anstallda={anstallda}
               initialStart={formStart}
               initialSlut={formSlut}
             />
