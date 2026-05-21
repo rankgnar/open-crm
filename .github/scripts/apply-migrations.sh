@@ -20,12 +20,15 @@ AUTH="Authorization: Bearer ${SUPABASE_ACCESS_TOKEN}"
 
 run_sql() {
   local sql="$1"
-  local payload
-  payload=$(jq -n --arg q "$sql" '{query:$q}')
+  local tmpjson
+  tmpjson=$(mktemp)
+  # pipe via jq -Rs to avoid ARG_MAX limits on large SQL files
+  printf '%s' "$sql" | jq -Rs '{query:.}' > "$tmpjson"
   curl -sS -X POST "$API" \
     -H "$AUTH" \
     -H "Content-Type: application/json" \
-    -d "$payload"
+    --data "@$tmpjson"
+  rm -f "$tmpjson"
 }
 
 # Säkerställ att tracking-tabellen finns
