@@ -58,6 +58,7 @@ const CHANNELS = [
   'db:personal-projekt:list-available',
   'db:personal-projekt:assign',
   'db:personal-projekt:remove',
+  'db:projekt-personal:list',
   'db:personal:send-invite',
   'db:personal:send-password-reset',
 ] as const

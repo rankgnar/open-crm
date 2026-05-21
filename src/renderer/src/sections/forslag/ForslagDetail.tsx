@@ -239,17 +239,24 @@ export function ForslagDetail({ forslag: forslagProp, statusar, allProjekt, onBa
   const [materialBySubfas, setMaterialBySubfas] = useState<Record<string, ForslagMaterial[]>>({})
   const [ueBySubfas, setUeBySubfas] = useState<Record<string, ForslagUnderentreprenor[]>>({})
 
-  const loadAll = useCallback(async () => {
-    const [faserData, arbeteData, materialData, ueData, allPersonal, assignedPersonal] = await Promise.all([
-      window.api.invoke('db:forslag-faser:list', forslag.id) as Promise<ForslagFas[]>,
-      window.api.invoke('db:forslag-arbete:list-by-forslag', forslag.id) as Promise<ForslagArbete[]>,
-      window.api.invoke('db:forslag-material:list-by-forslag', forslag.id) as Promise<ForslagMaterial[]>,
-      window.api.invoke('db:forslag-ue:list-by-forslag', forslag.id) as Promise<ForslagUnderentreprenor[]>,
+  const loadAnstallda = useCallback(async () => {
+    const [allPersonal, assignedPersonal] = await Promise.all([
       window.api.invoke('db:personal:list') as Promise<{ id: string; namn: string; status: string }[]>,
       window.api.invoke('db:projekt-personal:list', forslag.projekt_id) as Promise<{ personal_id: string }[]>,
     ])
     setAnstallda(allPersonal.filter(p => p.status !== 'inaktiv'))
-    setAssignedIds(new Set(assignedPersonal.map(r => r.personal_id)))
+    setAssignedIds(new Set((assignedPersonal ?? []).map(r => r.personal_id)))
+  }, [forslag.projekt_id])
+
+  useEffect(() => { void loadAnstallda() }, [loadAnstallda])
+
+  const loadAll = useCallback(async () => {
+    const [faserData, arbeteData, materialData, ueData] = await Promise.all([
+      window.api.invoke('db:forslag-faser:list', forslag.id) as Promise<ForslagFas[]>,
+      window.api.invoke('db:forslag-arbete:list-by-forslag', forslag.id) as Promise<ForslagArbete[]>,
+      window.api.invoke('db:forslag-material:list-by-forslag', forslag.id) as Promise<ForslagMaterial[]>,
+      window.api.invoke('db:forslag-ue:list-by-forslag', forslag.id) as Promise<ForslagUnderentreprenor[]>,
+    ])
     setFaser(faserData)
     setCollapsedFaser(new Set())
 
