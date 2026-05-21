@@ -22,6 +22,7 @@ jobs:
 
       - name: Copy migrations
         run: |
+          rm -f open-crm-setup/migrations/*.sql
           cp supabase/migrations/*.sql open-crm-setup/migrations/
 
       - name: Commit and push if changed
