@@ -287,7 +287,6 @@ export function ForslagTable({ forslag, statusar, signingEvents, smsForslag, onS
         </div>
         <div className="flex items-center gap-2">
           <StatusSelect value={statusFilter} onChange={setStatusFilter} statusar={statusar} />
-          <RefreshButton iconOnly />
           {onDuplicate && (
             <button
               onClick={onDuplicate}
@@ -310,6 +309,7 @@ export function ForslagTable({ forslag, statusar, signingEvents, smsForslag, onS
           >
             <Plus size={11} />Nytt förslag
           </button>
+          <RefreshButton iconOnly />
         </div>
       </div>
 
@@ -405,7 +405,7 @@ export function ForslagTable({ forslag, statusar, signingEvents, smsForslag, onS
             </thead>
             <tbody>
               {sorted.map((f) => {
-                const isAccepted = f.status === 'accepterat'
+                const isAccepted = f.status?.toLowerCase() === 'accepterat'
                 const isSelected = selected.has(f.id)
                 const baseBg = isSelected ? 'bg-elevated' : isAccepted ? 'bg-emerald-400/[0.06]' : ''
                 return (

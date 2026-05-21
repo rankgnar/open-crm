@@ -88,7 +88,7 @@ export function EkonomiDetail({ projekt, utfall, onBack, onAddUtfall, onDeleteUt
       const list = await window.api.invoke('db:forslag:list-by-projekt', projekt.id) as ForslagWithProjekt[]
       if (list.length === 0) { setLoadingForslag(false); return }
 
-      const active = list.find((f) => f.status === 'accepterat') ?? list[0]
+      const active = list.find((f) => f.status?.toLowerCase() === 'accepterat') ?? list[0]
       setForslag(active)
 
       const [arbeteData, materialData, ueData] = await Promise.all([
@@ -161,7 +161,7 @@ export function EkonomiDetail({ projekt, utfall, onBack, onAddUtfall, onDeleteUt
             sub="vid projektstart"
           />
           <StatCard
-            label={forslag ? `Förslag pris${forslag.status !== 'accepterat' ? ` (${forslag.status})` : ''}` : 'Förslag pris'}
+            label={forslag ? `Förslag pris${forslag.status?.toLowerCase() !== 'accepterat' ? ` (${forslag.status})` : ''}` : 'Förslag pris'}
             value={loadingForslag ? '...' : forslagTotalt > 0 ? fmt(forslagTotalt) : '—'}
             sub={forslag ? `${forslag.forslag_nummer} inkl. moms` : 'Inget förslag'}
           />

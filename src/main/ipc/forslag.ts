@@ -52,7 +52,7 @@ const CHANNELS = [
   'db:forslag:import-csv',
 ] as const
 
-type ForslagStatus = 'utkast' | 'skickat' | 'accepterat' | 'avvisat'
+type ForslagStatus = 'Utkast' | 'Skickat' | 'Accepterat' | 'Avvisat' | 'Ändring begärd'
 
 interface CreateForslagInput {
   forslag_nummer?: string
