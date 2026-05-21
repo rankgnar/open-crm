@@ -825,7 +825,23 @@ export function registerPersonalHandlers(): void {
     if (assignedIds.length > 0) q = q.not('id', 'in', `(${assignedIds.join(',')})`)
     const { data, error } = await q
     if (error) throw new Error(error.message)
-    return data
+
+    const projects = (data ?? []) as { id: string; projekt_nummer: string; namn: string }[]
+    if (projects.length === 0) return []
+
+    const { data: forslagData } = await supabase
+      .from('forslag')
+      .select('projekt_id, status')
+      .in('projekt_id', projects.map((p) => p.id))
+      .order('skapad_at', { ascending: false })
+
+    // Latest forslag status per projekt
+    const statusMap = new Map<string, string>()
+    for (const f of (forslagData ?? []) as { projekt_id: string; status: string }[]) {
+      if (!statusMap.has(f.projekt_id)) statusMap.set(f.projekt_id, f.status)
+    }
+
+    return projects.map((p) => ({ ...p, forslag_status: statusMap.get(p.id) ?? null }))
   })
 
   ipcMain.handle('db:personal-projekt:assign', async (_, personal_id: string, projekt_id: string) => {

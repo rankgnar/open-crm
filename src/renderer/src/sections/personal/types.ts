@@ -234,6 +234,7 @@ export interface ProjektItem {
   id: string
   projekt_nummer: string
   namn: string
+  forslag_status?: string | null
 }
 
 export const LONEPOST_TYPER: { value: LonepostTyp; label: string; sign: 1 | -1 }[] = [

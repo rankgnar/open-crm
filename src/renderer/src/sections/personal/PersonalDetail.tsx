@@ -145,6 +145,7 @@ export function PersonalDetail({
   // Löneposter form state
   const [addingProjekt, setAddingProjekt] = useState(false)
   const [removingProjektId, setRemovingProjektId] = useState<string | null>(null)
+  const [onlyAccepterat, setOnlyAccepterat] = useState(false)
 
   const [lpTyp, setLpTyp] = useState<LonepostTyp>('tillägg')
   const [lpBelopp, setLpBelopp] = useState('')
@@ -420,11 +421,22 @@ export function PersonalDetail({
           <div className="px-8 py-6 border-b border-border">
             <div className="flex items-center justify-between mb-4">
               <p className="text-[11px] uppercase tracking-widest text-muted">Tilldelade projekt</p>
-              {availableProjekt.length > 0 && (
-                <button onClick={() => setAddingProjekt((v) => !v)} className="text-[11px] text-muted hover:text-fg transition-colors">
-                  + Tilldela
-                </button>
-              )}
+              <div className="flex items-center gap-3">
+                <label className="flex items-center gap-1.5 cursor-pointer select-none">
+                  <input
+                    type="checkbox"
+                    checked={onlyAccepterat}
+                    onChange={(e) => setOnlyAccepterat(e.target.checked)}
+                    className="accent-emerald-400 size-3"
+                  />
+                  <span className="text-[11px] text-muted">Accepterat</span>
+                </label>
+                {availableProjekt.length > 0 && (
+                  <button onClick={() => setAddingProjekt((v) => !v)} className="size-5 flex items-center justify-center rounded text-muted hover:text-fg hover:bg-hover transition-colors text-base leading-none">
+                    +
+                  </button>
+                )}
+              </div>
             </div>
             {addingProjekt && availableProjekt.length > 0 && (
               <SelectField
@@ -437,7 +449,10 @@ export function PersonalDetail({
                 placeholder="Välj projekt..."
                 searchable
                 className="mb-3"
-                options={availableProjekt.map((p) => ({ value: p.id, label: `${p.projekt_nummer} – ${p.namn}` }))}
+                options={(onlyAccepterat
+                  ? availableProjekt.filter((p) => p.forslag_status?.toLowerCase() === 'accepterat')
+                  : availableProjekt
+                ).map((p) => ({ value: p.id, label: `${p.projekt_nummer} – ${p.namn}` }))}
               />
             )}
             {assignedProjekt.length === 0 ? (
