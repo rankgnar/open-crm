@@ -11,7 +11,6 @@ export const SECCION_COLORS: Record<string, string> = {
   epost:    'text-yellow-400',
   kalender: 'text-orange-400',
   kontext:  'text-indigo-400',
-  fortnox:  'text-green-400',
   fakturor: 'text-amber-400',
 }
 

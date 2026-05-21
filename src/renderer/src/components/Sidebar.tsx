@@ -4,7 +4,7 @@ import { useAppConfig } from '@/context/AppConfig'
 import { NAV_GROUPS } from '@/nav-sections'
 import type { InstallningarPanel } from '@/sections/installningar/types'
 
-type Section = 'workspace' | 'kunder' | 'projekt' | 'forslag' | 'signera' | 'tidplan' | 'ekonomi' | 'fakturering' | 'kvitto' | 'order' | 'ata' | 'fortnox' | 'epost' | 'kalender' | 'personal' | 'leverantor' | 'chat' | 'installningar' | 'avancerat' | 'inventarier'
+type Section = 'workspace' | 'kunder' | 'projekt' | 'forslag' | 'signera' | 'tidplan' | 'ekonomi' | 'fakturering' | 'kvitto' | 'order' | 'ata' | 'epost' | 'kalender' | 'personal' | 'leverantor' | 'chat' | 'installningar' | 'avancerat' | 'inventarier'
 
 interface Props {
   active: Section

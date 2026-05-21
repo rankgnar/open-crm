@@ -5,7 +5,7 @@ import { useRefreshHandler } from '@/context/RefreshContext'
 import {
   KunderTile, ProjektPipelineTile, ForslagTile, OrderTile, AtaTile,
   TidplanTile, KostnaderTile, SigneraTile, EpostTile, KalenderTile,
-  PersonalTile, FortnoxTile, FaktureringTile, AiTile,
+  PersonalTile, FaktureringTile, AiTile,
 } from './tiles'
 
 interface Props {
@@ -80,7 +80,6 @@ export function WorkspaceSection({ onNavigate }: Props) {
             {/* Row 4 — current period */}
             <TidplanTile data={overview.tidplan} onNavigate={onNavigate} index={7} />
             <KostnaderTile data={overview.kostnader} onNavigate={onNavigate} index={8} />
-            <FortnoxTile data={overview.fortnox} onNavigate={onNavigate} index={9} />
 
             {/* Row 5 — comms & people */}
             <PersonalTile data={overview.personal} onNavigate={onNavigate} index={10} />

@@ -18,16 +18,15 @@ import { InställningarSection } from '@/sections/installningar/InställningarSe
 import { AvanceratSection } from '@/sections/avancerat/AvanceratSection'
 import { EpostSection } from '@/sections/epost/EpostSection'
 import { KalenderSection } from '@/sections/kalender/KalenderSection'
-import { FortnoxSection } from '@/sections/fortnox/FortnoxSection'
 import { PersonalSection } from '@/sections/personal/PersonalSection'
 import { ChatSection } from '@/sections/chat/ChatSection'
 import { LeverantorSection } from '@/sections/leverantor/LeverantorSection'
 import { InventarierSection } from '@/sections/inventarier/InventarierSection'
 import type { InstallningarPanel } from '@/sections/installningar/types'
 
-type Section = 'workspace' | 'kunder' | 'projekt' | 'forslag' | 'signera' | 'tidplan' | 'ekonomi' | 'fakturering' | 'kvitto' | 'order' | 'ata' | 'fortnox' | 'epost' | 'kalender' | 'personal' | 'leverantor' | 'chat' | 'installningar' | 'avancerat' | 'inventarier'
+type Section = 'workspace' | 'kunder' | 'projekt' | 'forslag' | 'signera' | 'tidplan' | 'ekonomi' | 'fakturering' | 'kvitto' | 'order' | 'ata' | 'epost' | 'kalender' | 'personal' | 'leverantor' | 'chat' | 'installningar' | 'avancerat' | 'inventarier'
 
-const VALID_SECTIONS: Section[] = ['workspace', 'kunder', 'projekt', 'forslag', 'signera', 'tidplan', 'ekonomi', 'fakturering', 'kvitto', 'order', 'ata', 'fortnox', 'epost', 'kalender', 'personal', 'leverantor', 'chat', 'installningar', 'avancerat', 'inventarier']
+const VALID_SECTIONS: Section[] = ['workspace', 'kunder', 'projekt', 'forslag', 'signera', 'tidplan', 'ekonomi', 'fakturering', 'kvitto', 'order', 'ata', 'epost', 'kalender', 'personal', 'leverantor', 'chat', 'installningar', 'avancerat', 'inventarier']
 
 function sectionFromHash(): Section {
   const raw = window.location.hash.replace(/^#\/?/, '').split('?')[0]
@@ -183,7 +182,6 @@ export default function App() {
       {activeSection === 'order' && <OrderSection />}
       {activeSection === 'ata' && <ATASection />}
       {activeSection === 'signera' && <SigneraSection />}
-      {activeSection === 'fortnox' && <FortnoxSection />}
       {activeSection === 'epost' && <EpostSection />}
       {activeSection === 'kalender' && <KalenderSection onNavigate={s => handleNavigate(s as Parameters<typeof handleNavigate>[0])} />}
       {activeSection === 'personal' && <PersonalSection />}

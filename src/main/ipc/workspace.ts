@@ -1,6 +1,5 @@
 import { ipcMain } from 'electron'
 import { supabase } from '../supabase'
-import { checkFortnoxConnection } from './fortnox'
 import { getEpostInkorgStats } from './epost'
 
 const CHANNELS = [
@@ -34,7 +33,6 @@ export interface WorkspaceOverview {
     ledighet_inskickade: number
     lediga_idag: number
   }
-  fortnox: { senaste_synk: string | null; status: 'ok' | 'aldrig' }
   fakturering: {
     antal_planer: number
     total_planerat: number
@@ -299,16 +297,6 @@ async function fetchPersonal(): Promise<WorkspaceOverview['personal']> {
   }
 }
 
-async function fetchFortnox(): Promise<WorkspaceOverview['fortnox']> {
-  try {
-    const status = await checkFortnoxConnection()
-    const senaste = status.expiresAt ? new Date(status.expiresAt).toISOString() : null
-    return { senaste_synk: senaste, status: status.connected ? 'ok' : 'aldrig' }
-  } catch {
-    return { senaste_synk: null, status: 'aldrig' }
-  }
-}
-
 async function fetchAi(): Promise<WorkspaceOverview['ai']> {
   const [providers, assistenter, workflows, kontext] = await Promise.all([
     supabase.from('ai_providers').select('provider_slug, display_name, aktiv, api_key, sortering').order('sortering', { ascending: true }),
@@ -378,12 +366,12 @@ export function registerWorkspaceHandlers(): void {
   ipcMain.handle('db:workspace:overview', async (): Promise<WorkspaceOverview> => {
     const [
       kunder, projekt, forslag, ordrar, ata, signatur,
-      tidplan, kostnader, epost, kalender, personal, fortnox, fakturering, ai,
+      tidplan, kostnader, epost, kalender, personal, fakturering, ai,
     ] = await Promise.all([
       fetchKunder(), fetchProjekt(), fetchForslag(), fetchOrdrar(), fetchAta(), fetchSignatur(),
       fetchTidplan(), fetchKostnader(), fetchEpost(), fetchKalender(),
-      fetchPersonal(), fetchFortnox(), fetchFakturering(), fetchAi(),
+      fetchPersonal(), fetchFakturering(), fetchAi(),
     ])
-    return { kunder, projekt, forslag, ordrar, ata, signatur, tidplan, kostnader, epost, kalender, personal, fortnox, fakturering, ai }
+    return { kunder, projekt, forslag, ordrar, ata, signatur, tidplan, kostnader, epost, kalender, personal, fakturering, ai }
   })
 }

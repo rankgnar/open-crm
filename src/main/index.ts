@@ -30,7 +30,6 @@ import { registerWorkflowHandlers } from './ipc/workflows'
 import { registerWorkflowNodeHandlers } from './ipc/workflow-nodes'
 import { registerPersonalHandlers } from './ipc/personal'
 import { registerKundUsersHandlers, processKundPortalInviteQueue } from './ipc/kundUsers'
-import { registerFortnoxHandlers } from './ipc/fortnox'
 import { registerSignaturHandlers } from './ipc/signatur'
 import { registerSigneraHandlers } from './ipc/signera'
 import { registerWorkspaceHandlers } from './ipc/workspace'
@@ -323,7 +322,6 @@ app.whenReady().then(() => {
   registerPersonalHandlers()
   registerKundUsersHandlers()
   setInterval(() => { void processKundPortalInviteQueue().catch(() => {}) }, 60_000)
-  registerFortnoxHandlers()
   registerSignaturHandlers()
   registerSigneraHandlers()
   registerWorkspaceHandlers()

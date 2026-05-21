@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { Plus, Trash2, Search, X, Download, Upload, ArrowUp, ArrowDown, ArrowUpDown, ChevronDown, ChevronUp } from 'lucide-react'
 import type { Leverantor } from '@/sections/installningar/types'
-import { FORTNOX_LEVERANTORER } from '@/utils/fortnoxHeaders'
+import { LEVERANTORER_HEADERS } from '@/utils/csvHeaders'
 import { parseCsv, type ParsedRow } from '@/utils/csvParsers'
 import { useRefreshHandler } from '@/context/RefreshContext'
 import { useChangeListener } from '@/hooks/useChangeListener'
@@ -169,7 +169,7 @@ export function LeverantorSection() {
     reader.onload = (ev) => {
       try {
         const text = ev.target?.result as string
-        const parsed = parseCsv(text, FORTNOX_LEVERANTORER)
+        const parsed = parseCsv(text, LEVERANTORER_HEADERS)
         if (parsed.length === 0) { setCsvError('Filen är tom eller saknar data.'); return }
         if (!Object.keys(parsed[0]).includes('namn')) { setCsvError('Kolumnen "namn" saknas.'); return }
         setRows(parsed); setPhase('preview')

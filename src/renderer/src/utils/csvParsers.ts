@@ -1,7 +1,7 @@
 export type ParsedRow = Record<string, string>
 
 // Parses a CSV/semicolon-separated text file.
-// Optional headerMap remaps column names (Fortnox compatibility); empty string = skip column.
+// Optional headerMap remaps column names; empty string = skip column.
 export function parseCsv(text: string, headerMap?: Record<string, string>): ParsedRow[] {
   const t = text.charCodeAt(0) === 0xFEFF ? text.slice(1) : text
   const lines = t.split(/\r?\n/).filter(l => l.trim())

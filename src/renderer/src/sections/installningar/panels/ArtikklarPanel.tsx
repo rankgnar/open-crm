@@ -158,7 +158,7 @@ export function ArtikklarPanel() {
       </div>
 
       {artiklar.length === 0 ? (
-        <p className="text-sm text-muted">Inga artiklar ännu. Artiklar används i fakturarader och synkas med Fortnox.</p>
+        <p className="text-sm text-muted">Inga artiklar ännu. Artiklar används i fakturarader.</p>
       ) : (
         <div className="overflow-auto">
           <table className="w-full text-xs">

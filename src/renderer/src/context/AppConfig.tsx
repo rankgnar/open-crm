@@ -28,11 +28,6 @@ export function AppConfigProvider({ children }: { children: ReactNode }) {
     fetchConfig()
   }, [fetchConfig])
 
-  useEffect(() => {
-    window.api.on('fortnox:auth:success', fetchConfig)
-    return () => window.api.off('fortnox:auth:success', fetchConfig)
-  }, [fetchConfig])
-
   const updateConfig = useCallback(async (partial: Partial<AppInstallningar>) => {
     const updated = await window.api.invoke('db:installningar:update', partial) as AppInstallningar
     setConfig(updated)

@@ -321,23 +321,6 @@ export function PersonalTile({ data, onNavigate, index }: { data: WorkspaceOverv
   )
 }
 
-export function FortnoxTile({ data, onNavigate, index }: { data: WorkspaceOverview['fortnox'] } & NavProps & { index: number }) {
-  const ok = data.status === 'ok'
-  return (
-    <Tile title="Fortnox" onClick={() => onNavigate('fortnox')} index={index} className="col-span-3 row-span-1">
-      <div className="flex items-center gap-2">
-        <span className={`w-1.5 h-1.5 rounded-full ${ok ? 'bg-emerald-400' : 'bg-amber-400'}`} />
-        <span className="text-sm font-medium text-fg">{ok ? 'Synkad' : 'Aldrig synkad'}</span>
-      </div>
-      {data.senaste_synk && (
-        <div className="text-[11px] text-muted mt-1 font-mono">
-          {new Date(data.senaste_synk).toLocaleString('sv-SE', { dateStyle: 'short', timeStyle: 'short' })}
-        </div>
-      )}
-    </Tile>
-  )
-}
-
 export function FaktureringTile({ data, onNavigate, index }: { data: WorkspaceOverview['fakturering'] } & NavProps & { index: number }) {
   return (
     <Tile title="Fakturering" onClick={() => onNavigate('fakturering')} index={index} className="col-span-2 row-span-1">

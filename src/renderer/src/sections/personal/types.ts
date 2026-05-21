@@ -37,7 +37,6 @@ export const ANTECKNING_FARG_DOT: Record<AnteckningFarg, string> = {
 export interface Personal {
   id: string
   personal_nummer: string
-  fortnox_id: string | null
   namn: string
   personnummer: string | null
   roll: string | null
@@ -65,7 +64,6 @@ export interface Personal {
 
 export interface CreatePersonalInput {
   personal_nummer?: string
-  fortnox_id?: string
   namn: string
   personnummer?: string
   roll?: string
@@ -90,7 +88,6 @@ export interface CreatePersonalInput {
 
 export interface UpdatePersonalInput {
   personal_nummer?: string | null
-  fortnox_id?: string | null
   namn?: string
   personnummer?: string | null
   roll?: string | null

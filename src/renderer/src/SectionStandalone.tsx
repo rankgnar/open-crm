@@ -13,7 +13,6 @@ import { ATASection } from '@/sections/ata/ATASection'
 import { SigneraSection } from '@/sections/signera/SigneraSection'
 import { EpostSection } from '@/sections/epost/EpostSection'
 import { KalenderSection } from '@/sections/kalender/KalenderSection'
-import { FortnoxSection } from '@/sections/fortnox/FortnoxSection'
 import { PersonalSection } from '@/sections/personal/PersonalSection'
 import { ChatSection } from '@/sections/chat/ChatSection'
 import { LeverantorSection } from '@/sections/leverantor/LeverantorSection'
@@ -38,7 +37,6 @@ const SECTION_COMPONENTS: Record<string, Entry> = {
   ekonomi:     { Component: EkonomiSection,     wrap: 'none' },
   fakturering: { Component: FaktureringSection, wrap: 'none' },
   kvitto:      { Component: KvittoSection,      wrap: 'none' },
-  fortnox:     { Component: FortnoxSection,     wrap: 'none' },
   epost:       { Component: EpostSection,       wrap: 'none' },
   chat:        { Component: ChatSection,        wrap: 'none' },
   signera:     { Component: SigneraSection,     wrap: 'none' },

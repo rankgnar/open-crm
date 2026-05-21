@@ -1,7 +1,6 @@
 import { useState } from 'react'
 import { Zap, Globe, Mail, Sparkles, Cpu, GitBranch, Database, Workflow, HardDrive, Clock, Boxes, SquareArrowOutUpRight, type LucideIcon } from 'lucide-react'
 import type { AvanceratPanel } from '@/sections/installningar/types'
-import { FortnoxPanel } from '@/sections/installningar/panels/FortnoxPanel'
 import { GooglePanel } from '@/sections/installningar/panels/GooglePanel'
 import { ZohoPanel } from '@/sections/installningar/panels/ZohoPanel'
 import { AiLeverantorPanel } from '@/sections/installningar/panels/AiLeverantorPanel'
@@ -31,7 +30,6 @@ const NAV_GROUPS: NavGroup[] = [
     label: 'Integrationer',
     items: [
       { id: 'databas', label: 'DataBase', icon: Database },
-      { id: 'fortnox', label: 'Fortnox', icon: Zap },
       { id: 'google', label: 'Google', icon: Globe },
       { id: 'zoho', label: 'Zoho', icon: Mail },
     ],
@@ -73,7 +71,6 @@ const NAV_GROUPS: NavGroup[] = [
 
 const PANEL_TITLES: Record<AvanceratPanel, string> = {
   databas: 'DataBase & Anslutning',
-  fortnox: 'Fortnox',
   google: 'Google Workspace',
   zoho: 'Zoho',
   aktivitetslogg: 'Aktivitetslogg',
@@ -89,7 +86,6 @@ const PANEL_TITLES: Record<AvanceratPanel, string> = {
 function renderPanel(panel: AvanceratPanel) {
   switch (panel) {
     case 'databas': return <DatabaSPanel />
-    case 'fortnox': return <FortnoxPanel />
     case 'google': return <GooglePanel />
     case 'zoho': return <ZohoPanel />
     case 'aktivitetslogg': return <AktivitetsloggPanel />

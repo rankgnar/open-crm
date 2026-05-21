@@ -25,7 +25,6 @@ export interface WorkspaceOverview {
     ledighet_inskickade: number
     lediga_idag: number
   }
-  fortnox: { senaste_synk: string | null; status: 'ok' | 'aldrig' }
   fakturering: {
     antal_planer: number
     total_planerat: number
@@ -43,4 +42,4 @@ export interface WorkspaceOverview {
 export type WorkspaceTarget =
   | 'kunder' | 'projekt' | 'forslag' | 'order' | 'ata' | 'signera'
   | 'tidplan' | 'ekonomi' | 'epost' | 'kalender'
-  | 'personal' | 'fortnox' | 'fakturering' | 'avancerat'
+  | 'personal' | 'fakturering' | 'avancerat'

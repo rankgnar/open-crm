@@ -63,7 +63,6 @@ const CHANNELS = [
 
 interface CreatePersonalInput {
   personal_nummer?: string
-  fortnox_id?: string
   namn: string
   personnummer?: string
   roll?: string
@@ -182,7 +181,6 @@ export function registerPersonalHandlers(): void {
     broadcastChange('personal')
   })
 
-  // CSV import from Fortnox personalregister
   ipcMain.handle('db:personal:import-csv', async (_, filePath: string) => {
     const result = { importados: 0, omitidos: 0, errores: [] as string[] }
 
@@ -190,14 +188,11 @@ export function registerPersonalHandlers(): void {
     const lines = raw.split('\n').filter(l => l.trim())
     if (lines.length < 2) return result
 
-    // Parse CSV header
     const headers = parseCSVLine(lines[0])
 
-    // Pre-load existing fortnox_ids and personnummer for duplicate detection
     const { data: existing } = await supabase
       .from('personal')
-      .select('fortnox_id, personnummer')
-    const existingFortnoxIds = new Set((existing ?? []).map(r => r.fortnox_id).filter(Boolean))
+      .select('personnummer')
     const existingPersNr = new Set((existing ?? []).map(r => r.personnummer).filter(Boolean))
 
     for (let i = 1; i < lines.length; i++) {
@@ -207,14 +202,8 @@ export function registerPersonalHandlers(): void {
       const row: Record<string, string> = {}
       headers.forEach((h, idx) => { row[h] = cols[idx] ?? '' })
 
-      const fortnox_id = row['Anställnings-ID']?.trim() || null
       const personnummer = row['Personnummer']?.trim() || null
 
-      // Skip duplicates
-      if (fortnox_id && existingFortnoxIds.has(fortnox_id)) {
-        result.omitidos++
-        continue
-      }
       if (personnummer && existingPersNr.has(personnummer)) {
         result.omitidos++
         continue
@@ -246,7 +235,6 @@ export function registerPersonalHandlers(): void {
         namn,
         status,
       }
-      if (fortnox_id) record['fortnox_id'] = fortnox_id
       if (personnummer) record['personnummer'] = personnummer
       if (row['Befattning']?.trim()) record['roll'] = row['Befattning'].trim()
       if (row['Personaltyp']?.trim()) record['personaltyp'] = row['Personaltyp'].trim()
@@ -268,7 +256,6 @@ export function registerPersonalHandlers(): void {
         result.errores.push(`Rad ${i} (${namn}): ${error.message}`)
       } else {
         result.importados++
-        if (fortnox_id) existingFortnoxIds.add(fortnox_id)
         if (personnummer) existingPersNr.add(personnummer)
       }
     }

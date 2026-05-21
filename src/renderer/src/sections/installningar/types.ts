@@ -47,11 +47,6 @@ export interface AppInstallningar {
   timmar_per_dag: number
   arbetsdagar_per_vecka: number
   // Integrations
-  fortnox_client_id: string
-  fortnox_client_secret: string
-  fortnox_access_token: string
-  fortnox_refresh_token: string
-  fortnox_token_expires_at: number | null
   google_client_id: string
   google_client_secret: string
   google_access_token: string
@@ -222,7 +217,6 @@ export type InstallningarPanel =
 
 export type AvanceratPanel =
   | 'databas'
-  | 'fortnox'
   | 'google'
   | 'zoho'
   | 'aktivitetslogg'
