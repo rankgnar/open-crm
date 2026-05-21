@@ -3,8 +3,8 @@ import { RefreshButton } from '@/components/RefreshButton'
 import { KundPopover } from '@/components/KundPopover'
 import { useRef, useState, useEffect } from 'react'
 import type { ForslagWithProjekt, ForslagStatusar, SignaturSummary, ForslagSmsLog } from './types'
-import type { ProjektStatusar, ProjektAnteckning, AnteckningFarg } from '@/sections/projekt/types'
-import { FARG_DOT as PROJEKT_FARG_DOT, FARG_TEXT as PROJEKT_FARG_TEXT, ANTECKNING_FARG_DOT } from '@/sections/projekt/types'
+import type { ProjektAnteckning, AnteckningFarg } from '@/sections/projekt/types'
+import { ANTECKNING_FARG_DOT } from '@/sections/projekt/types'
 
 const FARG_DOT: Record<string, string> = {
   emerald: 'bg-emerald-400', blue: 'bg-blue-400', amber: 'bg-amber-400', red: 'bg-red-400', muted: 'bg-muted',
@@ -16,7 +16,6 @@ const FARG_TEXT: Record<string, string> = {
 interface Props {
   forslag: ForslagWithProjekt[]
   statusar: ForslagStatusar[]
-  projektStatusar: ProjektStatusar[]
   signingEvents: Record<string, SignaturSummary>
   smsForslag: Set<string>
   onSelect: (f: ForslagWithProjekt) => void
@@ -26,7 +25,6 @@ interface Props {
   onStatusChange: (id: string, status: string) => Promise<void>
   onDeleteMany: (ids: string[]) => Promise<void>
   onClickProjekt?: (projektId: string) => void
-  onProjektStatusChange?: (projektId: string, status: string) => Promise<void>
 }
 
 function StatusPicker({ forslag, statusar, onStatusChange }: { forslag: ForslagWithProjekt; statusar: ForslagStatusar[]; onStatusChange: (id: string, status: string) => Promise<void> }) {
@@ -129,111 +127,6 @@ function PaminnelseCell({ historik }: { historik: { at: string }[] | undefined }
   )
 }
 
-function ProjektStatusPicker({ projektId, current, statusar, onChange }: { projektId: string; current: string; statusar: ProjektStatusar[]; onChange: (projektId: string, status: string) => Promise<void> }) {
-  const [open, setOpen] = useState(false)
-  const ref = useRef<HTMLDivElement>(null)
-  const currentStatus = statusar.find((s) => s.namn === current)
-
-  async function handleSelect(e: React.MouseEvent, namn: string) {
-    e.stopPropagation()
-    setOpen(false)
-    if (namn !== current) await onChange(projektId, namn)
-  }
-
-  return (
-    <div ref={ref} className="relative inline-block">
-      <button
-        onClick={(e) => { e.stopPropagation(); setOpen((v) => !v) }}
-        onBlur={(e) => { if (!ref.current?.contains(e.relatedTarget as Node)) setOpen(false) }}
-        className="inline-flex items-center gap-1.5 text-xs rounded px-1.5 py-0.5 hover:bg-hover transition-colors"
-      >
-        <span className={`size-1.5 rounded-full shrink-0 ${PROJEKT_FARG_DOT[currentStatus?.farg as keyof typeof PROJEKT_FARG_DOT] ?? 'bg-muted'}`} />
-        <span className={PROJEKT_FARG_TEXT[currentStatus?.farg as keyof typeof PROJEKT_FARG_TEXT] ?? 'text-muted'}>{current}</span>
-      </button>
-      {open && (
-        <div className="absolute left-0 top-full mt-1 z-20 min-w-[140px] bg-elevated border border-border rounded-lg shadow-lg py-1 flex flex-col">
-          {statusar.map((s) => (
-            <button
-              key={s.id}
-              onMouseDown={(e) => handleSelect(e, s.namn)}
-              className={`flex items-center gap-2 px-3 py-1.5 text-xs hover:bg-hover transition-colors text-left ${s.namn === current ? 'opacity-40 cursor-default' : ''}`}
-            >
-              <span className={`size-1.5 rounded-full ${PROJEKT_FARG_DOT[s.farg as keyof typeof PROJEKT_FARG_DOT] ?? 'bg-muted'}`} />
-              <span className={PROJEKT_FARG_TEXT[s.farg as keyof typeof PROJEKT_FARG_TEXT] ?? 'text-muted'}>{s.namn}</span>
-            </button>
-          ))}
-        </div>
-      )}
-    </div>
-  )
-}
-
-function ProjektStatusFilter({ value, onChange, statusar }: { value: string[]; onChange: (v: string[]) => void; statusar: ProjektStatusar[] }) {
-  const [open, setOpen] = useState(false)
-  const ref = useRef<HTMLDivElement>(null)
-
-  useEffect(() => {
-    if (!open) return
-    const handler = (e: MouseEvent) => {
-      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false)
-    }
-    document.addEventListener('mousedown', handler)
-    return () => document.removeEventListener('mousedown', handler)
-  }, [open])
-
-  function toggle(namn: string) {
-    const next = value.includes(namn) ? value.filter((v) => v !== namn) : [...value, namn]
-    onChange(next)
-  }
-
-  const label = value.length === 0 ? 'Projektstatus' : value.length === 1 ? value[0] : `${value.length} statusar`
-  const hasSelection = value.length > 0
-
-  return (
-    <div ref={ref} className="relative w-40 shrink-0">
-      <button
-        type="button"
-        onClick={() => setOpen((v) => !v)}
-        className="w-full flex items-center justify-between gap-2 bg-elevated border border-border rounded-lg px-3 py-2 text-xs outline-none hover:border-fg/30 transition-colors"
-      >
-        <span className={`truncate ${hasSelection ? 'text-fg' : 'text-subtle'}`}>{label}</span>
-        <ChevronDown size={11} className="text-muted shrink-0" />
-      </button>
-      {open && (
-        <div className="absolute left-0 right-0 top-full mt-1 z-50 bg-elevated border border-border rounded-lg shadow-xl flex flex-col overflow-hidden">
-          <div className="max-h-64 overflow-auto py-1">
-            {hasSelection && (
-              <button
-                type="button"
-                onClick={() => { onChange([]); setOpen(false) }}
-                className="w-full text-left px-3 py-2 text-xs text-subtle hover:bg-hover transition-colors"
-              >
-                — Alla —
-              </button>
-            )}
-            {statusar.map((s) => {
-              const checked = value.includes(s.namn)
-              return (
-                <button
-                  key={s.id}
-                  type="button"
-                  onClick={() => toggle(s.namn)}
-                  className={`w-full flex items-center gap-2 text-left px-3 py-2 text-xs hover:bg-hover transition-colors ${checked ? 'text-fg font-medium' : 'text-muted'}`}
-                >
-                  <span className={`w-3.5 h-3.5 rounded border shrink-0 flex items-center justify-center transition-colors ${checked ? 'bg-emerald-500 border-emerald-500' : 'border-border bg-bg'}`}>
-                    {checked && <Check size={9} className="text-white" />}
-                  </span>
-                  <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${PROJEKT_FARG_DOT[s.farg as keyof typeof PROJEKT_FARG_DOT] ?? 'bg-muted'}`} />
-                  <span className="truncate">{s.namn}</span>
-                </button>
-              )
-            })}
-          </div>
-        </div>
-      )}
-    </div>
-  )
-}
 
 function StatusSelect({ value, onChange, statusar }: { value: string[]; onChange: (v: string[]) => void; statusar: ForslagStatusar[] }) {
   const [open, setOpen] = useState(false)
@@ -302,7 +195,7 @@ function StatusSelect({ value, onChange, statusar }: { value: string[]; onChange
   )
 }
 
-export function ForslagTable({ forslag, statusar, projektStatusar, signingEvents, smsForslag, onSelect, onNew, onDuplicate, onImportCsv, onStatusChange, onDeleteMany, onClickProjekt, onProjektStatusChange }: Props) {
+export function ForslagTable({ forslag, statusar, signingEvents, smsForslag, onSelect, onNew, onDuplicate, onImportCsv, onStatusChange, onDeleteMany, onClickProjekt }: Props) {
   const [anteckModal, setAnteckModal] = useState<{ projektId: string; projektNamn: string; kundNamn: string } | null>(null)
   const [anteckningar, setAnteckningar] = useState<ProjektAnteckning[]>([])
   const [anteckLoading, setAnteckLoading] = useState(false)
@@ -329,16 +222,6 @@ export function ForslagTable({ forslag, statusar, projektStatusar, signingEvents
     localStorage.setItem('forslag-status-filter', JSON.stringify(statusFilter))
   }, [statusFilter])
 
-  const [projektFilter, setProjektFilter] = useState<string[]>(() => {
-    try {
-      const saved = localStorage.getItem('forslag-projektstatus-filter')
-      return saved ? (JSON.parse(saved) as string[]) : []
-    } catch { return [] }
-  })
-  useEffect(() => {
-    localStorage.setItem('forslag-projektstatus-filter', JSON.stringify(projektFilter))
-  }, [projektFilter])
-
   function handleSort(col: string) {
     if (sortCol === col) {
       const next = sortDir === 'asc' ? 'desc' : 'asc'
@@ -352,19 +235,18 @@ export function ForslagTable({ forslag, statusar, projektStatusar, signingEvents
     }
   }
 
-  const filteredByProjekt = projektFilter.length > 0 ? forslag.filter((f) => projektFilter.includes(f.projekt.status)) : forslag
-  const filtered = statusFilter.length > 0 ? filteredByProjekt.filter((f) => statusFilter.includes(f.status)) : filteredByProjekt
+  const filtered = statusFilter.length > 0 ? forslag.filter((f) => statusFilter.includes(f.status)) : forslag
 
   const allSelected = filtered.length > 0 && filtered.every((f) => selected.has(f.id))
 
   const sorted = sortCol ? [...filtered].sort((a, b) => {
     const vals: Record<string, string | null> = {
       forslag_nummer: a.forslag_nummer, kund: a.projekt.kunder.namn, projekt: a.projekt.namn,
-      projektstatus: a.projekt.status, status: a.status, giltig_till: a.giltig_till, skapad_at: a.skapad_at,
+      status: a.status, giltig_till: a.giltig_till, skapad_at: a.skapad_at,
     }
     const bvals: Record<string, string | null> = {
       forslag_nummer: b.forslag_nummer, kund: b.projekt.kunder.namn, projekt: b.projekt.namn,
-      projektstatus: b.projekt.status, status: b.status, giltig_till: b.giltig_till, skapad_at: b.skapad_at,
+      status: b.status, giltig_till: b.giltig_till, skapad_at: b.skapad_at,
     }
     const av = String(vals[sortCol] ?? ''), bv = String(bvals[sortCol] ?? '')
     const cmp = av.localeCompare(bv, 'sv')
@@ -404,7 +286,6 @@ export function ForslagTable({ forslag, statusar, projektStatusar, signingEvents
           </span>
         </div>
         <div className="flex items-center gap-2">
-          <ProjektStatusFilter value={projektFilter} onChange={setProjektFilter} statusar={projektStatusar} />
           <StatusSelect value={statusFilter} onChange={setStatusFilter} statusar={statusar} />
           <RefreshButton iconOnly />
           {onDuplicate && (
@@ -492,16 +373,6 @@ export function ForslagTable({ forslag, statusar, projektStatusar, signingEvents
                     </div>
                   </th>
                 ))}
-                <th onClick={() => handleSort('projektstatus')}
-                  className="px-4 py-2.5 text-[11px] font-medium uppercase tracking-wider text-muted cursor-pointer select-none hover:text-fg transition-colors group/th">
-                  <div className="flex items-center gap-1">
-                    Projektstatus
-                    {sortCol === 'projektstatus'
-                      ? sortDir === 'asc' ? <ArrowUp size={10} className="text-fg shrink-0" /> : <ArrowDown size={10} className="text-fg shrink-0" />
-                      : <ArrowUpDown size={10} className="shrink-0 opacity-0 group-hover/th:opacity-40 transition-opacity" />
-                    }
-                  </div>
-                </th>
                 <th className="px-4 py-2.5 text-[11px] font-medium uppercase tracking-wider text-muted select-none">Signering</th>
                 <th className="px-4 py-2.5 text-[11px] font-medium uppercase tracking-wider text-muted select-none">Påminnelse</th>
                 {([
@@ -566,27 +437,6 @@ export function ForslagTable({ forslag, statusar, projektStatusar, signingEvents
                       </button>
                     ) : (
                       <span className="ml-2 text-fg">{f.projekt.namn}</span>
-                    )}
-                  </td>
-                  <td className="px-4 py-3 whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
-                    {onProjektStatusChange ? (
-                      <ProjektStatusPicker
-                        projektId={f.projekt_id}
-                        current={f.projekt.status}
-                        statusar={projektStatusar}
-                        onChange={onProjektStatusChange}
-                      />
-                    ) : (
-                      (() => {
-                        const ps = projektStatusar.find((s) => s.namn === f.projekt.status)
-                        const farg = ps?.farg ?? 'muted'
-                        return (
-                          <div className="inline-flex items-center gap-1.5">
-                            <span className={`size-1.5 rounded-full shrink-0 ${PROJEKT_FARG_DOT[farg] ?? 'bg-muted'}`} />
-                            <span className={`text-xs ${PROJEKT_FARG_TEXT[farg] ?? 'text-muted'}`}>{f.projekt.status}</span>
-                          </div>
-                        )
-                      })()
                     )}
                   </td>
                   <td className="px-4 py-3"><SigneringLog summary={signingEvents[f.id]} /></td>

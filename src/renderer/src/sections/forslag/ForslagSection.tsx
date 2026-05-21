@@ -8,7 +8,7 @@ import { DuplikatForslagModal } from './DuplikatForslagModal'
 import { ForslagForm } from './ForslagForm'
 import { ForslagDetail } from './ForslagDetail'
 import type { ForslagWithProjekt, CreateForslagInput, ForslagStatusar, SignaturSummary } from './types'
-import type { ProjektWithKund, ProjektStatusar } from '@/sections/projekt/types'
+import type { ProjektWithKund } from '@/sections/projekt/types'
 
 type View = 'list' | 'create' | 'detail'
 
@@ -26,7 +26,6 @@ export function ForslagSection({ initialProjektId, onNavigateProjekt, initialFor
   const [forslag, setForslag] = useState<ForslagWithProjekt[]>([])
   const [allProjekt, setAllProjekt] = useState<ProjektWithKund[]>([])
   const [statusar, setStatusar] = useState<ForslagStatusar[]>([])
-  const [projektStatusar, setProjektStatusar] = useState<ProjektStatusar[]>([])
   const [signingEvents, setSigningEvents] = useState<Record<string, SignaturSummary>>({})
   const [smsForslag, setSmsForslag] = useState<Set<string>>(new Set())
   const [loading, setLoading] = useState(true)
@@ -43,18 +42,16 @@ export function ForslagSection({ initialProjektId, onNavigateProjekt, initialFor
 
   const loadData = useCallback(async () => {
     try {
-      const [forslagData, projektData, statusData, projektStatusData, signingData, smsIds] = await Promise.all([
+      const [forslagData, projektData, statusData, signingData, smsIds] = await Promise.all([
         window.api.invoke('db:forslag:list') as Promise<ForslagWithProjekt[]>,
         window.api.invoke('db:projekt:list') as Promise<ProjektWithKund[]>,
         window.api.invoke('db:forslag-statusar:list') as Promise<ForslagStatusar[]>,
-        window.api.invoke('db:projekt-statusar:list') as Promise<ProjektStatusar[]>,
         window.api.invoke('db:signatur-lank:forslag-events') as Promise<Record<string, SignaturSummary>>,
         window.api.invoke('db:forslag-sms-log:forslag-ids') as Promise<string[]>,
       ])
       setForslag(forslagData)
       setAllProjekt(projektData)
       setStatusar(statusData)
-      setProjektStatusar(projektStatusData)
       setSigningEvents(signingData)
       setSmsForslag(new Set(smsIds))
     } catch (err) {
@@ -201,11 +198,6 @@ export function ForslagSection({ initialProjektId, onNavigateProjekt, initialFor
     }
   }
 
-  async function handleProjektStatusChange(projektId: string, status: string) {
-    await window.api.invoke('db:projekt:update', projektId, { status })
-    setForslag((prev) => prev.map((f) => f.projekt_id === projektId ? { ...f, projekt: { ...f.projekt, status } } : f))
-  }
-
   async function handleDeleteMany(ids: string[]) {
     if (ids.length === 0) return
     await window.api.invoke('db:forslag:delete-many', ids)
@@ -327,7 +319,6 @@ export function ForslagSection({ initialProjektId, onNavigateProjekt, initialFor
       <ForslagTable
         forslag={visibleForslag}
         statusar={statusar}
-        projektStatusar={projektStatusar}
         signingEvents={signingEvents}
         smsForslag={smsForslag}
         onSelect={(f) => { setSelectedForslag(f); setView('detail') }}
@@ -337,7 +328,6 @@ export function ForslagSection({ initialProjektId, onNavigateProjekt, initialFor
         onStatusChange={handleStatusChange}
         onDeleteMany={handleDeleteMany}
         onClickProjekt={(id) => setProjektModalId(id)}
-        onProjektStatusChange={handleProjektStatusChange}
       />
       {projektModalId && (
         <ProjektInfoModal projektId={projektModalId} onClose={() => setProjektModalId(null)} />
