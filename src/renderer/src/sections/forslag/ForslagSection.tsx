@@ -209,6 +209,12 @@ export function ForslagSection({ initialProjektId, onNavigateProjekt, initialFor
     }
   }
 
+  async function handleBulkReminder(lankIds: string[]) {
+    await Promise.allSettled(
+      lankIds.map((id) => window.api.invoke('db:signatur-lank:resend', id, { reminder: true }))
+    )
+  }
+
   if (loading) {
     return (
       <div className="flex h-full items-center justify-center">
@@ -327,6 +333,7 @@ export function ForslagSection({ initialProjektId, onNavigateProjekt, initialFor
         onImportCsv={() => csvFileRef.current?.click()}
         onStatusChange={handleStatusChange}
         onDeleteMany={handleDeleteMany}
+        onBulkReminder={handleBulkReminder}
         onClickProjekt={(id) => setProjektModalId(id)}
       />
       {projektModalId && (

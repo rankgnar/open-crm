@@ -1,6 +1,7 @@
 export type ForslagStatus = string
 
 export interface SignaturSummary {
+  id: string
   skapad_at: string
   oppnad_at: string | null
   last_oppnad_at: string | null

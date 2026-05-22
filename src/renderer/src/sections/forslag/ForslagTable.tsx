@@ -24,6 +24,7 @@ interface Props {
   onImportCsv?: () => void
   onStatusChange: (id: string, status: string) => Promise<void>
   onDeleteMany: (ids: string[]) => Promise<void>
+  onBulkReminder: (lankIds: string[]) => Promise<void>
   onClickProjekt?: (projektId: string) => void
 }
 
@@ -195,7 +196,7 @@ function StatusSelect({ value, onChange, statusar }: { value: string[]; onChange
   )
 }
 
-export function ForslagTable({ forslag, statusar, signingEvents, smsForslag, onSelect, onNew, onDuplicate, onImportCsv, onStatusChange, onDeleteMany, onClickProjekt }: Props) {
+export function ForslagTable({ forslag, statusar, signingEvents, smsForslag, onSelect, onNew, onDuplicate, onImportCsv, onStatusChange, onDeleteMany, onBulkReminder, onClickProjekt }: Props) {
   const [anteckModal, setAnteckModal] = useState<{ projektId: string; projektNamn: string; kundNamn: string } | null>(null)
   const [anteckningar, setAnteckningar] = useState<ProjektAnteckning[]>([])
   const [anteckLoading, setAnteckLoading] = useState(false)
@@ -206,6 +207,8 @@ export function ForslagTable({ forslag, statusar, signingEvents, smsForslag, onS
   const [selected, setSelected] = useState<Set<string>>(new Set())
   const [confirmBulk, setConfirmBulk] = useState(false)
   const [deletingBulk, setDeletingBulk] = useState(false)
+  const [sendingReminder, setSendingReminder] = useState(false)
+  const [reminderResult, setReminderResult] = useState<{ sent: number; skipped: number } | null>(null)
   const [smsModal, setSmsModal] = useState<{ forslagId: string; nummer: string } | null>(null)
   const [smsModalLog, setSmsModalLog] = useState<ForslagSmsLog[]>([])
   const [smsModalLoading, setSmsModalLoading] = useState(false)
@@ -276,6 +279,22 @@ export function ForslagTable({ forslag, statusar, signingEvents, smsForslag, onS
     }
   }
 
+  async function handleBulkReminder() {
+    const lankIds = [...selected]
+      .map((id) => signingEvents[id])
+      .filter((ev): ev is SignaturSummary => !!ev && !ev.signerad_at && !ev.revoked_at)
+      .map((ev) => ev.id)
+    const skipped = selected.size - lankIds.length
+    setReminderResult(null)
+    setSendingReminder(true)
+    try {
+      if (lankIds.length > 0) await onBulkReminder(lankIds)
+      setReminderResult({ sent: lankIds.length, skipped })
+    } finally {
+      setSendingReminder(false)
+    }
+  }
+
   return (
     <div className="flex flex-col h-full">
       <div className="flex items-center justify-between px-6 py-4 border-b border-border">
@@ -325,11 +344,26 @@ export function ForslagTable({ forslag, statusar, signingEvents, smsForslag, onS
               <button onClick={() => setConfirmBulk(false)} className="text-xs text-muted hover:text-fg transition-colors">Avbryt</button>
             </>
           ) : (
-            <button onClick={() => setConfirmBulk(true)} className="flex items-center gap-1.5 text-xs text-red-400 hover:text-red-300 transition-colors">
-              <Trash2 size={12} /> Radera markerade
-            </button>
+            <>
+              <button
+                onClick={handleBulkReminder}
+                disabled={sendingReminder}
+                className="flex items-center gap-1.5 text-xs text-blue-400 hover:text-blue-300 disabled:opacity-40 transition-colors"
+              >
+                <Bell size={12} /> {sendingReminder ? 'Skickar…' : 'Skicka påminelse'}
+              </button>
+              {reminderResult && (
+                <span className="text-xs text-muted">
+                  {reminderResult.sent > 0 ? `${reminderResult.sent} skickade` : 'Inga skickade'}
+                  {reminderResult.skipped > 0 ? ` · ${reminderResult.skipped} utan länk` : ''}
+                </span>
+              )}
+              <button onClick={() => { setConfirmBulk(true); setReminderResult(null) }} className="flex items-center gap-1.5 text-xs text-red-400 hover:text-red-300 transition-colors">
+                <Trash2 size={12} /> Radera markerade
+              </button>
+            </>
           )}
-          <button onClick={() => { setSelected(new Set()); setConfirmBulk(false) }} className="ml-auto text-xs text-muted hover:text-fg transition-colors">
+          <button onClick={() => { setSelected(new Set()); setConfirmBulk(false); setReminderResult(null) }} className="ml-auto text-xs text-muted hover:text-fg transition-colors">
             Avmarkera alla
           </button>
         </div>

@@ -627,12 +627,13 @@ export function registerSignaturHandlers(): void {
   ipcMain.handle('db:signatur-lank:forslag-events', async () => {
     const { data, error } = await supabase
       .from('signatur_lankar')
-      .select('dokument_id, skapad_at, oppnad_at, last_oppnad_at, signerad_at, signerad_namn, revoked_at, view_count, paminnelse_historik')
+      .select('id, dokument_id, skapad_at, oppnad_at, last_oppnad_at, signerad_at, signerad_namn, revoked_at, view_count, paminnelse_historik')
       .eq('dokument_typ', 'forslag')
       .order('skapad_at', { ascending: false })
     if (error) throw new Error(error.message)
 
     type Row = {
+      id: string
       dokument_id: string
       skapad_at: string
       oppnad_at: string | null
