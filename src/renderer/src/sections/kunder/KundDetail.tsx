@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { ArrowLeft, Pencil, Trash2, Send, KeyRound, X, ChevronDown, ChevronUp, Plus } from 'lucide-react'
 import { KundForm } from './KundForm'
 import { WorkflowTriggerBar } from '@/components/WorkflowTriggerBar'
-import type { Kund, CreateKundInput, KundStatusar, KundAvslutsfeedback, AvslutFragaFalt, FragaTyp } from './types'
+import type { Kund, CreateKundInput, KundAvslutsfeedback, AvslutFragaFalt, FragaTyp } from './types'
 
 interface KundUserRow {
   id: string
@@ -14,23 +14,14 @@ interface KundUserRow {
   skapad_at: string
 }
 
-const FARG_DOT: Record<string, string> = {
-  emerald: 'bg-emerald-400',
-  blue:    'bg-blue-400',
-  amber:   'bg-amber-400',
-  red:     'bg-red-400',
-  muted:   'bg-muted',
-}
-
 interface Props {
   kund: Kund
-  statusar: KundStatusar[]
   onBack: () => void
   onEdit: (data: CreateKundInput) => Promise<void>
   onDelete: () => Promise<void>
 }
 
-export function KundDetail({ kund, statusar, onBack, onEdit, onDelete }: Props) {
+export function KundDetail({ kund, onBack, onEdit, onDelete }: Props) {
   const [editing, setEditing] = useState(false)
   const [confirmDelete, setConfirmDelete] = useState(false)
   const [deleting, setDeleting] = useState(false)
@@ -50,8 +41,6 @@ export function KundDetail({ kund, statusar, onBack, onEdit, onDelete }: Props) 
   const [expandedQ, setExpandedQ] = useState<string | null>(null)
   const [sendingManual, setSendingManual] = useState(false)
   const [manualMsg, setManualMsg] = useState<{ kind: 'ok' | 'err'; text: string } | null>(null)
-
-  const currentStatus = statusar.find((s) => s.namn === kund.status)
 
   useEffect(() => {
     let cancelled = false
@@ -158,7 +147,6 @@ export function KundDetail({ kund, statusar, onBack, onEdit, onDelete }: Props) 
     return (
       <KundForm
         initial={kund}
-        statusar={statusar}
         onSubmit={async (data) => {
           await onEdit(data as CreateKundInput)
           setEditing(false)
@@ -187,10 +175,6 @@ export function KundDetail({ kund, statusar, onBack, onEdit, onDelete }: Props) 
           </button>
           <span className="text-subtle">/</span>
           <span className="text-sm text-fg font-medium uppercase">{kund.namn}</span>
-          <span className="inline-flex items-center gap-1.5 text-xs px-2 py-0.5 rounded-full border border-border bg-elevated">
-            <span className={`size-1.5 rounded-full ${FARG_DOT[currentStatus?.farg ?? 'muted']}`} />
-            {kund.status}
-          </span>
         </div>
         <div className="flex items-center gap-2">
           {inviteFeedback ? (

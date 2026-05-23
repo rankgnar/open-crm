@@ -1,22 +1,3 @@
-export type KundStatus = string
-
-export interface KundStatusar {
-  id: string
-  namn: string
-  farg: 'emerald' | 'amber' | 'red' | 'blue' | 'muted'
-  sortering: number
-  skapad_at: string
-  inbyggd: boolean
-}
-
-export const FARG_DOT: Record<KundStatusar['farg'], string> = {
-  emerald: 'bg-emerald-400', blue: 'bg-blue-400', amber: 'bg-amber-400', red: 'bg-red-400', muted: 'bg-muted',
-}
-
-export const FARG_TEXT: Record<KundStatusar['farg'], string> = {
-  emerald: 'text-emerald-400', blue: 'text-blue-400', amber: 'text-amber-400', red: 'text-red-400', muted: 'text-muted',
-}
-
 export interface Kund {
   id: string
   kundnummer: string
@@ -41,7 +22,6 @@ export interface Kund {
   order_std_villkor: string
   ata_std_villkor: string
   login_anteckning: string | null
-  status: KundStatus
   skapad_at: string
   uppdaterad_at: string
 }
@@ -69,7 +49,6 @@ export interface CreateKundInput {
   order_std_villkor?: string
   ata_std_villkor?: string
   login_anteckning?: string | null
-  status?: KundStatus
 }
 
 export type UpdateKundInput = Partial<CreateKundInput>

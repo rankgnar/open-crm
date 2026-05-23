@@ -1,11 +1,9 @@
 import { useState, useEffect } from 'react'
-import type { Kund, CreateKundInput, KundStatusar } from './types'
+import type { Kund, CreateKundInput } from './types'
 import { useAppConfig } from '@/context/AppConfig'
-import { SelectField } from '@/components/SelectField'
 
 interface Props {
   initial?: Kund
-  statusar: KundStatusar[]
   onSubmit: (data: CreateKundInput) => Promise<void>
   onCancel: () => void
 }
@@ -47,7 +45,7 @@ const CI = 'bg-transparent text-sm text-fg outline-none placeholder:text-subtle 
 
 // ─────────────────────────────────────────────────────────────────────────────
 
-export function KundForm({ initial, statusar, onSubmit, onCancel }: Props) {
+export function KundForm({ initial, onSubmit, onCancel }: Props) {
   const { config } = useAppConfig()
   const isEdit = !!initial
 
@@ -77,7 +75,6 @@ export function KundForm({ initial, statusar, onSubmit, onCancel }: Props) {
   const [orderStdVillkor, setOrderStdVillkor] = useState(initial?.order_std_villkor ?? '')
   const [ataStdVillkor, setAtaStdVillkor] = useState(initial?.ata_std_villkor ?? '')
   const [loginAnteckning, setLoginAnteckning] = useState(initial?.login_anteckning ?? '')
-  const [status, setStatus] = useState<string>(initial?.status ?? (isEdit ? '' : (config?.kund_std_status ?? '')))
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -127,7 +124,6 @@ export function KundForm({ initial, statusar, onSubmit, onCancel }: Props) {
         order_std_villkor: orderStdVillkor,
         ata_std_villkor: ataStdVillkor,
         login_anteckning: loginAnteckning.trim() || null,
-        status
       })
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Okänt fel')
@@ -171,29 +167,19 @@ export function KundForm({ initial, statusar, onSubmit, onCancel }: Props) {
       {/* Body — same scrollable structure as KundDetail */}
       <div className="flex-1 overflow-auto flex flex-col">
 
-        {/* Title block — Namn + Status */}
-        <div className="px-8 py-6 border-b border-border flex items-start justify-between gap-6">
-          <div className="flex-1 min-w-0">
-            <p className="text-[11px] uppercase tracking-widest text-muted mb-0.5">
-              {isEdit ? initial?.kundnummer : (previewNummer ?? '—')}
-            </p>
-            <input
-              value={namn}
-              onChange={(e) => setNamn(e.target.value.toUpperCase())}
-              required
-              autoFocus
-              placeholder="FÖRETAGSNAMN ELLER FULLSTÄNDIGT NAMN"
-              className="text-xl font-semibold text-fg bg-transparent outline-none w-full placeholder:text-muted/30 uppercase"
-            />
-          </div>
-          <div className="shrink-0 w-44">
-            <p className="text-[11px] uppercase tracking-widest text-muted mb-1.5">Status</p>
-            <SelectField
-              value={status}
-              onChange={setStatus}
-              options={statusar.map((s) => ({ value: s.namn, label: s.namn }))}
-            />
-          </div>
+        {/* Title block */}
+        <div className="px-8 py-6 border-b border-border">
+          <p className="text-[11px] uppercase tracking-widest text-muted mb-0.5">
+            {isEdit ? initial?.kundnummer : (previewNummer ?? '—')}
+          </p>
+          <input
+            value={namn}
+            onChange={(e) => setNamn(e.target.value.toUpperCase())}
+            required
+            autoFocus
+            placeholder="FÖRETAGSNAMN ELLER FULLSTÄNDIGT NAMN"
+            className="text-xl font-semibold text-fg bg-transparent outline-none w-full placeholder:text-muted/30 uppercase"
+          />
         </div>
 
         {/* Grunduppgifter */}

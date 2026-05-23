@@ -10,7 +10,6 @@ const CHANNELS = [
   'db:kunder:update',
   'db:kunder:delete',
   'db:kunder:delete-many',
-  'db:kunder:update-status-many',
   'db:kunder:import-csv',
   'db:kunder:projekt-counts',
   'db:kunder:forslag-counts',
@@ -42,7 +41,6 @@ interface CreateKundInput {
   order_std_villkor?: string
   ata_std_villkor?: string
   login_anteckning?: string | null
-  status?: string
 }
 
 type UpdateKundInput = Partial<CreateKundInput>
@@ -131,11 +129,7 @@ export function registerKunderHandlers(): void {
     broadcastChange('kunder')
   })
 
-  ipcMain.handle('db:kunder:update-status-many', async (_, ids: string[], status: string) => {
-    const { error } = await supabase.from('kunder').update({ status }).in('id', ids)
-    if (error) throw new Error(error.message)
-    broadcastChange('kunder')
-  })
+
 
   ipcMain.handle('db:kunder:import-csv', async (_, rows: CreateKundInput[]) => {
     type ImportResult = { success: number; errors: Array<{ index: number; message: string }> }

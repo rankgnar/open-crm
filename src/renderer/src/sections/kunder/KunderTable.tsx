@@ -1,8 +1,7 @@
-import { useState, useRef, useEffect } from 'react'
-import { Plus, Search, X, Trash2, ArrowUp, ArrowDown, ArrowUpDown, ChevronDown } from 'lucide-react'
-import type { Kund, KundStatusar, KundLastProjekt, KundLastForslag } from './types'
+import { useState } from 'react'
+import { Plus, Search, X, Trash2, ArrowUp, ArrowDown, ArrowUpDown } from 'lucide-react'
+import type { Kund, KundLastProjekt, KundLastForslag } from './types'
 import { RefreshButton } from '@/components/RefreshButton'
-import { SelectField } from '@/components/SelectField'
 
 const FORSLAG_STATUS_DOT: Record<string, string> = {
   'Accepterat':     'bg-emerald-400',
@@ -12,149 +11,22 @@ const FORSLAG_STATUS_DOT: Record<string, string> = {
   'Avvisat':        'bg-red-400',
 }
 
-const FARG_DOT: Record<string, string> = {
-  emerald: 'bg-emerald-400',
-  blue:    'bg-blue-400',
-  amber:   'bg-amber-400',
-  red:     'bg-red-400',
-  muted:   'bg-muted',
-}
-
-const FARG_TEXT: Record<string, string> = {
-  emerald: 'text-emerald-400',
-  blue:    'text-blue-400',
-  amber:   'text-amber-400',
-  red:     'text-red-400',
-  muted:   'text-muted',
-}
-
 interface Props {
   kunder: Kund[]
-  statusar: KundStatusar[]
   lastProjekt: KundLastProjekt
   lastForslag: KundLastForslag
   onSelect: (kund: Kund) => void
-  onStatusChange: (id: string, status: string) => Promise<void>
-  onStatusChangeMany: (ids: string[], status: string) => Promise<void>
   onDeleteMany: (ids: string[]) => Promise<void>
   onNew: () => void
   onNavigateProjekt?: (projektId: string) => void
   onNavigateForslag?: (forslagId: string) => void
 }
 
-
-function StatusPicker({ kund, statusar, onStatusChange }: {
-  kund: Kund
-  statusar: KundStatusar[]
-  onStatusChange: (id: string, status: string) => Promise<void>
-}) {
-  const [open, setOpen] = useState(false)
-  const [saving, setSaving] = useState(false)
-  const ref = useRef<HTMLDivElement>(null)
-  const current = statusar.find((s) => s.namn === kund.status)
-
-  useEffect(() => {
-    if (!open) return
-    function onDown(e: MouseEvent) {
-      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false)
-    }
-    document.addEventListener('mousedown', onDown)
-    return () => document.removeEventListener('mousedown', onDown)
-  }, [open])
-
-  async function pick(e: React.MouseEvent, namn: string) {
-    e.stopPropagation()
-    if (namn === kund.status) { setOpen(false); return }
-    setSaving(true)
-    setOpen(false)
-    try {
-      await onStatusChange(kund.id, namn)
-    } finally {
-      setSaving(false)
-    }
-  }
-
-  return (
-    <div ref={ref} className="relative inline-flex">
-      <button
-        onClick={(e) => { e.stopPropagation(); setOpen((v) => !v) }}
-        disabled={saving}
-        className="inline-flex items-center gap-1.5 text-xs rounded px-1.5 py-0.5 hover:bg-hover transition-colors disabled:opacity-50"
-        title="Ändra status"
-      >
-        <span className={`size-1.5 rounded-full shrink-0 ${FARG_DOT[current?.farg ?? 'muted']}`} />
-        <span className={FARG_TEXT[current?.farg ?? 'muted']}>{kund.status || '—'}</span>
-      </button>
-
-      {open && (
-        <div className="absolute left-0 top-full mt-1 z-20 min-w-[130px] bg-elevated border border-border rounded-lg shadow-lg overflow-hidden">
-          {statusar.map((s) => (
-            <button
-              key={s.id}
-              onClick={(e) => pick(e, s.namn)}
-              className={`w-full flex items-center gap-2 px-3 py-2 text-xs text-left hover:bg-hover transition-colors ${s.namn === kund.status ? 'bg-hover' : ''}`}
-            >
-              <span className={`size-1.5 rounded-full shrink-0 ${FARG_DOT[s.farg]}`} />
-              <span className={FARG_TEXT[s.farg]}>{s.namn}</span>
-            </button>
-          ))}
-        </div>
-      )}
-    </div>
-  )
-}
-
-function BulkStatusPicker({ statusar, saving, onPick }: {
-  statusar: KundStatusar[]
-  saving: boolean
-  onPick: (status: string) => void
-}) {
-  const [open, setOpen] = useState(false)
-  const ref = useRef<HTMLDivElement>(null)
-
-  useEffect(() => {
-    if (!open) return
-    function onDown(e: MouseEvent) {
-      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false)
-    }
-    document.addEventListener('mousedown', onDown)
-    return () => document.removeEventListener('mousedown', onDown)
-  }, [open])
-
-  return (
-    <div ref={ref} className="relative">
-      <button
-        onClick={() => setOpen((v) => !v)}
-        disabled={saving}
-        className="flex items-center gap-1 text-xs text-muted hover:text-fg disabled:opacity-40 transition-colors"
-      >
-        {saving ? '...' : 'Ändra status'} <ChevronDown size={11} />
-      </button>
-      {open && (
-        <div className="absolute left-0 top-full mt-1 z-20 min-w-[140px] bg-elevated border border-border rounded-lg shadow-lg overflow-hidden">
-          {statusar.map((s) => (
-            <button
-              key={s.id}
-              onClick={() => { setOpen(false); onPick(s.namn) }}
-              className="w-full flex items-center gap-2 px-3 py-2 text-xs text-left hover:bg-hover transition-colors"
-            >
-              <span className={`size-1.5 rounded-full shrink-0 ${FARG_DOT[s.farg]}`} />
-              <span className={FARG_TEXT[s.farg]}>{s.namn}</span>
-            </button>
-          ))}
-        </div>
-      )}
-    </div>
-  )
-}
-
-export function KunderTable({ kunder, statusar, lastProjekt, lastForslag, onSelect, onStatusChange, onStatusChangeMany, onDeleteMany, onNew, onNavigateProjekt, onNavigateForslag }: Props) {
+export function KunderTable({ kunder, lastProjekt, lastForslag, onSelect, onDeleteMany, onNew, onNavigateProjekt, onNavigateForslag }: Props) {
   const [query, setQuery] = useState('')
-  const [statusFilter, setStatusFilter] = useState('')
   const [selected, setSelected] = useState<Set<string>>(new Set())
   const [confirmBulk, setConfirmBulk] = useState(false)
   const [deletingBulk, setDeletingBulk] = useState(false)
-  const [savingBulkStatus, setSavingBulkStatus] = useState(false)
   const [confirmRowId, setConfirmRowId] = useState<string | null>(null)
   const [sortCol, setSortCol] = useState<string | null>(null)
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc')
@@ -172,19 +44,18 @@ export function KunderTable({ kunder, statusar, lastProjekt, lastForslag, onSele
 
   const filtered = kunder.filter((k) => {
     const q = query.toLowerCase()
-    const matchesQuery = !q || [k.namn, k.kundnummer, k.email, k.telefon, k.stad, k.org_nummer]
+    return !q || [k.namn, k.kundnummer, k.email, k.telefon, k.stad, k.org_nummer]
       .some((v) => v?.toLowerCase().includes(q))
-    return matchesQuery && (!statusFilter || k.status === statusFilter)
   })
 
   const sorted = sortCol ? [...filtered].sort((a, b) => {
     const vals: Record<string, string | null> = {
       kundnummer: a.kundnummer, namn: a.namn, telefon: a.telefon,
-      email: a.email, status: a.status, skapad_at: a.skapad_at,
+      email: a.email, skapad_at: a.skapad_at,
     }
     const bvals: Record<string, string | null> = {
       kundnummer: b.kundnummer, namn: b.namn, telefon: b.telefon,
-      email: b.email, status: b.status, skapad_at: b.skapad_at,
+      email: b.email, skapad_at: b.skapad_at,
     }
     const av = vals[sortCol] ?? '', bv = bvals[sortCol] ?? ''
     const cmp = av.localeCompare(bv, 'sv')
@@ -207,21 +78,13 @@ export function KunderTable({ kunder, statusar, lastProjekt, lastForslag, onSele
     } finally { setDeletingBulk(false) }
   }
 
-  async function handleBulkStatusChange(status: string) {
-    setSavingBulkStatus(true)
-    try {
-      await onStatusChangeMany([...selected], status)
-      setSelected(new Set()); setConfirmBulk(false)
-    } finally { setSavingBulkStatus(false) }
-  }
-
   async function handleRowDelete(e: React.MouseEvent, id: string) {
     e.stopPropagation()
     await onDeleteMany([id])
     setConfirmRowId(null)
   }
 
-  const isFiltering = query !== '' || statusFilter !== ''
+  const isFiltering = query !== ''
 
   return (
     <div className="flex flex-col h-full">
@@ -247,13 +110,6 @@ export function KunderTable({ kunder, statusar, lastProjekt, lastForslag, onSele
             </button>
           )}
         </div>
-        <SelectField
-          value={statusFilter}
-          onChange={setStatusFilter}
-          placeholder="Alla statusar"
-          options={statusar.map((s) => ({ value: s.namn, label: s.namn }))}
-          className="w-48 shrink-0"
-        />
         <button onClick={onNew} className="ml-auto inline-flex items-center gap-1.5 px-3 py-2.5 text-[10px] font-semibold uppercase tracking-wider text-muted hover:text-fg transition-colors">
           <Plus size={11} />Ny kund
         </button>
@@ -264,13 +120,6 @@ export function KunderTable({ kunder, statusar, lastProjekt, lastForslag, onSele
       {selected.size > 0 && (
         <div className="flex items-center gap-4 px-6 py-2 border-b border-border bg-elevated shrink-0">
           <span className="text-xs text-fg font-medium shrink-0">{selected.size} valda</span>
-
-          {/* Bulk status change */}
-          <BulkStatusPicker
-            statusar={statusar}
-            saving={savingBulkStatus}
-            onPick={handleBulkStatusChange}
-          />
 
           {/* Bulk delete */}
           <div className="flex items-center gap-2">
@@ -317,7 +166,6 @@ export function KunderTable({ kunder, statusar, lastProjekt, lastForslag, onSele
                   ['namn', 'Namn'],
                   ['telefon', 'Telefon'],
                   ['email', 'Email'],
-                  ['status', 'Status'],
                   ['skapad_at', 'Skapad'],
                 ] as [string, string][]).map(([col, label]) => (
                   <th key={col} onClick={() => handleSort(col)}
@@ -353,9 +201,6 @@ export function KunderTable({ kunder, statusar, lastProjekt, lastForslag, onSele
                     <td className="px-4 py-3 font-medium text-fg whitespace-nowrap uppercase">{kund.namn}</td>
                     <td className="px-4 py-3 text-muted whitespace-nowrap">{kund.telefon ?? '—'}</td>
                     <td className="px-4 py-3 text-muted whitespace-nowrap">{kund.email ?? '—'}</td>
-                    <td className="px-4 py-3 whitespace-nowrap">
-                      <StatusPicker kund={kund} statusar={statusar} onStatusChange={onStatusChange} />
-                    </td>
                     <td className="px-4 py-3 text-muted text-xs whitespace-nowrap">
                       {new Date(kund.skapad_at).toLocaleDateString('sv-SE')}
                     </td>

@@ -19,7 +19,6 @@ export interface AppInstallningar {
   // Kunder defaults
   kund_std_land: string
   kund_std_landskod: string
-  kund_std_status: string
   // Projekt defaults
   projekt_std_betalningsvillkor: string
   projekt_std_rot_procent: number

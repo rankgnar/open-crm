@@ -33,10 +33,7 @@ const CHANNELS = [
   'db:fas-mall-subfaser:update',
   'db:fas-mall-subfaser:delete',
   'db:fas-mall:import-csv',
-  'db:kund-statusar:list',
-  'db:kund-statusar:create',
-  'db:kund-statusar:update',
-  'db:kund-statusar:delete',
+
   'db:forslag-statusar:list',
   'db:forslag-statusar:create',
   'db:forslag-statusar:update',
@@ -369,37 +366,6 @@ export function registerInstallningarHandlers(): void {
       }
     }
     return rows
-  })
-
-  // ── Kund statusar ──────────────────────────────────────────────────────────
-
-  ipcMain.handle('db:kund-statusar:list', async () => {
-    const { data, error } = await supabase
-      .from('kund_statusar')
-      .select('*')
-      .order('sortering', { ascending: true })
-      .order('skapad_at', { ascending: true })
-    if (error) throw new Error(error.message)
-    return data
-  })
-
-  ipcMain.handle('db:kund-statusar:create', async (_, input: { namn: string; farg: string }) => {
-    const { data: last } = await supabase.from('kund_statusar').select('sortering').order('sortering', { ascending: false }).limit(1).single()
-    const sortering = last ? last.sortering + 1 : 0
-    const { data, error } = await supabase.from('kund_statusar').insert({ ...input, sortering }).select('*').single()
-    if (error) throw new Error(error.message)
-    return data
-  })
-
-  ipcMain.handle('db:kund-statusar:update', async (_, id: string, input: { namn?: string; farg?: string }) => {
-    const { data, error } = await supabase.from('kund_statusar').update(input).eq('id', id).select('*').single()
-    if (error) throw new Error(error.message)
-    return data
-  })
-
-  ipcMain.handle('db:kund-statusar:delete', async (_, id: string) => {
-    const { error } = await supabase.from('kund_statusar').delete().eq('id', id)
-    if (error) throw new Error(error.message)
   })
 
   // ── Förslag statusar ───────────────────────────────────────────────────────
