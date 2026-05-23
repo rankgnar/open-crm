@@ -1,12 +1,14 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
-import { AlertTriangle, CheckCircle } from 'lucide-react'
+import { AlertTriangle, CheckCircle, X } from 'lucide-react'
 import { useRefreshHandler } from '@/context/RefreshContext'
 import { useChangeListener } from '@/hooks/useChangeListener'
+import { useAppConfig } from '@/context/AppConfig'
 import { ForslagTable } from './ForslagTable'
 import { ProjektInfoModal } from './ProjektInfoModal'
 import { DuplikatForslagModal } from './DuplikatForslagModal'
 import { ForslagForm } from './ForslagForm'
 import { ForslagDetail } from './ForslagDetail'
+import { SmsForslagPanel } from './SmsForslagPanel'
 import type { ForslagWithProjekt, CreateForslagInput, ForslagStatusar, SignaturSummary } from './types'
 import type { ProjektWithKund } from '@/sections/projekt/types'
 
@@ -18,10 +20,13 @@ interface Props {
   initialForslagId?: string
   openTidplanReminderOnLoad?: boolean
   onNavigateTidplan?: (forslagId: string, mode: 'send' | 'direct') => void
+  initialProjektIdForNew?: string
 }
 
-export function ForslagSection({ initialProjektId, onNavigateProjekt, initialForslagId, openTidplanReminderOnLoad, onNavigateTidplan }: Props = {}) {
+export function ForslagSection({ initialProjektId, onNavigateProjekt, initialForslagId, openTidplanReminderOnLoad, onNavigateTidplan, initialProjektIdForNew }: Props = {}) {
+  const { config } = useAppConfig()
   const [projektModalId, setProjektModalId] = useState<string | null>(null)
+  const [smsModalForslag, setSmsModalForslag] = useState<ForslagWithProjekt | null>(null)
   const [showDuplicate, setShowDuplicate] = useState(false)
   const [forslag, setForslag] = useState<ForslagWithProjekt[]>([])
   const [allProjekt, setAllProjekt] = useState<ProjektWithKund[]>([])
@@ -75,6 +80,13 @@ export function ForslagSection({ initialProjektId, onNavigateProjekt, initialFor
       setView('detail')
     }
   }, [initialForslagId, forslag])
+
+  const initialProjektForNewConsumed = useRef(false)
+  useEffect(() => {
+    if (!initialProjektIdForNew || loading || initialProjektForNewConsumed.current) return
+    initialProjektForNewConsumed.current = true
+    setView('create')
+  }, [initialProjektIdForNew, loading])
 
   async function handleCreate(data: CreateForslagInput, mallId?: string) {
     const created = await window.api.invoke('db:forslag:create', data) as ForslagWithProjekt
@@ -215,6 +227,17 @@ export function ForslagSection({ initialProjektId, onNavigateProjekt, initialFor
     )
   }
 
+  async function handleSendReminder(lankId: string, meddelande: string) {
+    await window.api.invoke('db:signatur-lank:resend', lankId, { reminder: true, meddelande: meddelande || undefined })
+    const signingData = await window.api.invoke('db:signatur-lank:forslag-events') as Record<string, SignaturSummary>
+    setSigningEvents(signingData)
+  }
+
+  async function reloadSmsForslag() {
+    const ids = await window.api.invoke('db:forslag-sms-log:forslag-ids') as string[]
+    setSmsForslag(new Set(ids))
+  }
+
   if (loading) {
     return (
       <div className="flex h-full items-center justify-center">
@@ -232,7 +255,7 @@ export function ForslagSection({ initialProjektId, onNavigateProjekt, initialFor
   }
 
   if (view === 'create') {
-    return <ForslagForm statusar={statusar} projekt={allProjekt} onSubmit={handleCreate} onCancel={() => setView('list')} />
+    return <ForslagForm statusar={statusar} projekt={allProjekt} initialProjektId={initialProjektIdForNew} onSubmit={handleCreate} onCancel={() => setView('list')} />
   }
 
   if (view === 'detail' && selectedForslag) {
@@ -335,6 +358,8 @@ export function ForslagSection({ initialProjektId, onNavigateProjekt, initialFor
         onDeleteMany={handleDeleteMany}
         onBulkReminder={handleBulkReminder}
         onClickProjekt={(id) => setProjektModalId(id)}
+        onSendReminder={handleSendReminder}
+        onOpenSms={(f) => setSmsModalForslag(f)}
       />
       {projektModalId && (
         <ProjektInfoModal projektId={projektModalId} onClose={() => setProjektModalId(null)} />
@@ -347,6 +372,33 @@ export function ForslagSection({ initialProjektId, onNavigateProjekt, initialFor
           onClose={() => setShowDuplicate(false)}
           onDuplicated={handleDuplicated}
         />
+      )}
+      {smsModalForslag && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60" onMouseDown={(e) => { if (e.target === e.currentTarget) { setSmsModalForslag(null); reloadSmsForslag() } }}>
+          <div className="bg-elevated border border-border rounded-xl shadow-xl w-[520px] max-h-[80vh] flex flex-col overflow-hidden">
+            <div className="flex items-center justify-between px-5 py-3 border-b border-border shrink-0">
+              <p className="text-[11px] uppercase tracking-widest text-muted font-semibold">SMS — {smsModalForslag.forslag_nummer}</p>
+              <button onClick={() => { setSmsModalForslag(null); reloadSmsForslag() }} className="text-subtle hover:text-fg transition-colors"><X size={14} /></button>
+            </div>
+            <div className="flex-1 min-h-0 overflow-hidden">
+              <SmsForslagPanel
+                forslagId={smsModalForslag.id}
+                projektId={smsModalForslag.projekt_id}
+                kund_namn={smsModalForslag.projekt.kunder.namn}
+                kund_email={smsModalForslag.projekt.kunder.email ?? ''}
+                kund_telefon={smsModalForslag.projekt.kunder.telefon ?? ''}
+                kund_stad={smsModalForslag.projekt.kunder.stad ?? ''}
+                projekt_namn={smsModalForslag.projekt.namn}
+                forslag_nummer={smsModalForslag.forslag_nummer}
+                foretag_namn={config?.foretag_namn ?? ''}
+                foretag_email={config?.foretag_email ?? ''}
+                foretag_telefon={config?.foretag_telefon ?? ''}
+                foretag_webbadress={config?.foretag_webbadress ?? ''}
+                onNoteCreated={() => {}}
+              />
+            </div>
+          </div>
+        </div>
       )}
     </>
   )

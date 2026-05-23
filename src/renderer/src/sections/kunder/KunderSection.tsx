@@ -11,9 +11,11 @@ type View = 'list' | 'create' | 'detail'
 interface Props {
   onNavigateProjekt?: (projektId: string) => void
   onNavigateForslag?: (forslagId: string) => void
+  onCreateProjekt?: (kundId: string) => void
+  onCreateForslag?: (projektId?: string) => void
 }
 
-export function KunderSection({ onNavigateProjekt, onNavigateForslag }: Props = {}) {
+export function KunderSection({ onNavigateProjekt, onNavigateForslag, onCreateProjekt, onCreateForslag }: Props = {}) {
   const [kunder, setKunder] = useState<Kund[]>([])
   const [projektCounts, setProjektCounts] = useState<KundLastProjekt>({})
   const [forslagCounts, setForslagCounts] = useState<KundLastForslag>({})
@@ -114,6 +116,8 @@ export function KunderSection({ onNavigateProjekt, onNavigateForslag }: Props = 
       onNew={() => setView('create')}
       onNavigateProjekt={onNavigateProjekt}
       onNavigateForslag={onNavigateForslag}
+      onCreateProjekt={onCreateProjekt}
+      onCreateForslag={onCreateForslag}
     />
   )
 }

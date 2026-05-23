@@ -77,6 +77,7 @@ export interface ForslagWithProjekt extends Forslag {
       personnummer: string | null
       fastighetsbeteckning: string | null
       login_anteckning: string | null
+      webbadress: string | null
     }
   }
 }

@@ -20,9 +20,11 @@ interface Props {
   onNew: () => void
   onNavigateProjekt?: (projektId: string) => void
   onNavigateForslag?: (forslagId: string) => void
+  onCreateProjekt?: (kundId: string) => void
+  onCreateForslag?: (projektId?: string) => void
 }
 
-export function KunderTable({ kunder, lastProjekt, lastForslag, onSelect, onDeleteMany, onNew, onNavigateProjekt, onNavigateForslag }: Props) {
+export function KunderTable({ kunder, lastProjekt, lastForslag, onSelect, onDeleteMany, onNew, onNavigateProjekt, onNavigateForslag, onCreateProjekt, onCreateForslag }: Props) {
   const [query, setQuery] = useState('')
   const [selected, setSelected] = useState<Set<string>>(new Set())
   const [confirmBulk, setConfirmBulk] = useState(false)
@@ -215,7 +217,12 @@ export function KunderTable({ kunder, lastProjekt, lastForslag, onSelect, onDele
                           <span className="truncate">{lastProjekt[kund.id].namn}</span>
                         </button>
                       ) : (
-                        <span className="text-subtle text-xs">—</span>
+                        <button
+                          onClick={() => onCreateProjekt?.(kund.id)}
+                          className="text-xs text-subtle hover:text-fg transition-colors"
+                        >
+                          + Projekt
+                        </button>
                       )}
                     </td>
                     <td className="px-4 py-3 whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
@@ -230,7 +237,12 @@ export function KunderTable({ kunder, lastProjekt, lastForslag, onSelect, onDele
                           <span className="truncate">{lastForslag[kund.id].titel}</span>
                         </button>
                       ) : (
-                        <span className="text-subtle text-xs">—</span>
+                        <button
+                          onClick={() => onCreateForslag?.(lastProjekt[kund.id]?.id)}
+                          className="text-xs text-subtle hover:text-fg transition-colors"
+                        >
+                          + Förslag
+                        </button>
                       )}
                     </td>
                     <td className="pr-4 py-3 whitespace-nowrap" onClick={(e) => e.stopPropagation()}>

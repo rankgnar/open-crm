@@ -1,4 +1,4 @@
-import { Plus, Search, X, Trash2, ArrowUp, ArrowDown, ArrowUpDown, ChevronDown, Check, Globe, Copy, StickyNote, Send } from 'lucide-react'
+import { Plus, Search, X, Trash2, ArrowUp, ArrowDown, ArrowUpDown, ChevronDown, Check, Copy, StickyNote, Send } from 'lucide-react'
 import { RefreshButton } from '@/components/RefreshButton'
 import { KundPopover } from '@/components/KundPopover'
 import { useRef, useState, useEffect } from 'react'
@@ -17,6 +17,8 @@ interface Props {
   onStatusChange: (id: string, status: string) => Promise<void>
   onStatusChangeMany: (ids: string[], status: string) => Promise<void>
   onDeleteMany: (ids: string[]) => Promise<void>
+  onCreateForslag?: (projektId: string) => void
+  onCreateFormular?: (projektId: string) => void
 }
 
 function StatusPicker({ projekt, statusar, onStatusChange }: { projekt: ProjektWithKund; statusar: ProjektStatusar[]; onStatusChange: (id: string, status: string) => Promise<void> }) {
@@ -97,8 +99,8 @@ function StatusSelect({ value, onChange, statusar }: { value: string[]; onChange
   const label = value.length === 0
     ? 'Alla statusar'
     : value.length === 1
-      ? value[0]
-      : `${value.length} statusar`
+      ? `Döljer: ${value[0]}`
+      : `Döljer: ${value.length} st`
 
   const hasSelection = value.length > 0
 
@@ -124,7 +126,7 @@ function StatusSelect({ value, onChange, statusar }: { value: string[]; onChange
                 onClick={() => { onChange([]); setOpen(false) }}
                 className="w-full text-left px-3 py-2 text-xs text-subtle hover:bg-hover transition-colors"
               >
-                — Alla statusar —
+                — Visa alla —
               </button>
             )}
             {statusar.map(s => {
@@ -151,7 +153,7 @@ function StatusSelect({ value, onChange, statusar }: { value: string[]; onChange
   )
 }
 
-export function ProjektTable({ projekt, statusar, fragSummary, forslagSummary, onSelect, onNew, onDuplicate, onStatusChange, onStatusChangeMany, onDeleteMany }: Props) {
+export function ProjektTable({ projekt, statusar, fragSummary, forslagSummary, onSelect, onNew, onDuplicate, onStatusChange, onStatusChangeMany, onDeleteMany, onCreateForslag, onCreateFormular }: Props) {
   const [anteckModal, setAnteckModal] = useState<{ projektId: string; projektNamn: string; kundNamn: string } | null>(null)
   const [anteckningar, setAnteckningar] = useState<ProjektAnteckning[]>([])
   const [anteckLoading, setAnteckLoading] = useState(false)
@@ -202,7 +204,7 @@ const [selected, setSelected] = useState<Set<string>>(new Set())
     const q = query.toLowerCase()
     const matchesQuery = !q || [p.projekt_nummer, p.namn, p.kunder.namn, p.kunder.kundnummer, p.arbetsplats_stad]
       .some((v) => v?.toLowerCase().includes(q))
-    return matchesQuery && (statusFilter.length === 0 || statusFilter.includes(p.status))
+    return matchesQuery && (statusFilter.length === 0 || !statusFilter.includes(p.status))
   })
 
   const sorted = sortCol ? [...filtered].sort((a, b) => {
@@ -284,7 +286,6 @@ const [selected, setSelected] = useState<Set<string>>(new Set())
         </div>
         <StatusSelect value={statusFilter} onChange={setStatusFilter} statusar={statusar} />
 <div className="ml-auto flex items-center gap-2 shrink-0">
-          <RefreshButton iconOnly />
           {onDuplicate && (
             <button onClick={onDuplicate} className="inline-flex items-center gap-1.5 px-3 py-2.5 text-[10px] font-semibold uppercase tracking-wider text-muted hover:text-fg transition-colors">
               <Copy size={11} />Duplicera
@@ -293,6 +294,7 @@ const [selected, setSelected] = useState<Set<string>>(new Set())
           <button onClick={onNew} className="inline-flex items-center gap-1.5 px-3 py-2.5 text-[10px] font-semibold uppercase tracking-wider text-muted hover:text-fg transition-colors">
             <Plus size={11} />Nytt projekt
           </button>
+          <RefreshButton iconOnly />
         </div>
       </div>
 
@@ -352,7 +354,6 @@ const [selected, setSelected] = useState<Set<string>>(new Set())
                     </div>
                   </th>
                 ))}
-                <th className="w-8" />
                 {COLS.slice(2).map(([col, label]) => (
                   <th key={col} onClick={() => handleSort(col)}
                     className="px-4 py-2.5 text-[11px] font-medium uppercase tracking-wider text-muted cursor-pointer select-none hover:text-fg transition-colors group/th">
@@ -369,6 +370,7 @@ const [selected, setSelected] = useState<Set<string>>(new Set())
                 ))}
                 <th className="px-4 py-2.5 text-[11px] font-medium uppercase tracking-wider text-muted select-none">Offert</th>
                 <th className="px-4 py-2.5 text-[11px] font-medium uppercase tracking-wider text-muted select-none">Formulär</th>
+                <th className="px-4 py-2.5 text-[11px] font-medium uppercase tracking-wider text-muted select-none">Url</th>
                 <th className="px-4 py-2.5 w-10"></th>
               </tr>
             </thead>
@@ -401,17 +403,6 @@ const [selected, setSelected] = useState<Set<string>>(new Set())
                       <span className="font-mono text-xs text-muted">{p.kunder.kundnummer}</span>
                       <span className="ml-2"><KundPopover kund={p.kunder} /></span>
                     </td>
-                    <td className="px-2 py-3 w-8" onClick={(e) => e.stopPropagation()}>
-                      {p.kunder.webbadress ? (
-                        <button
-                          onClick={() => window.api.invoke('shell:open-external', p.kunder.webbadress!)}
-                          className="text-muted hover:text-fg transition-colors"
-                          title={p.kunder.webbadress}
-                        >
-                          <Globe size={13} />
-                        </button>
-                      ) : null}
-                    </td>
                     <td className="px-4 py-3 font-medium text-fg whitespace-nowrap">{p.namn}</td>
                     <td className="px-4 py-3 whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
                       <StatusPicker projekt={p} statusar={statusar} onStatusChange={onStatusChange} />
@@ -424,7 +415,11 @@ const [selected, setSelected] = useState<Set<string>>(new Set())
                             {forslagSummary[p.id].status}
                           </span>
                         </span>
-                      ) : <span className="text-subtle text-xs">—</span>}
+                      ) : (
+                        <button onClick={(e) => { e.stopPropagation(); onCreateForslag?.(p.id) }} className="text-xs text-subtle hover:text-fg transition-colors">
+                          + Förslag
+                        </button>
+                      )}
                     </td>
                     <td className="px-4 py-3 whitespace-nowrap">
                       {fragSummary[p.id] ? (
@@ -432,7 +427,21 @@ const [selected, setSelected] = useState<Set<string>>(new Set())
                           <span className={`size-1.5 rounded-full shrink-0 ${FRAG_STATUS_DOT[fragSummary[p.id]] ?? 'bg-muted'}`} />
                           {FRAG_STATUS_LABEL[fragSummary[p.id]] ?? fragSummary[p.id]}
                         </span>
-                      ) : <span className="text-subtle text-xs">—</span>}
+                      ) : (
+                        <button onClick={(e) => { e.stopPropagation(); onCreateFormular?.(p.id) }} className="text-xs text-subtle hover:text-fg transition-colors">
+                          + Formulär
+                        </button>
+                      )}
+                    </td>
+                    <td className="px-4 py-3 whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
+                      {p.kunder.webbadress ? (
+                        <button
+                          onClick={() => window.api.invoke('shell:open-external', p.kunder.webbadress!)}
+                          className="inline-flex items-center gap-1 px-2 py-0.5 rounded border border-border text-xs text-muted hover:text-fg hover:bg-hover transition-colors"
+                        >
+                          Url
+                        </button>
+                      ) : null}
                     </td>
                     <td className="px-4 py-3 text-right" onClick={(e) => e.stopPropagation()}>
                       <button

@@ -9,13 +9,14 @@ interface Props {
   kunder: Kund[]
   statusar: ProjektStatusar[]
   initial?: ProjektWithKund
+  initialKundId?: string
   onSubmit: (data: CreateProjektInput) => Promise<void>
   onCancel: () => void
 }
 
 const CI = 'bg-transparent text-sm text-fg outline-none placeholder:text-subtle w-full'
 
-export function ProjektForm({ kunder, statusar, initial, onSubmit, onCancel }: Props) {
+export function ProjektForm({ kunder, statusar, initial, initialKundId, onSubmit, onCancel }: Props) {
   const isEdit = !!initial
   const { config, formatCurrency } = useAppConfig()
   const takEnkel = config?.rot_avdrag_tak_enkel ?? 50000
@@ -26,7 +27,7 @@ export function ProjektForm({ kunder, statusar, initial, onSubmit, onCancel }: P
   const [namn, setNamn] = useState(initial?.namn ?? '')
   const [beskrivning, setBeskrivning] = useState(initial?.beskrivning ?? '')
   const [status, setStatus] = useState<string>(initial?.status ?? '')
-  const [kundId, setKundId] = useState(initial?.kund_id ?? '')
+  const [kundId, setKundId] = useState(initial?.kund_id ?? initialKundId ?? '')
   const [startdatum, setStartdatum] = useState(initial?.startdatum ?? '')
   const [slutdatum, setSlutdatum] = useState(initial?.slutdatum ?? '')
   const [budgetTotal, setBudgetTotal] = useState(initial?.budget_total?.toString() ?? '0')

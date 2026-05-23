@@ -26,6 +26,8 @@ interface Props {
   onDeleteMany: (ids: string[]) => Promise<void>
   onBulkReminder: (lankIds: string[]) => Promise<void>
   onClickProjekt?: (projektId: string) => void
+  onSendReminder?: (lankId: string, meddelande: string) => Promise<void>
+  onOpenSms?: (forslag: ForslagWithProjekt) => void
 }
 
 function StatusPicker({ forslag, statusar, onStatusChange }: { forslag: ForslagWithProjekt; statusar: ForslagStatusar[]; onStatusChange: (id: string, status: string) => Promise<void> }) {
@@ -147,7 +149,7 @@ function StatusSelect({ value, onChange, statusar }: { value: string[]; onChange
     onChange(next)
   }
 
-  const label = value.length === 0 ? 'Alla statusar' : value.length === 1 ? value[0] : `${value.length} statusar`
+  const label = value.length === 0 ? 'Alla statusar' : value.length === 1 ? `Döljer: ${value[0]}` : `Döljer: ${value.length} st`
   const hasSelection = value.length > 0
 
   return (
@@ -196,7 +198,10 @@ function StatusSelect({ value, onChange, statusar }: { value: string[]; onChange
   )
 }
 
-export function ForslagTable({ forslag, statusar, signingEvents, smsForslag, onSelect, onNew, onDuplicate, onImportCsv, onStatusChange, onDeleteMany, onBulkReminder, onClickProjekt }: Props) {
+export function ForslagTable({ forslag, statusar, signingEvents, smsForslag, onSelect, onNew, onDuplicate, onImportCsv, onStatusChange, onDeleteMany, onBulkReminder, onClickProjekt, onSendReminder, onOpenSms }: Props) {
+  const [paminnelseModal, setPaminnelseModal] = useState<{ lankId: string; forslagNummer: string } | null>(null)
+  const [paminnelseMsg, setPaminnelseMsg] = useState('')
+  const [sendingPam, setSendingPam] = useState(false)
   const [anteckModal, setAnteckModal] = useState<{ projektId: string; projektNamn: string; kundNamn: string } | null>(null)
   const [anteckningar, setAnteckningar] = useState<ProjektAnteckning[]>([])
   const [anteckLoading, setAnteckLoading] = useState(false)
@@ -238,18 +243,18 @@ export function ForslagTable({ forslag, statusar, signingEvents, smsForslag, onS
     }
   }
 
-  const filtered = statusFilter.length > 0 ? forslag.filter((f) => statusFilter.includes(f.status)) : forslag
+  const filtered = forslag.filter((f) => statusFilter.length === 0 || !statusFilter.includes(f.status))
 
   const allSelected = filtered.length > 0 && filtered.every((f) => selected.has(f.id))
 
   const sorted = sortCol ? [...filtered].sort((a, b) => {
     const vals: Record<string, string | null> = {
       forslag_nummer: a.forslag_nummer, kund: a.projekt.kunder.namn, projekt: a.projekt.namn,
-      status: a.status, giltig_till: a.giltig_till, skapad_at: a.skapad_at,
+      status: a.status, giltig_till: a.giltig_till,
     }
     const bvals: Record<string, string | null> = {
       forslag_nummer: b.forslag_nummer, kund: b.projekt.kunder.namn, projekt: b.projekt.namn,
-      status: b.status, giltig_till: b.giltig_till, skapad_at: b.skapad_at,
+      status: b.status, giltig_till: b.giltig_till,
     }
     const av = String(vals[sortCol] ?? ''), bv = String(bvals[sortCol] ?? '')
     const cmp = av.localeCompare(bv, 'sv')
@@ -424,16 +429,7 @@ export function ForslagTable({ forslag, statusar, signingEvents, smsForslag, onS
                   </th>
                 ))}
                 <th className="px-4 py-2.5 text-[11px] font-medium uppercase tracking-wider text-muted select-none">SMS</th>
-                <th onClick={() => handleSort('skapad_at')}
-                  className="px-4 py-2.5 text-[11px] font-medium uppercase tracking-wider text-muted cursor-pointer select-none hover:text-fg transition-colors group/th">
-                  <div className="flex items-center gap-1">
-                    Skapad
-                    {sortCol === 'skapad_at'
-                      ? sortDir === 'asc' ? <ArrowUp size={10} className="text-fg shrink-0" /> : <ArrowDown size={10} className="text-fg shrink-0" />
-                      : <ArrowUpDown size={10} className="shrink-0 opacity-0 group-hover/th:opacity-40 transition-opacity" />
-                    }
-                  </div>
-                </th>
+                <th className="px-4 py-2.5 text-[11px] font-medium uppercase tracking-wider text-muted select-none">Url</th>
                 <th className="px-4 py-2.5 w-10"></th>
               </tr>
             </thead>
@@ -474,12 +470,29 @@ export function ForslagTable({ forslag, statusar, signingEvents, smsForslag, onS
                     )}
                   </td>
                   <td className="px-4 py-3"><SigneringLog summary={signingEvents[f.id]} /></td>
-                  <td className="px-4 py-3"><PaminnelseCell historik={signingEvents[f.id]?.paminnelse_historik} /></td>
+                  <td className="px-4 py-3" onClick={(e) => e.stopPropagation()}>
+                    {(() => {
+                      const ev = signingEvents[f.id]
+                      const hasPam = (ev?.paminnelse_historik?.length ?? 0) > 0
+                      if (hasPam) return <PaminnelseCell historik={ev!.paminnelse_historik} />
+                      if (ev && !ev.signerad_at && !ev.revoked_at) {
+                        return (
+                          <button
+                            onClick={() => { setPaminnelseModal({ lankId: ev.id, forslagNummer: f.forslag_nummer }); setPaminnelseMsg('') }}
+                            className="text-xs text-subtle hover:text-fg transition-colors"
+                          >
+                            + Påminnelse
+                          </button>
+                        )
+                      }
+                      return <span className="text-[11px] text-muted">—</span>
+                    })()}
+                  </td>
                   <td className="px-4 py-3 whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
                     <StatusPicker forslag={f} statusar={statusar} onStatusChange={onStatusChange} />
                   </td>
                   <td className="px-4 py-3" onClick={(e) => e.stopPropagation()}>
-                    {smsForslag.has(f.id) && (
+                    {smsForslag.has(f.id) ? (
                       <button
                         onClick={() => {
                           setSmsModal({ forslagId: f.id, nummer: f.forslag_nummer })
@@ -493,12 +506,26 @@ export function ForslagTable({ forslag, statusar, signingEvents, smsForslag, onS
                         className="flex items-center gap-1.5 px-2 py-1 rounded text-xs text-muted border border-border hover:text-fg hover:bg-hover transition-colors whitespace-nowrap"
                       >
                         <MessageSquare size={11} />
-                        Öppna SMS
+                        SMS
+                      </button>
+                    ) : (
+                      <button
+                        onClick={() => onOpenSms?.(f)}
+                        className="text-xs text-subtle hover:text-fg transition-colors"
+                      >
+                        + SMS
                       </button>
                     )}
                   </td>
-                  <td className="px-4 py-3 text-muted text-xs whitespace-nowrap">
-                    {new Date(f.skapad_at).toLocaleDateString('sv-SE')}
+                  <td className="px-4 py-3 whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
+                    {f.projekt.kunder.webbadress ? (
+                      <button
+                        onClick={() => window.api.invoke('shell:open-external', f.projekt.kunder.webbadress!)}
+                        className="inline-flex items-center gap-1 px-2 py-0.5 rounded border border-border text-xs text-muted hover:text-fg hover:bg-hover transition-colors"
+                      >
+                        Url
+                      </button>
+                    ) : null}
                   </td>
                   <td className="px-4 py-3 text-right" onClick={(e) => e.stopPropagation()}>
                     <button
@@ -522,6 +549,50 @@ export function ForslagTable({ forslag, statusar, signingEvents, smsForslag, onS
               )})}
             </tbody>
           </table>
+        </div>
+      )}
+
+      {/* Påminnelse modal */}
+      {paminnelseModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60" onMouseDown={(e) => { if (e.target === e.currentTarget) setPaminnelseModal(null) }}>
+          <div className="bg-elevated border border-border rounded-xl shadow-xl w-[420px] flex flex-col overflow-hidden">
+            <div className="flex items-center justify-between px-5 py-3 border-b border-border shrink-0">
+              <p className="text-[11px] uppercase tracking-widest text-muted font-semibold">Påminnelse — {paminnelseModal.forslagNummer}</p>
+              <button onClick={() => setPaminnelseModal(null)} className="text-subtle hover:text-fg transition-colors"><X size={14} /></button>
+            </div>
+            <div className="p-5 flex flex-col gap-3">
+              <textarea
+                autoFocus
+                value={paminnelseMsg}
+                onChange={(e) => setPaminnelseMsg(e.target.value)}
+                placeholder="Meddelande (valfritt)..."
+                rows={4}
+                className="w-full bg-bg border border-border rounded px-3 py-2 text-xs text-fg placeholder:text-subtle resize-none"
+              />
+              <div className="flex gap-2">
+                <button onClick={() => setPaminnelseModal(null)} className="flex-1 py-2 rounded text-xs text-muted border border-border hover:text-fg hover:bg-hover transition-colors">
+                  Avbryt
+                </button>
+                <button
+                  disabled={sendingPam}
+                  onClick={async () => {
+                    if (!paminnelseModal || !onSendReminder) return
+                    setSendingPam(true)
+                    try {
+                      await onSendReminder(paminnelseModal.lankId, paminnelseMsg)
+                      setPaminnelseModal(null)
+                    } finally {
+                      setSendingPam(false)
+                    }
+                  }}
+                  className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded text-xs font-semibold bg-hover border border-border text-fg hover:opacity-80 transition-opacity disabled:opacity-40 disabled:cursor-not-allowed"
+                >
+                  <Bell size={12} />
+                  {sendingPam ? 'Skickar...' : 'Skicka påminnelse'}
+                </button>
+              </div>
+            </div>
+          </div>
         </div>
       )}
 

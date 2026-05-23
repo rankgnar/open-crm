@@ -10,6 +10,7 @@ interface Props {
   projekt: ProjektWithKund[]
   statusar: ForslagStatusar[]
   initial?: ForslagWithProjekt
+  initialProjektId?: string
   onSubmit: (data: CreateForslagInput, mallId?: string) => Promise<void>
   onCancel: () => void
 }
@@ -20,14 +21,14 @@ function defaultGiltigTill(dagar: number): string {
   return d.toISOString().slice(0, 10)
 }
 
-export function ForslagForm({ projekt, statusar, initial, onSubmit, onCancel }: Props) {
+export function ForslagForm({ projekt, statusar, initial, initialProjektId, onSubmit, onCancel }: Props) {
   const isEdit = !!initial
   const { config } = useAppConfig()
 
   const [forslagNummer, setForslagNummer] = useState(initial?.forslag_nummer ?? '')
   const [previewNummer, setPreviewNummer] = useState<string | null>(null)
   const [titel, setTitel] = useState(initial?.titel ?? '')
-  const [projektId, setProjektId] = useState(initial?.projekt_id ?? '')
+  const [projektId, setProjektId] = useState(initial?.projekt_id ?? initialProjektId ?? '')
   const [status, setStatus] = useState<string>(initial?.status ?? '')
   const [giltigTill, setGiltigTill] = useState(initial?.giltig_till ?? (isEdit ? '' : defaultGiltigTill(config?.forslag_std_giltig_dagar ?? 30)))
   const [momsProcent, setMomsProcent] = useState(initial?.moms_procent?.toString() ?? (isEdit ? '25' : (config?.forslag_std_moms_procent?.toString() ?? '25')))

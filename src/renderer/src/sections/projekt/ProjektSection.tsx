@@ -6,6 +6,7 @@ import { ProjektForm } from './ProjektForm'
 import { ProjektDetail } from './ProjektDetail'
 import { DuplikatProjektModal } from './DuplikatProjektModal'
 import type { ProjektWithKund, CreateProjektInput, ProjektAnteckning, ProjektStatusar, ProjektDokument, FileDialogResult, ProjektAktivitet, DokumentKategori, Frageblankett, FragaFalt, FrageblanktEpostDraft } from './types'
+import { FrageblanketterCreateModal } from './FrageblanketterCreateModal'
 import type { Kund } from '@/sections/kunder/types'
 import type { FaktureringSnapshot } from '@/sections/fakturering/types'
 
@@ -13,9 +14,11 @@ type View = 'list' | 'create' | 'detail'
 
 interface Props {
   initialProjektId?: string
+  initialKundId?: string
+  onCreateForslag?: (projektId: string) => void
 }
 
-export function ProjektSection({ initialProjektId }: Props = {}) {
+export function ProjektSection({ initialProjektId, initialKundId, onCreateForslag }: Props = {}) {
   const [projekt, setProjekt] = useState<ProjektWithKund[]>([])
   const [kunder, setKunder] = useState<Kund[]>([])
   const [fragSummary, setFragSummary] = useState<Record<string, string>>({})
@@ -32,6 +35,7 @@ export function ProjektSection({ initialProjektId }: Props = {}) {
   const [aktiviteter, setAktiviteter] = useState<ProjektAktivitet[]>([])
   const [uploadProgress, setUploadProgress] = useState<{ current: number; total: number } | null>(null)
   const [frageblanktter, setFrageblanktter] = useState<Frageblankett[]>([])
+  const [formularModalProjektId, setFormularModalProjektId] = useState<string | null>(null)
 
   function logActivity(projekt_id: string, handelse: string, text: string) {
     return window.api.invoke('db:projekt-aktivitet:create', { projekt_id, handelse, text })
@@ -71,6 +75,10 @@ export function ProjektSection({ initialProjektId }: Props = {}) {
     loadAnteckningar(p.id)
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [initialProjektId, projekt])
+
+  useEffect(() => {
+    if (initialKundId && !loading) setView('create')
+  }, [initialKundId, loading])
 
   async function handleCreate(data: CreateProjektInput) {
     const created = await window.api.invoke('db:projekt:create', data) as ProjektWithKund
@@ -149,6 +157,12 @@ export function ProjektSection({ initialProjektId }: Props = {}) {
     if (!selectedProjekt) throw new Error('No project selected')
     const b = await window.api.invoke('db:frageblankett:create', { projekt_id: selectedProjekt.id, titel, questions_json: questionsJson }) as Frageblankett
     setFrageblanktter(prev => [b, ...prev])
+    return b
+  }
+
+  async function handleCreateBlankettFromModal(projektId: string, titel: string, questionsJson: FragaFalt[]): Promise<Frageblankett> {
+    const b = await window.api.invoke('db:frageblankett:create', { projekt_id: projektId, titel, questions_json: questionsJson }) as Frageblankett
+    setFragSummary(prev => ({ ...prev, [projektId]: 'utkast' }))
     return b
   }
 
@@ -334,7 +348,7 @@ export function ProjektSection({ initialProjektId }: Props = {}) {
   }
 
   if (view === 'create') {
-    return <ProjektForm kunder={kunder} statusar={statusar} onSubmit={handleCreate} onCancel={() => setView('list')} />
+    return <ProjektForm kunder={kunder} statusar={statusar} initialKundId={initialKundId} onSubmit={handleCreate} onCancel={() => setView('list')} />
   }
 
   if (view === 'detail' && selectedProjekt) {
@@ -391,12 +405,23 @@ export function ProjektSection({ initialProjektId }: Props = {}) {
         onStatusChange={handleStatusChange}
         onStatusChangeMany={handleStatusChangeMany}
         onDeleteMany={handleDeleteMany}
+        onCreateForslag={onCreateForslag}
+        onCreateFormular={(projektId) => setFormularModalProjektId(projektId)}
       />
       {showDuplicate && (
         <DuplikatProjektModal
           allKunder={kunder}
           onClose={() => setShowDuplicate(false)}
           onDuplicated={handleDuplicated}
+        />
+      )}
+      {formularModalProjektId && (
+        <FrageblanketterCreateModal
+          projektId={formularModalProjektId}
+          onGenerateFromText={handleGenerateFromText}
+          onCreateBlankett={handleCreateBlankettFromModal}
+          onGetLink={handleGetBlanktLink}
+          onClose={() => setFormularModalProjektId(null)}
         />
       )}
     </>

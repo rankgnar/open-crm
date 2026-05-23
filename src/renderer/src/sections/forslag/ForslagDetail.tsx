@@ -1087,7 +1087,7 @@ export function ForslagDetail({ forslag: forslagProp, statusar, allProjekt, onBa
               <button onClick={() => setShowVilkorReminder(true)} className="inline-flex items-center gap-1.5 px-3 py-2.5 text-[10px] font-semibold uppercase tracking-wider text-muted hover:text-emerald-400 transition-colors">
                 <Send size={11} />Skicka för signatur
               </button>
-              {latestLink && !latestLink.signerad_at && !latestLink.revoked_at && new Date(latestLink.gar_ut_at) > new Date() && forslag.status?.toLowerCase() === 'skickat' && (
+              {latestLink && !latestLink.signerad_at && !latestLink.revoked_at && (
                 <button
                   onClick={() => setShowPaminnelseModal(true)}
                   disabled={sendingPaminnelse}
