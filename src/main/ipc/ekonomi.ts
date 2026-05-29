@@ -3,7 +3,7 @@ import fs from 'node:fs/promises'
 import path from 'node:path'
 import { supabase } from '../supabase'
 import { broadcastChange } from '../broadcast'
-import { executeChatWithFiles } from './ai-chat-fn'
+import { executeChatWithAssistent } from './ai-chat-fn'
 
 const BUCKET = 'kostnader-fakturor'
 
@@ -112,11 +112,18 @@ export function registerEkonomiHandlers(): void {
     if (!assistent) throw new Error('Faktura-parser-assistent saknas. Kontrollera Avancerat → Asistenter.')
 
     const buffer = await fs.readFile(input.filePath)
-    const fileName = path.basename(input.filePath)
-    const raw = await executeChatWithFiles(
+    const { getDocument } = await import('pdfjs-dist/legacy/build/pdf.mjs') as { getDocument: (opts: { data: Uint8Array }) => { promise: Promise<{ numPages: number; getPage: (n: number) => Promise<{ getTextContent: () => Promise<{ items: unknown[] }> }> }> } }
+    const pdf = await getDocument({ data: new Uint8Array(buffer) }).promise
+    let text = ''
+    for (let i = 1; i <= Math.min(pdf.numPages, 4); i++) {
+      const page = await pdf.getPage(i)
+      const content = await page.getTextContent()
+      text += content.items.map((it) => ((it as { str?: string }).str ?? '')).join(' ') + '\n'
+    }
+
+    const raw = await executeChatWithAssistent(
       assistent.id,
-      'Extract datum, kategori, beskrivning and belopp from this invoice. Return ONLY valid JSON.',
-      [{ filnamn: fileName, mime_type: 'application/pdf', data_base64: buffer.toString('base64') }]
+      [{ role: 'user', content: `Extract from this supplier invoice:\n\n${text.slice(0, 3000)}` }]
     )
 
     const jsonMatch = raw.match(/\{[\s\S]*\}/)
