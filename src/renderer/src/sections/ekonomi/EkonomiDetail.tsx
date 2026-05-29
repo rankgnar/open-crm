@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
-import { ArrowLeft, Trash2 } from 'lucide-react'
+import { ArrowLeft, Trash2, Paperclip, X, Upload } from 'lucide-react'
 import { WorkflowTriggerBar } from '@/components/WorkflowTriggerBar'
 import type { ProjektWithKund } from '@/sections/projekt/types'
 import type { ForslagWithProjekt, ForslagArbete, ForslagMaterial, ForslagUnderentreprenor } from '@/sections/forslag/types'
@@ -50,6 +50,11 @@ export function EkonomiDetail({ projekt, utfall, onBack, onAddUtfall, onDeleteUt
   const [belopp, setBelopp] = useState('')
   const [datum, setDatum] = useState(new Date().toISOString().split('T')[0])
   const [saving, setSaving] = useState(false)
+
+  // PDF upload state
+  interface PendingPdf { filePath: string; fileName: string; mimeType: string; size: number }
+  const [pendingPdf, setPendingPdf] = useState<PendingPdf | null>(null)
+  const [parsing, setParsing] = useState(false)
 
   // Multi-select state
   const [selected, setSelected] = useState<Set<string>>(new Set())
@@ -120,14 +125,54 @@ export function EkonomiDetail({ projekt, utfall, onBack, onAddUtfall, onDeleteUt
   const resultat = forslagTotalt > 0 ? forslagTotalt - utfallTotal : projekt.budget_total - utfallTotal
   const progressPct = forslagTotalt > 0 ? Math.min((utfallTotal / forslagTotalt) * 100, 100) : 0
 
+  async function handleUploadPdf() {
+    const file = await window.api.invoke('dialog:open-file') as { filePath: string; fileName: string; mimeType: string; size: number } | null
+    if (!file) return
+    setParsing(true)
+    try {
+      const parsed = await window.api.invoke('db:ekonomi-utfall:parse-faktura', { filePath: file.filePath }) as { datum?: string; kategori?: string; beskrivning?: string; belopp?: number }
+      if (parsed.datum) setDatum(parsed.datum)
+      if (parsed.kategori && ['arbete', 'material', 'ue', 'övrigt'].includes(parsed.kategori)) setKategori(parsed.kategori as UtfallKategori)
+      if (parsed.beskrivning) setBeskrivning(parsed.beskrivning)
+      if (parsed.belopp) setBelopp(String(parsed.belopp))
+      setPendingPdf(file)
+    } catch {
+      setPendingPdf(file)
+    } finally {
+      setParsing(false)
+    }
+  }
+
   async function handleAdd(e: React.FormEvent) {
     e.preventDefault()
     if (!beskrivning.trim() || !belopp) return
     setSaving(true)
     try {
-      await onAddUtfall({ projekt_id: projekt.id, kategori, beskrivning: beskrivning.trim(), belopp: parseFloat(belopp), datum })
+      let pdfPath: string | null = null
+      let pdfNamn: string | null = null
+      if (pendingPdf) {
+        const uploaded = await window.api.invoke('db:ekonomi-utfall:upload-pdf', {
+          filePath: pendingPdf.filePath,
+          fileName: pendingPdf.fileName,
+          mimeType: pendingPdf.mimeType,
+          size: pendingPdf.size,
+          projektId: projekt.id,
+        }) as { path: string; namn: string }
+        pdfPath = uploaded.path
+        pdfNamn = uploaded.namn
+      }
+      await onAddUtfall({
+        projekt_id: projekt.id,
+        kategori,
+        beskrivning: beskrivning.trim(),
+        belopp: parseFloat(belopp),
+        datum,
+        faktura_pdf_path: pdfPath,
+        faktura_pdf_namn: pdfNamn,
+      })
       setBeskrivning('')
       setBelopp('')
+      setPendingPdf(null)
     } finally {
       setSaving(false)
     }
@@ -233,6 +278,7 @@ export function EkonomiDetail({ projekt, utfall, onBack, onAddUtfall, onDeleteUt
                     <th className="pb-2 text-[10px] uppercase tracking-wider text-subtle font-medium">Beskrivning</th>
                     <th className="pb-2 text-[10px] uppercase tracking-wider text-subtle font-medium text-right w-32">Belopp</th>
                     <th className="pb-2 w-8" />
+                    <th className="pb-2 w-6" />
                   </tr>
                 </thead>
                 <tbody>
@@ -255,6 +301,17 @@ export function EkonomiDetail({ projekt, utfall, onBack, onAddUtfall, onDeleteUt
                       <td className="py-2 pr-4 text-fg">{u.beskrivning}</td>
                       <td className="py-2 text-right font-mono text-fg">{fmt(u.belopp)}</td>
                       <td className="py-2 pl-2">
+                        {u.faktura_pdf_path && (
+                          <button
+                            onClick={() => window.api.invoke('db:ekonomi-utfall:open-pdf', { storagePath: u.faktura_pdf_path })}
+                            title={u.faktura_pdf_namn ?? 'Faktura PDF'}
+                            className="text-muted hover:text-fg transition-colors"
+                          >
+                            <Paperclip size={11} />
+                          </button>
+                        )}
+                      </td>
+                      <td className="py-2 pl-2">
                         <button
                           onClick={() => onDeleteUtfall(u.id)}
                           className="opacity-0 group-hover:opacity-100 text-subtle hover:text-red-400 transition-opacity"
@@ -274,57 +331,77 @@ export function EkonomiDetail({ projekt, utfall, onBack, onAddUtfall, onDeleteUt
           )}
 
           {/* Add form */}
-          <form onSubmit={handleAdd} className="flex items-end gap-3 pt-4 border-t border-border shrink-0">
-            <div className="flex flex-col gap-1">
-              <label className="text-[10px] uppercase tracking-wider text-muted">Datum</label>
-              <input type="date" className="input text-xs py-1.5 px-2 w-32" value={datum} onChange={(e) => setDatum(e.target.value)} required />
-            </div>
-            <div className="flex flex-col gap-1">
-              <label className="text-[10px] uppercase tracking-wider text-muted">Kategori</label>
-              <SelectField
-                value={kategori}
-                onChange={(v) => setKategori(v as UtfallKategori)}
-                className="w-36"
-                options={[
-                  { value: 'arbete', label: 'Arbete' },
-                  { value: 'material', label: 'Material' },
-                  { value: 'ue', label: 'Underentrepr.' },
-                  { value: 'övrigt', label: 'Övrigt' },
-                ]}
-              />
-            </div>
-            <div className="flex flex-col gap-1 flex-1">
-              <label className="text-[10px] uppercase tracking-wider text-muted">Beskrivning</label>
-              <input
-                type="text"
-                className="input text-xs py-1.5 px-2"
-                placeholder="Elektriker 8h, Kabel 10m..."
-                value={beskrivning}
-                onChange={(e) => setBeskrivning(e.target.value)}
-                required
-              />
-            </div>
-            <div className="flex flex-col gap-1">
-              <label className="text-[10px] uppercase tracking-wider text-muted">Belopp ({config?.valuta ?? 'kr'})</label>
-              <input
-                type="number"
-                min="0"
-                step="0.01"
-                className="input text-xs py-1.5 px-2 w-32 text-right"
-                placeholder="0"
-                value={belopp}
-                onChange={(e) => setBelopp(e.target.value)}
-                required
-              />
-            </div>
-            <button
-              type="submit"
-              disabled={saving}
-              className="rounded-lg bg-fg text-bg px-4 py-1.5 text-xs font-medium hover:opacity-90 transition-opacity disabled:opacity-40 shrink-0"
-            >
-              {saving ? '...' : '+ Registrera'}
-            </button>
-          </form>
+          <div className="pt-4 border-t border-border shrink-0">
+            {pendingPdf && (
+              <div className="flex items-center gap-2 mb-2">
+                <Paperclip size={11} className="text-muted shrink-0" />
+                <span className="text-xs text-muted truncate max-w-xs">{pendingPdf.fileName}</span>
+                <button onClick={() => setPendingPdf(null)} className="text-subtle hover:text-red-400 transition-colors shrink-0">
+                  <X size={11} />
+                </button>
+              </div>
+            )}
+            <form onSubmit={handleAdd} className="flex items-end gap-3">
+              <div className="flex flex-col gap-1">
+                <label className="text-[10px] uppercase tracking-wider text-muted">Datum</label>
+                <input type="date" className="input text-xs py-1.5 px-2 w-32" value={datum} onChange={(e) => setDatum(e.target.value)} required />
+              </div>
+              <div className="flex flex-col gap-1">
+                <label className="text-[10px] uppercase tracking-wider text-muted">Kategori</label>
+                <SelectField
+                  value={kategori}
+                  onChange={(v) => setKategori(v as UtfallKategori)}
+                  className="w-36"
+                  options={[
+                    { value: 'arbete', label: 'Arbete' },
+                    { value: 'material', label: 'Material' },
+                    { value: 'ue', label: 'Underentrepr.' },
+                    { value: 'övrigt', label: 'Övrigt' },
+                  ]}
+                />
+              </div>
+              <div className="flex flex-col gap-1 flex-1">
+                <label className="text-[10px] uppercase tracking-wider text-muted">Beskrivning</label>
+                <input
+                  type="text"
+                  className="input text-xs py-1.5 px-2"
+                  placeholder="Elektriker 8h, Kabel 10m..."
+                  value={beskrivning}
+                  onChange={(e) => setBeskrivning(e.target.value)}
+                  required
+                />
+              </div>
+              <div className="flex flex-col gap-1">
+                <label className="text-[10px] uppercase tracking-wider text-muted">Belopp ({config?.valuta ?? 'kr'})</label>
+                <input
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  className="input text-xs py-1.5 px-2 w-32 text-right"
+                  placeholder="0"
+                  value={belopp}
+                  onChange={(e) => setBelopp(e.target.value)}
+                  required
+                />
+              </div>
+              <button
+                type="button"
+                onClick={handleUploadPdf}
+                disabled={parsing || saving}
+                className="flex items-center gap-1.5 rounded-lg border border-border px-3 py-1.5 text-xs text-muted hover:text-fg hover:bg-hover transition-colors disabled:opacity-40 shrink-0"
+              >
+                <Upload size={11} />
+                {parsing ? 'Analyserar...' : 'Faktura PDF'}
+              </button>
+              <button
+                type="submit"
+                disabled={saving}
+                className="rounded-lg bg-fg text-bg px-4 py-1.5 text-xs font-medium hover:opacity-90 transition-opacity disabled:opacity-40 shrink-0"
+              >
+                {saving ? '...' : '+ Registrera'}
+              </button>
+            </form>
+          </div>
         </div>
       </div>
     </div>

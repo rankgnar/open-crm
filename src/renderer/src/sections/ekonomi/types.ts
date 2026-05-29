@@ -8,6 +8,8 @@ export interface EkonomiUtfall {
   belopp: number
   datum: string
   skapad_at: string
+  faktura_pdf_path?: string | null
+  faktura_pdf_namn?: string | null
 }
 
 export interface CreateUtfallInput {
@@ -16,4 +18,6 @@ export interface CreateUtfallInput {
   beskrivning: string
   belopp: number
   datum: string
+  faktura_pdf_path?: string | null
+  faktura_pdf_namn?: string | null
 }
