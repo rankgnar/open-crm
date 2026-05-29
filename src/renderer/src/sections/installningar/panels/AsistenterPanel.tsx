@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
-import { Plus, Sparkles, Star, Trash2, ChevronDown, ChevronUp } from 'lucide-react'
+import { Plus, Sparkles, Star, Trash2, ChevronDown, ChevronUp, Lock } from 'lucide-react'
 import type { AiAssistent, AiProvider, AiProviderSlug, AiUppgift } from '../types'
 import { SelectField } from '@/components/SelectField'
 
@@ -267,7 +267,14 @@ function AssistentDetail({
       {/* Footer */}
       <div className="px-8 py-4 flex items-center justify-between mt-auto">
         <div />
-        {confirmDelete
+        {assistent.system_kod
+          ? (
+            <div className="flex items-center gap-1.5 text-xs text-subtle">
+              <Lock size={11} />
+              Systemassistent — kan inte raderas
+            </div>
+          )
+          : confirmDelete
           ? (
             <div className="flex items-center gap-3">
               <span className="text-xs text-muted">Är du säker?</span>

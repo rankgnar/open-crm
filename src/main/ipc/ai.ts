@@ -185,6 +185,8 @@ export function registerAiHandlers(): void {
   })
 
   ipcMain.handle('ai:asistenter:delete', async (_, id: string) => {
+    const { data: a } = await supabase.from('ai_asistenter').select('system_kod').eq('id', id).single()
+    if (a?.system_kod) throw new Error('Systemassistenter kan inte raderas')
     const { error } = await supabase.from('ai_asistenter').delete().eq('id', id)
     if (error) throw new Error(error.message)
   })

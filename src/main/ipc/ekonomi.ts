@@ -1,9 +1,9 @@
 import { ipcMain, shell } from 'electron'
 import fs from 'node:fs/promises'
 import path from 'node:path'
-import Anthropic from '@anthropic-ai/sdk'
 import { supabase } from '../supabase'
 import { broadcastChange } from '../broadcast'
+import { executeChatWithFiles } from './ai-chat-fn'
 
 const BUCKET = 'kostnader-fakturor'
 
@@ -104,27 +104,21 @@ export function registerEkonomiHandlers(): void {
   })
 
   ipcMain.handle('db:ekonomi-utfall:parse-faktura', async (_, input: { filePath: string }) => {
+    const { data: assistent } = await supabase
+      .from('ai_asistenter')
+      .select('id')
+      .eq('system_kod', 'kostnader_faktura_parser')
+      .single()
+    if (!assistent) throw new Error('Faktura-parser-assistent saknas. Kontrollera Avancerat → Asistenter.')
+
     const buffer = await fs.readFile(input.filePath)
-    const { getDocument } = await import('pdfjs-dist/legacy/build/pdf.mjs') as { getDocument: (opts: { data: Uint8Array }) => { promise: Promise<{ numPages: number; getPage: (n: number) => Promise<{ getTextContent: () => Promise<{ items: unknown[] }> }> }> } }
-    const pdf = await getDocument({ data: new Uint8Array(buffer) }).promise
-    let text = ''
-    for (let i = 1; i <= Math.min(pdf.numPages, 3); i++) {
-      const page = await pdf.getPage(i)
-      const content = await page.getTextContent()
-      text += content.items.map((it) => ((it as { str?: string }).str ?? '')).join(' ') + '\n'
-    }
+    const fileName = path.basename(input.filePath)
+    const raw = await executeChatWithFiles(
+      assistent.id,
+      'Extract datum, kategori, beskrivning and belopp from this invoice. Return ONLY valid JSON.',
+      [{ filnamn: fileName, mime_type: 'application/pdf', data_base64: buffer.toString('base64') }]
+    )
 
-    const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
-    const response = await client.messages.create({
-      model: 'claude-haiku-4-5-20251001',
-      max_tokens: 300,
-      messages: [{
-        role: 'user',
-        content: `Extract from this supplier invoice text: date (YYYY-MM-DD), category (one of: arbete/material/ue/övrigt), short description in Swedish, and total amount as a number (no currency symbol). Return ONLY valid JSON: {"datum":"","kategori":"","beskrivning":"","belopp":0}\n\nInvoice text:\n${text.slice(0, 2000)}`,
-      }],
-    })
-
-    const raw = response.content[0].type === 'text' ? response.content[0].text.trim() : '{}'
     const jsonMatch = raw.match(/\{[\s\S]*\}/)
     return jsonMatch ? JSON.parse(jsonMatch[0]) : {}
   })

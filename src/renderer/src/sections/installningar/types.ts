@@ -176,6 +176,7 @@ export interface AiAssistent {
   ar_standard: boolean
   sortering: number
   category: string
+  system_kod?: string | null
   skapad_at: string
   uppdaterad_at: string
   provider?: Pick<AiProvider, 'provider_slug' | 'display_name'>
