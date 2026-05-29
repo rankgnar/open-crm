@@ -1,5 +1,5 @@
-import { useState } from 'react'
-import { ArrowUp, ArrowDown, ArrowUpDown } from 'lucide-react'
+import { useState, useMemo } from 'react'
+import { ArrowUp, ArrowDown, ArrowUpDown, Search, X } from 'lucide-react'
 import type { ProjektWithKund } from '@/sections/projekt/types'
 import type { EkonomiUtfall } from './types'
 import { useAppConfig } from '@/context/AppConfig'
@@ -24,13 +24,33 @@ export function EkonomiTable({ projekt, utfallAll, onSelect }: Props) {
   const fmt = (n: number) => formatCurrency(n, 0)
   const [sortCol, setSortCol] = useState<string | null>(null)
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc')
+  const [search, setSearch] = useState('')
+  const [statusFilter, setStatusFilter] = useState('')
+
+  const statusOptions = useMemo(() => {
+    const unique = Array.from(new Set(projekt.map((p) => p.status).filter(Boolean))).sort((a, b) => a.localeCompare(b, 'sv'))
+    return unique
+  }, [projekt])
+
+  const filteredProj = useMemo(() => {
+    const q = search.toLowerCase()
+    return projekt.filter((p) => {
+      if (statusFilter && p.status !== statusFilter) return false
+      if (!q) return true
+      return (
+        p.projekt_nummer.toLowerCase().includes(q) ||
+        p.namn.toLowerCase().includes(q) ||
+        p.kunder.namn.toLowerCase().includes(q)
+      )
+    })
+  }, [projekt, search, statusFilter])
 
   function handleSort(col: string) {
     if (sortCol === col) setSortDir((d) => d === 'asc' ? 'desc' : 'asc')
     else { setSortCol(col); setSortDir('asc') }
   }
 
-  const sortedProj = sortCol ? [...projekt].sort((a, b) => {
+  const sortedProj = sortCol ? [...filteredProj].sort((a, b) => {
     if (sortCol === 'utfall' || sortCol === 'diff') {
       const ua = utfallAll.filter((u) => u.projekt_id === a.id).reduce((s, u) => s + u.belopp, 0)
       const ub = utfallAll.filter((u) => u.projekt_id === b.id).reduce((s, u) => s + u.belopp, 0)
@@ -44,15 +64,45 @@ export function EkonomiTable({ projekt, utfallAll, onSelect }: Props) {
     const av = vals[sortCol] ?? '', bv = bvals[sortCol] ?? ''
     const cmp = av.localeCompare(bv, 'sv')
     return sortDir === 'asc' ? cmp : -cmp
-  }) : projekt
+  }) : filteredProj
 
   return (
     <div className="flex flex-col h-full">
       <div className="flex items-center gap-3 px-6 py-4 border-b border-border shrink-0">
         <h1 className="text-base font-semibold text-fg">Kostnader</h1>
         <span className="text-xs text-muted bg-elevated border border-border rounded-full px-2 py-0.5">
-          {projekt.length}
+          {sortedProj.length}{filteredProj.length !== projekt.length && <span className="opacity-50"> / {projekt.length}</span>}
         </span>
+
+        <div className="relative ml-4">
+          <Search size={12} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-subtle pointer-events-none" />
+          <input
+            type="text"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Nr, projekt, kund..."
+            className="input text-xs py-1.5 pl-7 pr-6 w-48"
+          />
+          {search && (
+            <button onClick={() => setSearch('')} className="absolute right-2 top-1/2 -translate-y-1/2 text-subtle hover:text-fg transition-colors">
+              <X size={11} />
+            </button>
+          )}
+        </div>
+
+        {statusOptions.length > 0 && (
+          <select
+            value={statusFilter}
+            onChange={(e) => setStatusFilter(e.target.value)}
+            className="input text-xs py-1.5 px-2 w-36"
+          >
+            <option value="">Alla statusar</option>
+            {statusOptions.map((s) => (
+              <option key={s} value={s}>{s}</option>
+            ))}
+          </select>
+        )}
+
         <RefreshButton className="ml-auto" iconOnly />
       </div>
 
