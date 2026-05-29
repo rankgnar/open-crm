@@ -1,6 +1,6 @@
 import { ipcMain } from 'electron'
 import { supabase } from '../supabase'
-import { broadcastChange } from '../broadcast'
+import { broadcast, broadcastChange } from '../broadcast'
 
 const CHANNELS = [
   'db:forslag:list',
@@ -15,6 +15,7 @@ const CHANNELS = [
   'db:forslag-faser:list',
   'db:forslag-faser:create',
   'db:forslag-faser:update',
+  'db:forslag-faser:bulk-update-dates',
   'db:forslag-faser:delete',
   'db:forslag-faser:swap',
   'db:forslag-subfaser:list',
@@ -292,6 +293,30 @@ export function registerForslagHandlers(): void {
     if (error) throw new Error(error.message)
     broadcastChange('forslag')
     return data
+  })
+
+  ipcMain.handle('db:forslag-faser:bulk-update-dates', async (_, updates: Array<{ id: string; start_datum: string; slut_datum: string }>) => {
+    if (!updates.length) return
+    await Promise.all(
+      updates.map(u => supabase.from('forslag_faser').update({ start_datum: u.start_datum, slut_datum: u.slut_datum }).eq('id', u.id))
+    )
+    const ids = updates.map(u => u.id)
+    const { data: kalEvents } = await supabase.from('kalender_events').select('id, fas_id').in('fas_id', ids)
+    if (kalEvents && kalEvents.length > 0) {
+      const byFasId = new Map(updates.map(u => [u.id, u]))
+      await Promise.all(
+        kalEvents.map((ev: { id: string; fas_id: string }) => {
+          const u = byFasId.get(ev.fas_id)
+          if (!u) return Promise.resolve()
+          return supabase.from('kalender_events').update({
+            start: new Date(u.start_datum).toISOString(),
+            slut: new Date(u.slut_datum + 'T23:59:59').toISOString(),
+          }).eq('id', ev.id)
+        })
+      )
+      broadcast('kalender:changed')
+    }
+    broadcastChange('forslag')
   })
 
   ipcMain.handle('db:forslag-faser:delete', async (_, id: string) => {

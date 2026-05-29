@@ -1,5 +1,5 @@
 import { Fragment, useState, useEffect, useRef, useCallback, useMemo } from 'react'
-import { ArrowLeft, CalendarCheck, CalendarDays, CalendarX, ChevronDown, ChevronLeft, ChevronRight, ChevronsDown, ChevronsUp, RefreshCw, FileDown, Trash2, Wand2 } from 'lucide-react'
+import { ArrowLeft, CalendarCheck, CalendarDays, CalendarX, CheckSquare, ChevronDown, ChevronLeft, ChevronRight, ChevronsDown, ChevronsUp, RefreshCw, FileDown, Square, Trash2, Wand2 } from 'lucide-react'
 import type { ForslagWithProjekt, ForslagFas, ForslagSubfas, ForslagArbete } from '@/sections/forslag/types'
 import type { AppInstallningar, PdfMall } from '@/sections/installningar/types'
 import { useAppConfig } from '@/context/AppConfig'
@@ -79,18 +79,21 @@ interface GanttProps {
   onSetExpandedAll: (expanded: boolean) => void
   synkadeFaser: Set<string>
   onUpdateFas: (id: string, patch: { start_datum?: string | null; slut_datum?: string | null }) => Promise<void>
+  onBulkShift: (updates: Array<{ id: string; start_datum: string; slut_datum: string }>) => Promise<void>
   onUpdateArbete: (id: string, antal_timmar: number) => Promise<void>
   onDeleteFas: (fas: ForslagFas) => Promise<void>
   onDesynkaFas: (fas: ForslagFas) => Promise<void>
 }
 
-function GanttChart({ faser, subfaserByFas, arbetenBySubfas, expandedFaser, onToggleExpand, onSetExpandedAll, synkadeFaser, onUpdateFas, onUpdateArbete, onDeleteFas, onDesynkaFas }: GanttProps) {
+function GanttChart({ faser, subfaserByFas, arbetenBySubfas, expandedFaser, onToggleExpand, onSetExpandedAll, synkadeFaser, onUpdateFas, onBulkShift, onUpdateArbete, onDeleteFas, onDesynkaFas }: GanttProps) {
   const { formatCurrency } = useAppConfig()
   const onUpdateArbeteRef = useRef(onUpdateArbete)
   useEffect(() => { onUpdateArbeteRef.current = onUpdateArbete })
   const { start: tStart, days } = useMemo(() => buildTimeline(faser), [faser])
   const onUpdateRef = useRef(onUpdateFas)
   useEffect(() => { onUpdateRef.current = onUpdateFas })
+  const onBulkShiftRef = useRef(onBulkShift)
+  useEffect(() => { onBulkShiftRef.current = onBulkShift })
 
   type DragMode = 'move' | 'resize-start' | 'resize-end'
   const dragRef = useRef<{ fasId: string; startX: number; origStart: string; origSlut: string; mode: DragMode } | null>(null)
@@ -180,20 +183,25 @@ function GanttChart({ faser, subfaserByFas, arbetenBySubfas, expandedFaser, onTo
   useEffect(() => {
     function onKeyDown(e: KeyboardEvent) {
       if (e.key === 'Escape') { setSelectedFaserIds(new Set()); return }
+      if ((e.ctrlKey || e.metaKey) && e.key === 'a') {
+        const tag = (e.target as HTMLElement).tagName
+        if (['INPUT', 'TEXTAREA', 'SELECT'].includes(tag)) return
+        e.preventDefault()
+        setSelectedFaserIds(new Set(fasesRef.current.map(f => f.id)))
+        return
+      }
       if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return
       if (selectedRef.current.size === 0) return
       const tag = (e.target as HTMLElement).tagName
       if (['INPUT', 'TEXTAREA', 'SELECT'].includes(tag)) return
       e.preventDefault()
       const delta = e.key === 'ArrowLeft' ? -1 : 1
-      for (const id of selectedRef.current) {
+      const updates = [...selectedRef.current].flatMap(id => {
         const fas = fasesRef.current.find(f => f.id === id)
-        if (!fas?.start_datum || !fas?.slut_datum) continue
-        void onUpdateRef.current(id, {
-          start_datum: toISO(addDays(new Date(fas.start_datum), delta)),
-          slut_datum: toISO(addDays(new Date(fas.slut_datum), delta)),
-        })
-      }
+        if (!fas?.start_datum || !fas?.slut_datum) return []
+        return [{ id, start_datum: toISO(addDays(new Date(fas.start_datum), delta)), slut_datum: toISO(addDays(new Date(fas.slut_datum), delta)) }]
+      })
+      if (updates.length > 0) void onBulkShiftRef.current(updates)
     }
     document.addEventListener('keydown', onKeyDown)
     return () => document.removeEventListener('keydown', onKeyDown)
@@ -215,7 +223,7 @@ function GanttChart({ faser, subfaserByFas, arbetenBySubfas, expandedFaser, onTo
       {selectedFaserIds.size > 0 && (
         <div className="flex items-center gap-3 px-4 py-1.5 bg-elevated border-b border-emerald-400/30 text-[11px] text-emerald-400 shrink-0" style={{ paddingLeft: NAME_COL + 16 }}>
           <span className="font-medium">{selectedFaserIds.size} {selectedFaserIds.size === 1 ? 'fas vald' : 'faser valda'}</span>
-          <span className="text-muted">· ← → för att flytta · Esc för att avmarkera</span>
+          <span className="text-muted">· ← → för att flytta · Ctrl+A för att markera alla · Esc för att avmarkera</span>
         </div>
       )}
       <div
@@ -238,7 +246,7 @@ function GanttChart({ faser, subfaserByFas, arbetenBySubfas, expandedFaser, onTo
 
         {/* Week header */}
         <div className="sticky z-30 flex bg-sidebar border-b border-border" style={{ top: HDR_MONTH, height: HDR_WEEK }}>
-          <div className="sticky left-0 z-40 bg-sidebar border-r border-border shrink-0 flex items-center px-3" style={{ width: NAME_COL }}>
+          <div className="sticky left-0 z-40 bg-sidebar border-r border-border shrink-0 flex items-center justify-between px-3" style={{ width: NAME_COL }}>
             <button
               onClick={() => onSetExpandedAll(!allExpanded)}
               disabled={fasIdsWithSubfaser.length === 0}
@@ -248,6 +256,19 @@ function GanttChart({ faser, subfaserByFas, arbetenBySubfas, expandedFaser, onTo
               {allExpanded ? <ChevronsUp size={11} /> : <ChevronsDown size={11} />}
               {allExpanded ? 'Komprimera alla' : 'Expandera alla'}
             </button>
+            {faser.length > 0 && (
+              <button
+                onClick={() => {
+                  if (selectedFaserIds.size === faser.length) setSelectedFaserIds(new Set())
+                  else setSelectedFaserIds(new Set(faser.map(f => f.id)))
+                }}
+                className="flex items-center gap-1 text-[10px] text-muted hover:text-emerald-400"
+                title={selectedFaserIds.size === faser.length ? 'Avmarkera alla' : 'Markera alla (Ctrl+A)'}
+              >
+                {selectedFaserIds.size === faser.length ? <CheckSquare size={11} /> : <Square size={11} />}
+                {selectedFaserIds.size === faser.length ? 'Avmarkera' : 'Markera alla'}
+              </button>
+            )}
           </div>
           {weekGroups.map((wg, i) => (
             <div key={i} className="border-r border-border flex items-center justify-center overflow-hidden shrink-0" style={{ width: wg.count * DAY_PX, height: HDR_WEEK }}>
@@ -765,6 +786,18 @@ export function TidplanSection({ onNavigateBack, navigateBackLabel, initialForsl
     }
   }, [selected?.id])
 
+  const handleBulkShift = useCallback(async (updates: Array<{ id: string; start_datum: string; slut_datum: string }>) => {
+    setFaser(prev => prev.map(f => {
+      const u = updates.find(x => x.id === f.id)
+      return u ? { ...f, ...u } : f
+    }))
+    try {
+      await window.api.invoke('db:forslag-faser:bulk-update-dates', updates)
+    } catch {
+      window.api.invoke('db:forslag-faser:list', selected?.id ?? '').then((d) => setFaser(d as ForslagFas[])).catch(() => {})
+    }
+  }, [selected?.id])
+
   const filtered = useMemo(() => {
     const q = search.toLowerCase()
     return forslag.filter(f =>
@@ -911,6 +944,7 @@ export function TidplanSection({ onNavigateBack, navigateBackLabel, initialForsl
                 onSetExpandedAll={handleSetExpandedAll}
                 synkadeFaser={synkadeFaser}
                 onUpdateFas={handleUpdateFas}
+                onBulkShift={handleBulkShift}
                 onUpdateArbete={handleUpdateArbete}
                 onDeleteFas={handleDeleteFas}
                 onDesynkaFas={handleDesynkaFas}
