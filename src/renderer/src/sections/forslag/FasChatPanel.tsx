@@ -6,11 +6,26 @@ import type { ForslagFas, ForslagSubfas, ForslagArbete, ForslagMaterial, Forslag
 interface Andring {
   typ: 'uppdatera-arbete' | 'radera-arbete' | 'uppdatera-material' | 'radera-material' | 'uppdatera-ue' | 'radera-ue'
     | 'uppdatera-subfas' | 'radera-subfas' | 'skapa-subfas'
-  id?: string           // required for uppdatera/radera, absent for skapa
-  fas_id?: string       // required for skapa-subfas
-  namn?: string         // for skapa-subfas
+    | 'lagg-till-arbete' | 'lagg-till-material' | 'lagg-till-ue'
+  id?: string           // required for uppdatera/radera
+  fas_id?: string       // for skapa-subfas
+  subfas_id?: string    // for lagg-till-* (UUID or subfas namn reference)
+  namn?: string         // for skapa-subfas and lagg-till-ue
   falt?: string
   nytt_varde?: string | number
+  // lagg-till-arbete fields
+  beskrivning?: string
+  yrkesroll?: string
+  antal_timmar?: number
+  timpris?: number
+  // lagg-till-material fields
+  enhet?: string
+  antal?: number
+  a_pris?: number
+  leverantor?: string
+  // lagg-till-ue fields
+  kostnad?: number
+  inkl_material?: boolean
 }
 
 interface AiResponseJson {
@@ -104,7 +119,8 @@ const SUPPORTED_TYPES = new Set([
   'uppdatera-arbete', 'radera-arbete',
   'uppdatera-material', 'radera-material',
   'uppdatera-ue', 'radera-ue',
-  'uppdatera-subfas', 'radera-subfas', 'skapa-subfas'
+  'uppdatera-subfas', 'radera-subfas', 'skapa-subfas',
+  'lagg-till-arbete', 'lagg-till-material', 'lagg-till-ue'
 ])
 
 function isSupportedAndring(a: unknown): a is Andring {
@@ -112,6 +128,9 @@ function isSupportedAndring(a: unknown): a is Andring {
   const obj = a as Record<string, unknown>
   if (typeof obj.typ !== 'string' || !SUPPORTED_TYPES.has(obj.typ)) return false
   if (obj.typ === 'skapa-subfas') return typeof obj.fas_id === 'string' && typeof obj.namn === 'string'
+  if (obj.typ === 'lagg-till-arbete' || obj.typ === 'lagg-till-material' || obj.typ === 'lagg-till-ue') {
+    return typeof obj.subfas_id === 'string'
+  }
   return typeof obj.id === 'string'
 }
 
@@ -124,6 +143,18 @@ function andringLabel(a: Andring, itemIndex: Record<string, string>): string {
   if (a.typ === 'uppdatera-subfas') {
     const name = a.id ? (itemIndex[a.id] ?? a.id.slice(0, 8) + '…') : '?'
     return `Uppdatera subfas "${name}": ${a.falt} → ${a.nytt_varde}`
+  }
+  if (a.typ === 'lagg-till-arbete') {
+    const sf = a.subfas_id ? (itemIndex[a.subfas_id] ?? a.subfas_id) : '?'
+    return `Lägg till arbete i "${sf}": ${a.beskrivning ?? '—'} ${a.antal_timmar ?? 0}h × ${a.timpris ?? 0}kr`
+  }
+  if (a.typ === 'lagg-till-material') {
+    const sf = a.subfas_id ? (itemIndex[a.subfas_id] ?? a.subfas_id) : '?'
+    return `Lägg till material i "${sf}": ${a.beskrivning ?? '—'} ${a.antal ?? 0} ${a.enhet ?? 'st'} × ${a.a_pris ?? 0}kr`
+  }
+  if (a.typ === 'lagg-till-ue') {
+    const sf = a.subfas_id ? (itemIndex[a.subfas_id] ?? a.subfas_id) : '?'
+    return `Lägg till UE i "${sf}": ${a.namn ?? '—'} ${a.kostnad ?? 0}kr`
   }
   const name = a.id ? (itemIndex[a.id] ?? a.id.slice(0, 8) + '…') : '?'
   if (a.typ === 'radera-arbete' || a.typ === 'radera-material' || a.typ === 'radera-ue') {
@@ -254,13 +285,45 @@ export function FasChatPanel({ fas, subfaser, arbeteBySubfas, materialBySubfas, 
   async function handleApply(entryIndex: number, entry: ChatEntry, andringar: Andring[]) {
     setApplying(entryIndex)
     try {
+      // Pass 1: create subfaser first, build namn→id map for references
+      const subfasNameToId: Record<string, string> = {}
       for (const a of andringar) {
         if (a.typ === 'skapa-subfas') {
-          await window.api.invoke('db:forslag-subfaser:create', { fas_id: a.fas_id, namn: a.namn })
-        } else if (a.typ === 'radera-subfas') {
+          const created = await window.api.invoke('db:forslag-subfaser:create', { fas_id: a.fas_id, namn: a.namn }) as { id: string }
+          if (a.namn) subfasNameToId[a.namn] = created.id
+        }
+      }
+
+      // Pass 2: all other operations — resolve subfas_id references
+      function resolveSubfasId(ref: string | undefined): string | undefined {
+        if (!ref) return undefined
+        return subfasNameToId[ref] ?? ref  // if it's a name reference → resolve; else use as UUID
+      }
+
+      for (const a of andringar) {
+        if (a.typ === 'skapa-subfas') continue  // already handled
+        if (a.typ === 'radera-subfas') {
           await window.api.invoke('db:forslag-subfaser:delete', a.id)
         } else if (a.typ === 'uppdatera-subfas' && a.falt) {
           await window.api.invoke('db:forslag-subfaser:update', a.id, { [a.falt]: a.nytt_varde })
+        } else if (a.typ === 'lagg-till-arbete') {
+          await window.api.invoke('db:forslag-arbete:create-full', {
+            subfas_id: resolveSubfasId(a.subfas_id),
+            beskrivning: a.beskrivning, yrkesroll: a.yrkesroll,
+            antal_timmar: a.antal_timmar, timpris: a.timpris
+          })
+        } else if (a.typ === 'lagg-till-material') {
+          await window.api.invoke('db:forslag-material:create-full', {
+            subfas_id: resolveSubfasId(a.subfas_id),
+            beskrivning: a.beskrivning, enhet: a.enhet,
+            antal: a.antal, a_pris: a.a_pris, leverantor: a.leverantor
+          })
+        } else if (a.typ === 'lagg-till-ue') {
+          await window.api.invoke('db:forslag-ue:create-full', {
+            subfas_id: resolveSubfasId(a.subfas_id),
+            namn: a.namn, beskrivning: a.beskrivning,
+            kostnad: a.kostnad, inkl_material: a.inkl_material
+          })
         } else if (a.typ === 'radera-arbete') {
           await window.api.invoke('db:forslag-arbete:delete', a.id)
         } else if (a.typ === 'uppdatera-arbete' && a.falt) {

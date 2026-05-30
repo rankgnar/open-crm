@@ -55,6 +55,9 @@ const CHANNELS = [
   'db:forslag-fas-chat:create',
   'db:forslag-fas-chat:mark-applied',
   'db:forslag-fas-chat:clear',
+  'db:forslag-arbete:create-full',
+  'db:forslag-material:create-full',
+  'db:forslag-ue:create-full',
 ] as const
 
 type ForslagStatus = 'Utkast' | 'Skickat' | 'Accepterat' | 'Avvisat' | 'Ändring begärd'
@@ -1020,6 +1023,47 @@ export function registerForslagHandlers(): void {
 
     broadcastChange('forslag')
     return newF
+  })
+
+  // ── AI full-data create helpers ───────────────────────────────────────────
+
+  ipcMain.handle('db:forslag-arbete:create-full', async (_, input: {
+    subfas_id: string; beskrivning?: string; yrkesroll?: string; antal_timmar?: number; timpris?: number
+  }) => {
+    const { data, error } = await supabase
+      .from('forslag_arbetskostnad')
+      .insert(input)
+      .select('*')
+      .single()
+    if (error) throw new Error(error.message)
+    broadcastChange('forslag')
+    return data
+  })
+
+  ipcMain.handle('db:forslag-material:create-full', async (_, input: {
+    subfas_id: string; beskrivning?: string; enhet?: string; antal?: number; a_pris?: number; leverantor?: string
+  }) => {
+    const { data, error } = await supabase
+      .from('forslag_materialkostnad')
+      .insert(input)
+      .select('*')
+      .single()
+    if (error) throw new Error(error.message)
+    broadcastChange('forslag')
+    return data
+  })
+
+  ipcMain.handle('db:forslag-ue:create-full', async (_, input: {
+    subfas_id: string; namn?: string; beskrivning?: string; kostnad?: number; inkl_material?: boolean
+  }) => {
+    const { data, error } = await supabase
+      .from('forslag_underentreprenorer')
+      .insert(input)
+      .select('*')
+      .single()
+    if (error) throw new Error(error.message)
+    broadcastChange('forslag')
+    return data
   })
 
   // ── Fas Chat ───────────────────────────────────────────────────────────────
