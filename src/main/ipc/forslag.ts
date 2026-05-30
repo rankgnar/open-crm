@@ -51,6 +51,10 @@ const CHANNELS = [
   'db:forslag:status-summary',
   'db:forslag:export-csv',
   'db:forslag:import-csv',
+  'db:forslag-fas-chat:list',
+  'db:forslag-fas-chat:create',
+  'db:forslag-fas-chat:mark-applied',
+  'db:forslag-fas-chat:clear',
 ] as const
 
 type ForslagStatus = 'Utkast' | 'Skickat' | 'Accepterat' | 'Avvisat' | 'Ändring begärd'
@@ -1016,5 +1020,45 @@ export function registerForslagHandlers(): void {
 
     broadcastChange('forslag')
     return newF
+  })
+
+  // ── Fas Chat ───────────────────────────────────────────────────────────────
+
+  ipcMain.handle('db:forslag-fas-chat:list', async (_, fas_id: string) => {
+    const { data, error } = await supabase
+      .from('forslag_fas_chat')
+      .select('*')
+      .eq('fas_id', fas_id)
+      .order('skapad_at')
+    if (error) throw new Error(error.message)
+    return data
+  })
+
+  ipcMain.handle('db:forslag-fas-chat:create', async (_, input: {
+    fas_id: string; roll: 'user' | 'assistant'; innehall: string; andringar?: unknown
+  }) => {
+    const { data, error } = await supabase
+      .from('forslag_fas_chat')
+      .insert(input)
+      .select()
+      .single()
+    if (error) throw new Error(error.message)
+    return data
+  })
+
+  ipcMain.handle('db:forslag-fas-chat:mark-applied', async (_, id: string) => {
+    const { error } = await supabase
+      .from('forslag_fas_chat')
+      .update({ applied: true })
+      .eq('id', id)
+    if (error) throw new Error(error.message)
+  })
+
+  ipcMain.handle('db:forslag-fas-chat:clear', async (_, fas_id: string) => {
+    const { error } = await supabase
+      .from('forslag_fas_chat')
+      .delete()
+      .eq('fas_id', fas_id)
+    if (error) throw new Error(error.message)
   })
 }

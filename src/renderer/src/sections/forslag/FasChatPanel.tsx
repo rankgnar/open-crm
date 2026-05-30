@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
-import { X, Send, Loader2, ChevronDown, ChevronRight, Bot, Trash2, Pencil, CheckCircle } from 'lucide-react'
+import { X, Send, Loader2, ChevronDown, ChevronRight, Bot, Trash2, Pencil, CheckCircle, RotateCcw } from 'lucide-react'
 import type { AiAssistent, AiChatMessage } from '@/sections/installningar/types'
 import type { ForslagFas, ForslagSubfas, ForslagArbete, ForslagMaterial, ForslagUnderentreprenor } from './types'
 
@@ -10,14 +10,15 @@ interface Andring {
   nytt_varde?: string | number
 }
 
-interface AiResponse {
+interface AiResponseJson {
   forklaring: string
   andringar: Andring[]
 }
 
 interface ChatEntry {
-  role: 'user' | 'assistant'
-  content: string
+  id?: string
+  roll: 'user' | 'assistant'
+  innehall: string
   andringar?: Andring[]
   applied?: boolean
 }
@@ -83,12 +84,12 @@ function buildFasContext(
   return lines.join('\n')
 }
 
-function parseAiResponse(raw: string): AiResponse | null {
+function parseAiResponse(raw: string): AiResponseJson | null {
   try {
     const cleaned = raw.replace(/^```json\s*/i, '').replace(/^```\s*/i, '').replace(/\s*```$/, '').trim()
     const parsed = JSON.parse(cleaned)
     if (typeof parsed.forklaring === 'string' && Array.isArray(parsed.andringar)) {
-      return parsed as AiResponse
+      return parsed as AiResponseJson
     }
     return null
   } catch {
@@ -111,15 +112,14 @@ export function FasChatPanel({ fas, subfaser, arbeteBySubfas, materialBySubfas, 
   const [loading, setLoading] = useState(false)
   const [applying, setApplying] = useState<number | null>(null)
   const [contextCollapsed, setContextCollapsed] = useState(true)
+  const [clearing, setClearing] = useState(false)
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
 
-  // Rebuild context fresh each send so it reflects latest props after reload
   function currentContext() {
     return buildFasContext(fas, subfaser, arbeteBySubfas, materialBySubfas, ueBySubfas)
   }
 
-  // Index id → label for displaying change descriptions
   const itemIndex: Record<string, string> = {}
   for (const sfs of subfaser) {
     for (const a of arbeteBySubfas[sfs.id] ?? []) itemIndex[a.id] = a.beskrivning || 'tom beskrivning'
@@ -127,12 +127,24 @@ export function FasChatPanel({ fas, subfaser, arbeteBySubfas, materialBySubfas, 
     for (const u of ueBySubfas[sfs.id] ?? []) itemIndex[u.id] = u.namn || 'okänt'
   }
 
+  // Load existing chat history and assistant on mount
   useEffect(() => {
-    window.api.invoke('ai:asistenter:list').then((list) => {
+    Promise.all([
+      window.api.invoke('ai:asistenter:list'),
+      window.api.invoke('db:forslag-fas-chat:list', fas.id)
+    ]).then(([list, history]) => {
       const found = (list as AiAssistent[]).find((a) => a.aktiv && a.uppgifter.includes('fas-revisor'))
       setAssistent(found ?? null)
+      const rows = history as { id: string; roll: string; innehall: string; andringar: unknown; applied: boolean }[]
+      setEntries(rows.map((r) => ({
+        id: r.id,
+        roll: r.roll as 'user' | 'assistant',
+        innehall: r.innehall,
+        andringar: r.andringar ? (r.andringar as Andring[]) : undefined,
+        applied: r.applied
+      })))
     })
-  }, [])
+  }, [fas.id])
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
@@ -144,29 +156,26 @@ export function FasChatPanel({ fas, subfaser, arbeteBySubfas, materialBySubfas, 
     setInput('')
 
     const isFirst = entries.length === 0
-    const userContent = isFirst
-      ? `${currentContext()}\n\n---\n\n${text}`
-      : text
 
-    const newEntries: ChatEntry[] = [...entries, { role: 'user', content: text }]
+    // Save user message to DB and add to local state
+    const savedUser = await window.api.invoke('db:forslag-fas-chat:create', {
+      fas_id: fas.id,
+      roll: 'user',
+      innehall: text
+    }) as { id: string }
+
+    const newEntries: ChatEntry[] = [...entries, { id: savedUser.id, roll: 'user', innehall: text }]
     setEntries(newEntries)
     setLoading(true)
 
-    // Build messages array for IPC (includes context only on first message)
-    const messages: AiChatMessage[] = newEntries.map((e, i) => ({
-      role: e.role,
-      content: i === 0 && e.role === 'user' ? (isFirst ? userContent : e.content) : e.content
-    }))
-    // For non-first sends, we need to reconstruct with the context on the first user message
-    if (!isFirst) {
-      const firstUserIdx = messages.findIndex((m) => m.role === 'user')
-      if (firstUserIdx >= 0) {
-        messages[firstUserIdx] = {
-          ...messages[firstUserIdx],
-          content: `${currentContext()}\n\n---\n\n${entries.find((e) => e.role === 'user')?.content ?? ''}`
-        }
+    // Build messages for AI — inject context on first user message
+    const ctx = isFirst ? currentContext() : null
+    const messages: AiChatMessage[] = newEntries.map((e, i) => {
+      if (e.roll === 'user' && i === 0 && ctx) {
+        return { role: 'user' as const, content: `${ctx}\n\n---\n\n${e.innehall}` }
       }
-    }
+      return { role: e.roll as 'user' | 'assistant', content: e.innehall }
+    })
 
     try {
       const raw = await window.api.invoke('ai:chat', {
@@ -175,24 +184,26 @@ export function FasChatPanel({ fas, subfaser, arbeteBySubfas, materialBySubfas, 
       }) as string
 
       const parsed = parseAiResponse(raw)
-      if (parsed) {
-        setEntries((prev) => [...prev, {
-          role: 'assistant',
-          content: parsed.forklaring,
-          andringar: parsed.andringar.length > 0 ? parsed.andringar : undefined
-        }])
-      } else {
-        setEntries((prev) => [...prev, { role: 'assistant', content: raw }])
-      }
+      const innehall = parsed ? parsed.forklaring : raw
+      const andringar = parsed && parsed.andringar.length > 0 ? parsed.andringar : undefined
+
+      const savedAssistant = await window.api.invoke('db:forslag-fas-chat:create', {
+        fas_id: fas.id,
+        roll: 'assistant',
+        innehall,
+        andringar: andringar ?? null
+      }) as { id: string }
+
+      setEntries((prev) => [...prev, { id: savedAssistant.id, roll: 'assistant', innehall, andringar }])
     } catch {
-      setEntries((prev) => [...prev, { role: 'assistant', content: 'Ett fel uppstod. Försök igen.' }])
+      setEntries((prev) => [...prev, { roll: 'assistant', innehall: 'Ett fel uppstod. Försök igen.' }])
     } finally {
       setLoading(false)
       textareaRef.current?.focus()
     }
   }
 
-  async function handleApply(entryIndex: number, andringar: Andring[]) {
+  async function handleApply(entryIndex: number, entry: ChatEntry, andringar: Andring[]) {
     setApplying(entryIndex)
     try {
       for (const a of andringar) {
@@ -210,13 +221,21 @@ export function FasChatPanel({ fas, subfaser, arbeteBySubfas, materialBySubfas, 
           await window.api.invoke('db:forslag-ue:update', a.id, { [a.falt]: a.nytt_varde })
         }
       }
+      if (entry.id) await window.api.invoke('db:forslag-fas-chat:mark-applied', entry.id)
       setEntries((prev) => prev.map((e, i) => i === entryIndex ? { ...e, applied: true } : e))
       onChangesApplied()
     } catch (err) {
-      setEntries((prev) => [...prev, { role: 'assistant', content: `Fel vid tillämpning: ${err instanceof Error ? err.message : String(err)}` }])
+      setEntries((prev) => [...prev, { roll: 'assistant', innehall: `Fel vid tillämpning: ${err instanceof Error ? err.message : String(err)}` }])
     } finally {
       setApplying(null)
     }
+  }
+
+  async function handleClear() {
+    setClearing(true)
+    await window.api.invoke('db:forslag-fas-chat:clear', fas.id)
+    setEntries([])
+    setClearing(false)
   }
 
   function handleKeyDown(e: React.KeyboardEvent<HTMLTextAreaElement>) {
@@ -229,8 +248,6 @@ export function FasChatPanel({ fas, subfaser, arbeteBySubfas, materialBySubfas, 
   const totalItems = subfaser.reduce((s, sf) => {
     return s + (arbeteBySubfas[sf.id]?.length ?? 0) + (materialBySubfas[sf.id]?.length ?? 0) + (ueBySubfas[sf.id]?.length ?? 0)
   }, 0)
-
-  const contextPreview = currentContext()
 
   return (
     <>
@@ -245,6 +262,16 @@ export function FasChatPanel({ fas, subfaser, arbeteBySubfas, materialBySubfas, 
             <p className="text-xs font-semibold text-fg truncate">Fas-revisor</p>
             <p className="text-[10px] text-muted truncate">{fas.namn}</p>
           </div>
+          {entries.length > 0 && (
+            <button
+              onClick={handleClear}
+              disabled={clearing}
+              title="Rensa chatthistorik"
+              className="text-subtle hover:text-red-400 transition-colors shrink-0"
+            >
+              <RotateCcw size={12} />
+            </button>
+          )}
           <button onClick={onClose} className="text-subtle hover:text-fg transition-colors shrink-0">
             <X size={14} />
           </button>
@@ -261,7 +288,7 @@ export function FasChatPanel({ fas, subfaser, arbeteBySubfas, materialBySubfas, 
           </button>
           {!contextCollapsed && (
             <div className="px-4 pb-3 max-h-48 overflow-auto">
-              <pre className="text-[10px] text-subtle font-mono whitespace-pre-wrap leading-relaxed">{contextPreview}</pre>
+              <pre className="text-[10px] text-subtle font-mono whitespace-pre-wrap leading-relaxed">{currentContext()}</pre>
             </div>
           )}
         </div>
@@ -284,16 +311,16 @@ export function FasChatPanel({ fas, subfaser, arbeteBySubfas, materialBySubfas, 
               <div className="text-center mt-8 px-4">
                 <Bot size={20} className="text-subtle mx-auto mb-2" />
                 <p className="text-xs text-muted mb-1">Beskriv vad du vill granska eller åtgärda</p>
-                <p className="text-[10px] text-subtle">Exempel: "Granska alla arbeten och ta bort onödiga poster" eller "Justera materialmängderna för subfas Demontering"</p>
+                <p className="text-[10px] text-subtle">Exempel: "Granska alla arbeten och ta bort onödiga poster" eller "Justera materialmängderna"</p>
               </div>
             )}
 
             {entries.map((entry, i) => {
-              if (entry.role === 'user') {
+              if (entry.roll === 'user') {
                 return (
                   <div key={i} className="flex justify-end">
                     <div className="max-w-[85%] bg-blue-400/10 border border-blue-400/20 rounded-xl px-3 py-2">
-                      <p className="text-xs text-fg whitespace-pre-wrap">{entry.content}</p>
+                      <p className="text-xs text-fg whitespace-pre-wrap">{entry.innehall}</p>
                     </div>
                   </div>
                 )
@@ -301,12 +328,10 @@ export function FasChatPanel({ fas, subfaser, arbeteBySubfas, materialBySubfas, 
 
               return (
                 <div key={i} className="flex flex-col gap-1.5">
-                  {/* AI explanation bubble */}
                   <div className="max-w-[92%] bg-elevated border border-border rounded-xl px-3 py-2">
-                    <p className="text-xs text-fg whitespace-pre-wrap leading-relaxed">{entry.content}</p>
+                    <p className="text-xs text-fg whitespace-pre-wrap leading-relaxed">{entry.innehall}</p>
                   </div>
 
-                  {/* Changes list */}
                   {entry.andringar && entry.andringar.length > 0 && (
                     <div className="max-w-[92%] border border-border rounded-xl overflow-hidden">
                       <div className="px-3 py-2 bg-sidebar border-b border-border flex items-center justify-between">
@@ -337,7 +362,7 @@ export function FasChatPanel({ fas, subfaser, arbeteBySubfas, materialBySubfas, 
                       {!entry.applied && (
                         <div className="px-3 py-2 border-t border-border">
                           <button
-                            onClick={() => handleApply(i, entry.andringar!)}
+                            onClick={() => handleApply(i, entry, entry.andringar!)}
                             disabled={applying !== null}
                             className="w-full flex items-center justify-center gap-1.5 text-xs font-medium text-fg bg-hover hover:bg-hover/80 border border-border rounded-lg py-1.5 transition-colors disabled:opacity-40"
                           >
