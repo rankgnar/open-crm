@@ -298,6 +298,23 @@ export function ForslagDetail({ forslag: forslagProp, statusar, allProjekt, onBa
 
   useEffect(() => { loadAll() }, [loadAll])
 
+  const reloadItems = useCallback(async () => {
+    const [arbeteData, materialData, ueData] = await Promise.all([
+      window.api.invoke('db:forslag-arbete:list-by-forslag', forslag.id) as Promise<ForslagArbete[]>,
+      window.api.invoke('db:forslag-material:list-by-forslag', forslag.id) as Promise<ForslagMaterial[]>,
+      window.api.invoke('db:forslag-ue:list-by-forslag', forslag.id) as Promise<ForslagUnderentreprenor[]>,
+    ])
+    const byArbete: Record<string, ForslagArbete[]> = {}
+    arbeteData.forEach((a) => { if (!byArbete[a.subfas_id]) byArbete[a.subfas_id] = []; byArbete[a.subfas_id].push(a) })
+    setArbeteBySubfas(byArbete)
+    const byMaterial: Record<string, ForslagMaterial[]> = {}
+    materialData.forEach((m) => { if (!byMaterial[m.subfas_id]) byMaterial[m.subfas_id] = []; byMaterial[m.subfas_id].push(m) })
+    setMaterialBySubfas(byMaterial)
+    const byUE: Record<string, ForslagUnderentreprenor[]> = {}
+    ueData.forEach((u) => { if (!byUE[u.subfas_id]) byUE[u.subfas_id] = []; byUE[u.subfas_id].push(u) })
+    setUeBySubfas(byUE)
+  }, [forslag.id])
+
   useEffect(() => {
     window.api.invoke('db:arbets-roller:list').then((r) => setArbetsRoller(r as ArbetsRoll[]))
   }, [])
@@ -2396,6 +2413,7 @@ export function ForslagDetail({ forslag: forslagProp, statusar, allProjekt, onBa
             materialBySubfas={materialBySubfas}
             ueBySubfas={ueBySubfas}
             onClose={() => setChatFasId(null)}
+            onChangesApplied={reloadItems}
           />
         )
       })()}
