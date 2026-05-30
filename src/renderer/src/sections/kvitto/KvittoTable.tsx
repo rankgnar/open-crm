@@ -104,13 +104,13 @@ export function KvittoTable({ kvitton, onSelect, onNew, onDeleteMany }: Props) {
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <RefreshButton iconOnly />
           <button
             onClick={onNew}
             className="inline-flex items-center gap-1.5 px-3 py-2.5 text-[10px] font-semibold uppercase tracking-wider text-muted hover:text-fg transition-colors"
           >
             <Plus size={12} />Nytt kvitto
           </button>
+          <RefreshButton iconOnly />
         </div>
       </div>
 

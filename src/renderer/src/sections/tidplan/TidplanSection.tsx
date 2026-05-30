@@ -258,7 +258,8 @@ function GanttChart({ faser, subfaserByFas, arbetenBySubfas, expandedFaser, onTo
             </button>
             {faser.length > 0 && (
               <button
-                onClick={() => {
+                onClick={(e) => {
+                  e.stopPropagation()
                   if (selectedFaserIds.size === faser.length) setSelectedFaserIds(new Set())
                   else setSelectedFaserIds(new Set(faser.map(f => f.id)))
                 }}

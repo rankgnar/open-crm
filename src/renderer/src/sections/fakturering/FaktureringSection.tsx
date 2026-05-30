@@ -66,13 +66,13 @@ export function FaktureringSection() {
       <div className="flex items-center justify-between px-6 py-3 border-b border-border bg-sidebar shrink-0">
         <h1 className="text-sm font-medium text-fg">Fakturering</h1>
         <div className="flex items-center gap-2">
-          <RefreshButton iconOnly />
           <button
             onClick={() => setView('create')}
             className="inline-flex items-center gap-1.5 px-3 py-2.5 text-[10px] font-semibold uppercase tracking-wider text-muted hover:text-fg transition-colors"
           >
             <Plus size={12} />Ny fakturering
           </button>
+          <RefreshButton iconOnly />
         </div>
       </div>
 

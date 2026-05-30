@@ -1,9 +1,8 @@
-import { useState, useMemo, useRef } from 'react'
-import { Search, UserPlus, Upload, ChevronUp, ChevronDown, ChevronsUpDown, CheckCircle2, XCircle, Trash2 } from 'lucide-react'
+import { useState, useMemo, useRef, useEffect } from 'react'
+import { Search, UserPlus, Upload, ChevronUp, ChevronDown, ChevronsUpDown, CheckCircle2, XCircle, Trash2, ChevronDown as ChevronDownIcon } from 'lucide-react'
 import { RefreshButton } from '@/components/RefreshButton'
 import type { Personal, PersonalStatusar, CsvImportResult } from './types'
 import { FARG_DOT, FARG_TEXT } from './types'
-import { SelectField } from '@/components/SelectField'
 
 interface Props {
   personal: Personal[]
@@ -56,9 +55,66 @@ function StatusPicker({ p, statusar, onStatusChange }: { p: Personal; statusar: 
   )
 }
 
+const STORAGE_KEY = 'personal-status-filter'
+
+function StatusCheckboxFilter({ statusar, value, onChange }: { statusar: PersonalStatusar[]; value: string[]; onChange: (v: string[]) => void }) {
+  const [open, setOpen] = useState(false)
+  const ref = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    function handleClick(e: MouseEvent) {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false)
+    }
+    document.addEventListener('mousedown', handleClick)
+    return () => document.removeEventListener('mousedown', handleClick)
+  }, [])
+
+  function toggle(namn: string) {
+    onChange(value.includes(namn) ? value.filter((v) => v !== namn) : [...value, namn])
+  }
+
+  const label = value.length === 0 ? 'Alla statusar' : value.length === 1 ? value[0] : `${value.length} statusar`
+
+  return (
+    <div ref={ref} className="relative">
+      <button
+        onClick={() => setOpen((v) => !v)}
+        className="flex items-center gap-1.5 h-[30px] px-3 bg-elevated border border-border rounded-md text-xs text-muted hover:text-fg hover:border-muted transition-colors whitespace-nowrap"
+      >
+        {label}
+        <ChevronDownIcon size={11} className={`transition-transform ${open ? 'rotate-180' : ''}`} />
+      </button>
+      {open && (
+        <div className="absolute left-0 top-full mt-1 z-30 min-w-[160px] bg-elevated border border-border rounded-lg shadow-lg py-1.5 flex flex-col">
+          <button
+            className="flex items-center gap-2 px-3 py-1.5 text-xs hover:bg-hover transition-colors text-left text-muted"
+            onClick={() => onChange([])}
+          >
+            — Alla statusar —
+          </button>
+          {statusar.map((s) => (
+            <label key={s.id} className="flex items-center gap-2 px-3 py-1.5 text-xs hover:bg-hover transition-colors cursor-pointer">
+              <input
+                type="checkbox"
+                checked={value.includes(s.namn)}
+                onChange={() => toggle(s.namn)}
+                className="accent-emerald-400"
+              />
+              <span className={`size-1.5 rounded-full ${FARG_DOT[s.farg]}`} />
+              <span className={FARG_TEXT[s.farg]}>{s.namn}</span>
+            </label>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
 export function PersonalTable({ personal, statusar, onSelect, onNew, onStatusChange, onImportCsv, onDeleteMany }: Props) {
   const [query, setQuery] = useState('')
-  const [statusFilter, setStatusFilter] = useState<string>('alla')
+  const [statusFilter, setStatusFilter] = useState<string[]>(() => {
+    try { return JSON.parse(localStorage.getItem(STORAGE_KEY) ?? '[]') } catch { return [] }
+  })
   const [sortKey, setSortKey] = useState<SortKey>('skapad_at' as SortKey)
   const [sortDir, setSortDir] = useState<SortDir>('desc')
   const [importing, setImporting] = useState(false)
@@ -66,6 +122,10 @@ export function PersonalTable({ personal, statusar, onSelect, onNew, onStatusCha
   const [selected, setSelected] = useState<Set<string>>(new Set())
   const [confirmBulk, setConfirmBulk] = useState(false)
   const [deletingBulk, setDeletingBulk] = useState(false)
+
+  useEffect(() => {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(statusFilter))
+  }, [statusFilter])
 
   function handleSort(key: SortKey) {
     if (sortKey === key) setSortDir((d) => (d === 'asc' ? 'desc' : 'asc'))
@@ -76,7 +136,7 @@ export function PersonalTable({ personal, statusar, onSelect, onNew, onStatusCha
     const q = query.toLowerCase()
     return personal
       .filter((p) => {
-        if (statusFilter !== 'alla' && p.status !== statusFilter) return false
+        if (statusFilter.length > 0 && !statusFilter.includes(p.status)) return false
         if (!q) return true
         return (
           p.personal_nummer.toLowerCase().includes(q) ||
@@ -165,21 +225,11 @@ export function PersonalTable({ personal, statusar, onSelect, onNew, onStatusCha
           />
         </div>
 
-        <SelectField
-          value={statusFilter}
-          onChange={setStatusFilter}
-          className="w-36"
-          options={[
-            { value: 'alla', label: 'Alla' },
-            ...statusar.map((s) => ({ value: s.namn, label: s.namn })),
-          ]}
-        />
+        <StatusCheckboxFilter statusar={statusar} value={statusFilter} onChange={setStatusFilter} />
 
         <span className="text-xs text-subtle ml-auto">
           {filtered.length} / {personal.length}
         </span>
-
-        <RefreshButton iconOnly />
 
         <button
           onClick={handleImport}
@@ -195,6 +245,8 @@ export function PersonalTable({ personal, statusar, onSelect, onNew, onStatusCha
         >
           <UserPlus size={11} />Ny anställd
         </button>
+
+        <RefreshButton iconOnly />
       </div>
 
       {/* Bulk action bar */}

@@ -163,13 +163,13 @@ export function InventarierTable({ items, onNew, onEdit, onDelete, onDeleteMany 
             <Download size={13} />
             Exportera CSV
           </button>
-          <RefreshButton iconOnly />
           <button
             className="inline-flex items-center gap-1.5 px-3 py-2.5 text-[10px] font-semibold uppercase tracking-wider text-muted hover:text-fg transition-colors"
             onClick={onNew}
           >
             <Plus size={11} />Ny post
           </button>
+          <RefreshButton iconOnly />
         </div>
       </div>
 

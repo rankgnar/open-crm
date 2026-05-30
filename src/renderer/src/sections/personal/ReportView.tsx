@@ -639,6 +639,33 @@ export function ReportView({ pdfSettings }: ReportViewProps) {
           )}
         </div>
 
+        {/* Summary bar — always visible, outside overflow-auto */}
+        {rows.length > 0 && (
+          <div className="flex items-center gap-6 px-6 py-2.5 border-b border-border bg-elevated shrink-0 flex-wrap">
+            <div className="flex items-center gap-2">
+              <span className="text-[11px] uppercase tracking-widest text-muted">Total</span>
+              <span className="text-sm font-semibold text-fg">{fmt(totalTimmar)} h</span>
+              <span className="text-xs text-subtle">({rows.length} rader)</span>
+            </div>
+            {employeeGroups.length > 1 && (
+              <>
+                <div className="w-px h-4 bg-border shrink-0" />
+                <div className="flex items-center gap-4 flex-wrap">
+                  {employeeGroups.map((g) => {
+                    const empTimmar = g.tidrapporter.reduce((s, r) => s + r.timmar, 0)
+                    return (
+                      <div key={g.personal.id} className="flex items-center gap-1.5">
+                        <span className="text-xs text-subtle">{g.personal.namn}:</span>
+                        <span className="text-xs font-medium text-fg">{fmt(empTimmar)} h</span>
+                      </div>
+                    )
+                  })}
+                </div>
+              </>
+            )}
+          </div>
+        )}
+
         {/* Tables */}
         <div className="flex-1 overflow-auto">
           {loading ? (
@@ -742,6 +769,101 @@ export function ReportView({ pdfSettings }: ReportViewProps) {
                       </tr>
                     </tfoot>
                   </table>
+                </div>
+              )}
+              {/* Sammanfattning per employee */}
+              {employeeGroups.length > 0 && (
+                <div className="px-6 py-5 border-t-2 border-border flex flex-col gap-4">
+                  {employeeGroups.map((g) => {
+                    const rate = effectiveTimlon(g.personal)
+                    const empTimmar = g.tidrapporter.reduce((s, r) => s + r.timmar, 0)
+                    const laborCost = rate != null ? empTimmar * rate : null
+                    const visibleLone = filterLoneposterBySettings(g.loneposter, pdfSettings)
+                    const tillagg = visibleLone.filter((l) => lonepostSign(l.typ) === 1).reduce((s, l) => s + l.belopp, 0)
+                    const avdrag = visibleLone.filter((l) => lonepostSign(l.typ) === -1).reduce((s, l) => s + l.belopp, 0)
+                    const netto = laborCost != null ? laborCost + tillagg - avdrag : null
+                    return (
+                      <div key={g.personal.id} className="border border-border rounded-lg overflow-hidden">
+                        <div className="px-4 py-2 bg-elevated border-b border-border">
+                          <p className="text-[11px] uppercase tracking-widest text-muted">
+                            Sammanfattning{employeeGroups.length > 1 ? ` — ${g.personal.namn}` : ''}
+                          </p>
+                        </div>
+                        <div className="px-4 py-3 grid grid-cols-[220px_1fr] gap-y-2 text-xs">
+                          <span className="text-muted">Total timmar:</span>
+                          <span className="font-semibold text-fg">{fmt(empTimmar)} h</span>
+                          {laborCost != null && (
+                            <>
+                              <span className="text-muted">Lönekostnad ({fmt(rate!)} kr/h):</span>
+                              <span className="font-semibold text-fg">{fmt(laborCost)} kr</span>
+                            </>
+                          )}
+                          {tillagg > 0 && (
+                            <>
+                              <span className="text-muted">Tillägg / Traktamente / Utlägg:</span>
+                              <span className="font-semibold text-emerald-400">+ {fmt(tillagg)} kr</span>
+                            </>
+                          )}
+                          {avdrag > 0 && (
+                            <>
+                              <span className="text-muted">Avdrag / Förskott:</span>
+                              <span className="font-semibold text-red-400">– {fmt(avdrag)} kr</span>
+                            </>
+                          )}
+                          {netto != null && (
+                            <>
+                              <span className="font-semibold text-fg border-t border-border pt-2 mt-1">Nettolönekostnad:</span>
+                              <span className="font-semibold text-fg border-t border-border pt-2 mt-1">{fmt(netto)} kr</span>
+                            </>
+                          )}
+                        </div>
+                      </div>
+                    )
+                  })}
+
+                  {/* Grand total when >1 employee */}
+                  {employeeGroups.length > 1 && (() => {
+                    const grandTimmar = employeeGroups.reduce((s, g) => s + g.tidrapporter.reduce((a, r) => a + r.timmar, 0), 0)
+                    const grandLone = employeeGroups.reduce((s, g) => {
+                      const rate = effectiveTimlon(g.personal)
+                      return rate != null ? s + g.tidrapporter.reduce((a, r) => a + r.timmar, 0) * rate : s
+                    }, 0)
+                    const grandTillagg = employeeGroups.reduce((s, g) =>
+                      s + filterLoneposterBySettings(g.loneposter, pdfSettings).filter((l) => lonepostSign(l.typ) === 1).reduce((a, l) => a + l.belopp, 0), 0)
+                    const grandAvdrag = employeeGroups.reduce((s, g) =>
+                      s + filterLoneposterBySettings(g.loneposter, pdfSettings).filter((l) => lonepostSign(l.typ) === -1).reduce((a, l) => a + l.belopp, 0), 0)
+                    return (
+                      <div className="border border-border rounded-lg overflow-hidden">
+                        <div className="px-4 py-2 bg-elevated border-b border-border">
+                          <p className="text-[11px] uppercase tracking-widest text-muted">Totalsammanfattning — {employeeGroups.length} anställda</p>
+                        </div>
+                        <div className="px-4 py-3 grid grid-cols-[220px_1fr] gap-y-2 text-xs">
+                          <span className="text-muted">Total timmar:</span>
+                          <span className="font-semibold text-fg">{fmt(grandTimmar)} h</span>
+                          {grandLone > 0 && (
+                            <>
+                              <span className="text-muted">Total lönekostnad:</span>
+                              <span className="font-semibold text-fg">{fmt(grandLone)} kr</span>
+                            </>
+                          )}
+                          {grandTillagg > 0 && (
+                            <>
+                              <span className="text-muted">Total tillägg:</span>
+                              <span className="font-semibold text-emerald-400">+ {fmt(grandTillagg)} kr</span>
+                            </>
+                          )}
+                          {grandAvdrag > 0 && (
+                            <>
+                              <span className="text-muted">Total avdrag:</span>
+                              <span className="font-semibold text-red-400">– {fmt(grandAvdrag)} kr</span>
+                            </>
+                          )}
+                          <span className="font-semibold text-fg border-t border-border pt-2 mt-1">Nettolönekostnad:</span>
+                          <span className="font-semibold text-fg border-t border-border pt-2 mt-1">{fmt(grandLone + grandTillagg - grandAvdrag)} kr</span>
+                        </div>
+                      </div>
+                    )
+                  })()}
                 </div>
               )}
             </>
