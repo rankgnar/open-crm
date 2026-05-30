@@ -154,30 +154,28 @@ export function FasChatPanel({ fas, subfaser, arbeteBySubfas, materialBySubfas, 
     const text = input.trim()
     if (!text || loading || !assistent) return
     setInput('')
-
-    const isFirst = entries.length === 0
-
-    // Save user message to DB and add to local state
-    const savedUser = await window.api.invoke('db:forslag-fas-chat:create', {
-      fas_id: fas.id,
-      roll: 'user',
-      innehall: text
-    }) as { id: string }
-
-    const newEntries: ChatEntry[] = [...entries, { id: savedUser.id, roll: 'user', innehall: text }]
-    setEntries(newEntries)
     setLoading(true)
 
-    // Build messages for AI — inject context on first user message
-    const ctx = isFirst ? currentContext() : null
-    const messages: AiChatMessage[] = newEntries.map((e, i) => {
-      if (e.roll === 'user' && i === 0 && ctx) {
-        return { role: 'user' as const, content: `${ctx}\n\n---\n\n${e.innehall}` }
-      }
-      return { role: e.roll as 'user' | 'assistant', content: e.innehall }
-    })
-
     try {
+      // Save user message to DB
+      const savedUser = await window.api.invoke('db:forslag-fas-chat:create', {
+        fas_id: fas.id,
+        roll: 'user',
+        innehall: text
+      }) as { id: string } | null
+
+      const newEntries: ChatEntry[] = [...entries, { id: savedUser?.id, roll: 'user', innehall: text }]
+      setEntries(newEntries)
+
+      // Always inject current context on the first user message so AI has full phase data
+      const ctx = currentContext()
+      const messages: AiChatMessage[] = newEntries.map((e, i) => {
+        if (e.roll === 'user' && i === 0) {
+          return { role: 'user' as const, content: `${ctx}\n\n---\n\n${e.innehall}` }
+        }
+        return { role: e.roll as 'user' | 'assistant', content: e.innehall }
+      })
+
       const raw = await window.api.invoke('ai:chat', {
         assistent_id: assistent.id,
         messages
@@ -192,11 +190,11 @@ export function FasChatPanel({ fas, subfaser, arbeteBySubfas, materialBySubfas, 
         roll: 'assistant',
         innehall,
         andringar: andringar ?? null
-      }) as { id: string }
+      }) as { id: string } | null
 
-      setEntries((prev) => [...prev, { id: savedAssistant.id, roll: 'assistant', innehall, andringar }])
-    } catch {
-      setEntries((prev) => [...prev, { roll: 'assistant', innehall: 'Ett fel uppstod. Försök igen.' }])
+      setEntries((prev) => [...prev, { id: savedAssistant?.id, roll: 'assistant', innehall, andringar }])
+    } catch (err) {
+      setEntries((prev) => [...prev, { roll: 'assistant', innehall: `Fel: ${err instanceof Error ? err.message : 'Okänt fel. Försök igen.'}` }])
     } finally {
       setLoading(false)
       textareaRef.current?.focus()
