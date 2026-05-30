@@ -4,7 +4,7 @@ import OpenAI from 'openai'
 import { GoogleGenAI } from '@google/genai'
 import { supabase } from '../supabase'
 import { executeChatWithAssistent } from './ai-chat-fn'
-import type { AiProviderSlug, AiProvider, AiAssistent, AiTestResult, AiChatMessage } from '../../renderer/src/sections/installningar/types'
+import type { AiProviderSlug, AiProvider, AiAssistent, AiTestResult, AiChatMessage, AiAsistentKunskap } from '../../renderer/src/sections/installningar/types'
 
 const OPENROUTER_DEFAULT_BASE = 'https://openrouter.ai/api/v1'
 
@@ -197,10 +197,84 @@ export function registerAiHandlers(): void {
     if (error) throw new Error(error.message)
   })
 
+  // ── Asistent Kunskaper ─────────────────────────────────────────────────────
+
+  ipcMain.handle('ai:asistent-kunskaper:list', async (_, assistent_id: string) => {
+    const { data, error } = await supabase
+      .from('ai_asistent_kunskaper')
+      .select('*')
+      .eq('assistent_id', assistent_id)
+      .order('sortering')
+    if (error) throw new Error(error.message)
+    return data as AiAsistentKunskap[]
+  })
+
+  ipcMain.handle('ai:asistent-kunskaper:create', async (_, input: { assistent_id: string; namn: string; filtyp: string; fileData: number[] }) => {
+    const { assistent_id, namn, filtyp, fileData } = input
+    let innehall = ''
+
+    if (filtyp === 'pdf') {
+      const { getDocument } = await import('pdfjs-dist/legacy/build/pdf.mjs') as { getDocument: (opts: { data: Uint8Array }) => { promise: Promise<{ numPages: number; getPage: (n: number) => Promise<{ getTextContent: () => Promise<{ items: unknown[] }> }> }> } }
+      const pdf = await getDocument({ data: new Uint8Array(fileData) }).promise
+      const pages: string[] = []
+      for (let i = 1; i <= pdf.numPages; i++) {
+        const page = await pdf.getPage(i)
+        const content = await page.getTextContent()
+        const text = (content.items as { str?: string }[]).map((item) => item.str ?? '').join(' ')
+        pages.push(text)
+      }
+      innehall = pages.join('\n\n')
+    } else {
+      innehall = new TextDecoder().decode(new Uint8Array(fileData))
+    }
+
+    const count = await supabase.from('ai_asistent_kunskaper').select('id', { count: 'exact', head: true }).eq('assistent_id', assistent_id)
+    const { data, error } = await supabase
+      .from('ai_asistent_kunskaper')
+      .insert({ assistent_id, namn, innehall, sortering: count.count ?? 0 })
+      .select()
+      .single()
+    if (error) throw new Error(error.message)
+    return data as AiAsistentKunskap
+  })
+
+  ipcMain.handle('ai:asistent-kunskaper:delete', async (_, id: string) => {
+    const { error } = await supabase.from('ai_asistent_kunskaper').delete().eq('id', id)
+    if (error) throw new Error(error.message)
+  })
+
+  ipcMain.handle('ai:asistent-kunskaper:toggle-aktiv', async (_, id: string, aktiv: boolean) => {
+    const { data, error } = await supabase
+      .from('ai_asistent_kunskaper')
+      .update({ aktiv })
+      .eq('id', id)
+      .select()
+      .single()
+    if (error) throw new Error(error.message)
+    return data as AiAsistentKunskap
+  })
+
   // ── Chat ───────────────────────────────────────────────────────────────────
 
   ipcMain.handle('ai:chat', async (_, { assistent_id, messages }: { assistent_id: string; messages: AiChatMessage[] }): Promise<string> => {
-    return executeChatWithAssistent(assistent_id, messages)
+    const { data: kunskaper } = await supabase
+      .from('ai_asistent_kunskaper')
+      .select('namn, innehall')
+      .eq('assistent_id', assistent_id)
+      .eq('aktiv', true)
+      .order('sortering')
+
+    let augmented = messages
+    if (kunskaper && kunskaper.length > 0) {
+      const kunskapText = kunskaper.map((k: { namn: string; innehall: string }) => `## ${k.namn}\n${k.innehall}`).join('\n\n')
+      augmented = [
+        { role: 'user', content: `KUNSKAPSBAS:\n${kunskapText}` },
+        { role: 'assistant', content: 'Förstått. Jag har tagit del av kunskapsbasen och är redo att hjälpa.' },
+        ...messages
+      ]
+    }
+
+    return executeChatWithAssistent(assistent_id, augmented)
   })
 
 }

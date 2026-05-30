@@ -1,6 +1,6 @@
-import { useState, useEffect, useCallback } from 'react'
-import { Plus, Sparkles, Star, Trash2, ChevronDown, ChevronUp, Lock } from 'lucide-react'
-import type { AiAssistent, AiProvider, AiProviderSlug, AiUppgift } from '../types'
+import { useState, useEffect, useCallback, useRef } from 'react'
+import { Plus, Sparkles, Star, Trash2, ChevronDown, ChevronUp, Lock, Upload, Eye, EyeOff } from 'lucide-react'
+import type { AiAssistent, AiAsistentKunskap, AiProvider, AiProviderSlug, AiUppgift } from '../types'
 import { SelectField } from '@/components/SelectField'
 
 const CATEGORIES = ['Förslag', 'E-post', 'Analys', 'Formulär', 'Allmänt']
@@ -12,7 +12,8 @@ const UPPGIFTER: { value: AiUppgift; label: string }[] = [
   { value: 'analys', label: 'Analys' },
   { value: 'allman', label: 'Allmän' },
   { value: 'frageblankett', label: 'Formulärgenerator' },
-  { value: 'villkor-beskrivning', label: 'Villkor-beskrivning' }
+  { value: 'villkor-beskrivning', label: 'Villkor-beskrivning' },
+  { value: 'fas-revisor', label: 'Fas-revisor' }
 ]
 
 const FALLBACK_MODELS: Record<AiProviderSlug, string[]> = {
@@ -40,6 +41,105 @@ function EmptyDetail() {
       <Sparkles size={28} className="text-subtle" />
       <p className="text-sm font-medium text-muted">Välj en assistent</p>
       <p className="text-xs text-subtle max-w-xs">Välj en assistent från listan eller skapa en ny för att konfigurera den.</p>
+    </div>
+  )
+}
+
+function KunnskapsbassSection({ assistentId }: { assistentId: string }) {
+  const [kunskaper, setKunskaper] = useState<AiAsistentKunskap[]>([])
+  const [uploading, setUploading] = useState(false)
+  const [warning, setWarning] = useState<string | null>(null)
+  const fileInputRef = useRef<HTMLInputElement>(null)
+
+  useEffect(() => {
+    window.api.invoke('ai:asistent-kunskaper:list', assistentId).then((d) => setKunskaper(d as AiAsistentKunskap[]))
+  }, [assistentId])
+
+  async function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    if (!file) return
+    e.target.value = ''
+    setWarning(null)
+    setUploading(true)
+    try {
+      const ext = file.name.split('.').pop()?.toLowerCase() ?? ''
+      const filtyp = ext === 'pdf' ? 'pdf' : 'text'
+      const buffer = await file.arrayBuffer()
+      const fileData = Array.from(new Uint8Array(buffer))
+
+      if (fileData.length > 500_000) {
+        setWarning('Filen är mycket stor och kan påverka prestandan.')
+      }
+
+      const created = await window.api.invoke('ai:asistent-kunskaper:create', {
+        assistent_id: assistentId,
+        namn: file.name,
+        filtyp,
+        fileData
+      }) as AiAsistentKunskap
+      setKunskaper((prev) => [...prev, created])
+    } catch (err) {
+      setWarning(err instanceof Error ? err.message : 'Uppladdning misslyckades')
+    } finally {
+      setUploading(false)
+    }
+  }
+
+  async function handleDelete(id: string) {
+    await window.api.invoke('ai:asistent-kunskaper:delete', id)
+    setKunskaper((prev) => prev.filter((k) => k.id !== id))
+  }
+
+  async function handleToggle(k: AiAsistentKunskap) {
+    const updated = await window.api.invoke('ai:asistent-kunskaper:toggle-aktiv', k.id, !k.aktiv) as AiAsistentKunskap
+    setKunskaper((prev) => prev.map((x) => x.id === updated.id ? updated : x))
+  }
+
+  return (
+    <div className="px-8 py-6 border-b border-border">
+      <div className="flex items-center justify-between mb-4">
+        <p className="text-[11px] uppercase tracking-widest text-muted">Kunskapsbas</p>
+        <button
+          onClick={() => fileInputRef.current?.click()}
+          disabled={uploading}
+          className="flex items-center gap-1.5 text-xs text-muted hover:text-fg border border-border px-3 py-1 rounded transition-colors disabled:opacity-40"
+        >
+          <Upload size={11} />
+          {uploading ? 'Laddar upp…' : 'Ladda upp fil'}
+        </button>
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept=".pdf,.md,.txt,.csv"
+          className="hidden"
+          onChange={handleFileChange}
+        />
+      </div>
+      {warning && (
+        <p className="text-xs text-amber-400 mb-3">{warning}</p>
+      )}
+      {kunskaper.length === 0 ? (
+        <p className="text-xs text-subtle">Inga filer uppladdade. Ladda upp PDF, .md eller .txt för att ge assistenten specialkunskap.</p>
+      ) : (
+        <div className="flex flex-col gap-1">
+          {kunskaper.map((k) => (
+            <div key={k.id} className={`flex items-center gap-2 px-3 py-2 rounded border border-border text-xs transition-opacity ${k.aktiv ? '' : 'opacity-50'}`}>
+              <span className="flex-1 text-fg truncate">{k.namn}</span>
+              <span className="text-subtle shrink-0">{Math.round(k.innehall.length / 1000)}k tecken</span>
+              <button
+                onClick={() => handleToggle(k)}
+                className={`shrink-0 transition-colors ${k.aktiv ? 'text-emerald-400 hover:text-muted' : 'text-subtle hover:text-emerald-400'}`}
+                title={k.aktiv ? 'Aktiv — klicka för att inaktivera' : 'Inaktiv — klicka för att aktivera'}
+              >
+                {k.aktiv ? <Eye size={12} /> : <EyeOff size={12} />}
+              </button>
+              <button onClick={() => handleDelete(k.id)} className="text-subtle hover:text-red-400 shrink-0 transition-colors">
+                <Trash2 size={12} />
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   )
 }
@@ -263,6 +363,9 @@ function AssistentDetail({
           placeholder="Du är en hjälpsam assistent för ett byggnadsföretag..."
         />
       </div>
+
+      {/* Section 5 — Kunskapsbas */}
+      <KunnskapsbassSection assistentId={assistent.id} />
 
       {/* Footer */}
       <div className="px-8 py-4 flex items-center justify-between mt-auto">

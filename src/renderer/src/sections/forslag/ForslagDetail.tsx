@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
-import { ArrowLeft, ArrowUp, ArrowDown, Pencil, Trash2, Plus, X as XIcon, Check, ChevronRight, ChevronDown, CalendarDays, FileDown, Send, Mail, RefreshCw, FolderOpen, ChevronsUpDown, StickyNote, Eye, EyeOff, Sparkles, Loader2, Bell, Tags, Users } from 'lucide-react'
+import { ArrowLeft, ArrowUp, ArrowDown, Pencil, Trash2, Plus, X as XIcon, Check, ChevronRight, ChevronDown, CalendarDays, FileDown, Send, Mail, RefreshCw, FolderOpen, ChevronsUpDown, StickyNote, Eye, EyeOff, Sparkles, Loader2, Bell, Tags, Users, Bot } from 'lucide-react'
 import { WorkflowTriggerBar } from '@/components/WorkflowTriggerBar'
 import { SkickaForSignaturModal } from '@/sections/signatur/SkickaForSignaturModal'
 import { SkickaUppdateradVersionModal } from '@/sections/signatur/SkickaUppdateradVersionModal'
@@ -14,6 +14,7 @@ import type { SignaturLank } from '@/sections/signatur/types'
 import { ForslagForm } from './ForslagForm'
 import { SmsForslagPanel } from './SmsForslagPanel'
 import { FasEditor } from './FasEditor'
+import { FasChatPanel } from './FasChatPanel'
 import { ForslagKostnadsPanel } from './ForslagKostnadsPanel'
 import { buildTidplanHtml } from '@/pdf/buildTidplanHtml'
 import type {
@@ -215,6 +216,7 @@ export function ForslagDetail({ forslag: forslagProp, statusar, allProjekt, onBa
   // Faser
   const [faser, setFaser] = useState<ForslagFas[]>([])
   const [selectedFasId, setSelectedFasId] = useState<string | null>(null)
+  const [chatFasId, setChatFasId] = useState<string | null>(null)
   const [collapsedFaser, setCollapsedFaser] = useState<Set<string>>(new Set())
   const [addingFas, setAddingFas] = useState(false)
   const [nyFasNamn, setNyFasNamn] = useState('')
@@ -1346,6 +1348,11 @@ export function ForslagDetail({ forslag: forslagProp, statusar, allProjekt, onBa
                       className={`shrink-0 transition-opacity ${fas.notat ? 'text-amber-400' : 'text-subtle hover:text-fg'}`}
                     ><StickyNote size={10} /></button>
                     <button
+                      onClick={(e) => { e.stopPropagation(); setChatFasId(fas.id) }}
+                      className="text-subtle hover:text-blue-400 shrink-0 transition-opacity"
+                      title="Revidera fas med AI"
+                    ><Bot size={10} /></button>
+                    <button
                       onClick={(e) => { e.stopPropagation(); handleToggleFasAktiv(fas) }}
                       className={`shrink-0 transition-opacity ${fas.aktiv ? 'text-subtle hover:text-fg' : 'text-red-400 hover:text-red-300'}`}
                       title={fas.aktiv ? 'Inkluderad i PDF' : 'Exkluderad från PDF'}
@@ -2377,6 +2384,21 @@ export function ForslagDetail({ forslag: forslagProp, statusar, allProjekt, onBa
           </div>
         </div>
       )}
+
+      {chatFasId && (() => {
+        const chatFas = faser.find((f) => f.id === chatFasId)
+        if (!chatFas) return null
+        return (
+          <FasChatPanel
+            fas={chatFas}
+            subfaser={subfaserByFas[chatFasId] ?? []}
+            arbeteBySubfas={arbeteBySubfas}
+            materialBySubfas={materialBySubfas}
+            ueBySubfas={ueBySubfas}
+            onClose={() => setChatFasId(null)}
+          />
+        )
+      })()}
     </div>
   )
 }
