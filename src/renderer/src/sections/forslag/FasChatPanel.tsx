@@ -5,7 +5,10 @@ import type { ForslagFas, ForslagSubfas, ForslagArbete, ForslagMaterial, Forslag
 
 interface Andring {
   typ: 'uppdatera-arbete' | 'radera-arbete' | 'uppdatera-material' | 'radera-material' | 'uppdatera-ue' | 'radera-ue'
-  id: string
+    | 'uppdatera-subfas' | 'radera-subfas' | 'skapa-subfas'
+  id?: string           // required for uppdatera/radera, absent for skapa
+  fas_id?: string       // required for skapa-subfas
+  namn?: string         // for skapa-subfas
   falt?: string
   nytt_varde?: string | number
 }
@@ -97,16 +100,32 @@ function parseAiResponse(raw: string): AiResponseJson | null {
   }
 }
 
-const SUPPORTED_TYPES = new Set(['uppdatera-arbete', 'radera-arbete', 'uppdatera-material', 'radera-material', 'uppdatera-ue', 'radera-ue'])
+const SUPPORTED_TYPES = new Set([
+  'uppdatera-arbete', 'radera-arbete',
+  'uppdatera-material', 'radera-material',
+  'uppdatera-ue', 'radera-ue',
+  'uppdatera-subfas', 'radera-subfas', 'skapa-subfas'
+])
 
 function isSupportedAndring(a: unknown): a is Andring {
   if (!a || typeof a !== 'object') return false
   const obj = a as Record<string, unknown>
-  return typeof obj.typ === 'string' && SUPPORTED_TYPES.has(obj.typ) && typeof obj.id === 'string'
+  if (typeof obj.typ !== 'string' || !SUPPORTED_TYPES.has(obj.typ)) return false
+  if (obj.typ === 'skapa-subfas') return typeof obj.fas_id === 'string' && typeof obj.namn === 'string'
+  return typeof obj.id === 'string'
 }
 
 function andringLabel(a: Andring, itemIndex: Record<string, string>): string {
-  const name = itemIndex[a.id] ?? a.id.slice(0, 8) + '…'
+  if (a.typ === 'skapa-subfas') return `Skapa subfas: "${a.namn}"`
+  if (a.typ === 'radera-subfas') {
+    const name = a.id ? (itemIndex[a.id] ?? a.id.slice(0, 8) + '…') : '?'
+    return `Ta bort subfas: "${name}" (och allt innehåll)`
+  }
+  if (a.typ === 'uppdatera-subfas') {
+    const name = a.id ? (itemIndex[a.id] ?? a.id.slice(0, 8) + '…') : '?'
+    return `Uppdatera subfas "${name}": ${a.falt} → ${a.nytt_varde}`
+  }
+  const name = a.id ? (itemIndex[a.id] ?? a.id.slice(0, 8) + '…') : '?'
   if (a.typ === 'radera-arbete' || a.typ === 'radera-material' || a.typ === 'radera-ue') {
     return `Ta bort: "${name}"`
   }
@@ -236,7 +255,13 @@ export function FasChatPanel({ fas, subfaser, arbeteBySubfas, materialBySubfas, 
     setApplying(entryIndex)
     try {
       for (const a of andringar) {
-        if (a.typ === 'radera-arbete') {
+        if (a.typ === 'skapa-subfas') {
+          await window.api.invoke('db:forslag-subfaser:create', { fas_id: a.fas_id, namn: a.namn })
+        } else if (a.typ === 'radera-subfas') {
+          await window.api.invoke('db:forslag-subfaser:delete', a.id)
+        } else if (a.typ === 'uppdatera-subfas' && a.falt) {
+          await window.api.invoke('db:forslag-subfaser:update', a.id, { [a.falt]: a.nytt_varde })
+        } else if (a.typ === 'radera-arbete') {
           await window.api.invoke('db:forslag-arbete:delete', a.id)
         } else if (a.typ === 'uppdatera-arbete' && a.falt) {
           await window.api.invoke('db:forslag-arbete:update', a.id, { [a.falt]: a.nytt_varde })

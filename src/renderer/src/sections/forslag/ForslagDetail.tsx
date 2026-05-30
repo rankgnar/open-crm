@@ -299,11 +299,18 @@ export function ForslagDetail({ forslag: forslagProp, statusar, allProjekt, onBa
   useEffect(() => { loadAll() }, [loadAll])
 
   const reloadItems = useCallback(async () => {
-    const [arbeteData, materialData, ueData] = await Promise.all([
+    const [subfaserData, arbeteData, materialData, ueData] = await Promise.all([
+      window.api.invoke('db:forslag-subfaser:list-by-forslag', forslag.id) as Promise<ForslagSubfas[]>,
       window.api.invoke('db:forslag-arbete:list-by-forslag', forslag.id) as Promise<ForslagArbete[]>,
       window.api.invoke('db:forslag-material:list-by-forslag', forslag.id) as Promise<ForslagMaterial[]>,
       window.api.invoke('db:forslag-ue:list-by-forslag', forslag.id) as Promise<ForslagUnderentreprenor[]>,
     ])
+    setSubfaserByFas((prev) => {
+      const next: Record<string, ForslagSubfas[]> = {}
+      Object.keys(prev).forEach((fasId) => { next[fasId] = [] })
+      subfaserData.forEach((s) => { if (!next[s.fas_id]) next[s.fas_id] = []; next[s.fas_id].push(s) })
+      return next
+    })
     const byArbete: Record<string, ForslagArbete[]> = {}
     arbeteData.forEach((a) => { if (!byArbete[a.subfas_id]) byArbete[a.subfas_id] = []; byArbete[a.subfas_id].push(a) })
     setArbeteBySubfas(byArbete)
