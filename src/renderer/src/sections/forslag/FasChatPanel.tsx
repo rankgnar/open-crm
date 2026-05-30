@@ -97,6 +97,14 @@ function parseAiResponse(raw: string): AiResponseJson | null {
   }
 }
 
+const SUPPORTED_TYPES = new Set(['uppdatera-arbete', 'radera-arbete', 'uppdatera-material', 'radera-material', 'uppdatera-ue', 'radera-ue'])
+
+function isSupportedAndring(a: unknown): a is Andring {
+  if (!a || typeof a !== 'object') return false
+  const obj = a as Record<string, unknown>
+  return typeof obj.typ === 'string' && SUPPORTED_TYPES.has(obj.typ) && typeof obj.id === 'string'
+}
+
 function andringLabel(a: Andring, itemIndex: Record<string, string>): string {
   const name = itemIndex[a.id] ?? a.id.slice(0, 8) + '…'
   if (a.typ === 'radera-arbete' || a.typ === 'radera-material' || a.typ === 'radera-ue') {
@@ -140,13 +148,17 @@ export function FasChatPanel({ fas, subfaser, arbeteBySubfas, materialBySubfas, 
         const found = (list as AiAssistent[]).find((a) => a.aktiv && a.uppgifter.includes('fas-revisor'))
         setAssistent(found ?? null)
         const rows = (history ?? []) as { id: string; roll: string; innehall: string; andringar: unknown; applied: boolean }[]
-        setEntries(rows.map((r) => ({
-          id: r.id,
-          roll: r.roll as 'user' | 'assistant',
-          innehall: r.innehall,
-          andringar: r.andringar ? (r.andringar as Andring[]) : undefined,
-          applied: r.applied
-        })))
+        setEntries(rows.map((r) => {
+          const raw = Array.isArray(r.andringar) ? r.andringar : []
+          const andringar = raw.filter(isSupportedAndring)
+          return {
+            id: r.id,
+            roll: r.roll as 'user' | 'assistant',
+            innehall: r.innehall,
+            andringar: andringar.length > 0 ? andringar : undefined,
+            applied: r.applied
+          }
+        }))
       } catch (err) {
         if (cancelled) return
         console.error('FasChatPanel load error:', err)
@@ -201,7 +213,8 @@ export function FasChatPanel({ fas, subfaser, arbeteBySubfas, materialBySubfas, 
 
       const parsed = parseAiResponse(raw)
       const innehall = parsed ? parsed.forklaring : raw
-      const andringar = parsed && parsed.andringar.length > 0 ? parsed.andringar : undefined
+      const validAndring = parsed ? parsed.andringar.filter(isSupportedAndring) : []
+      const andringar = validAndring.length > 0 ? validAndring : undefined
 
       const savedAssistant = await window.api.invoke('db:forslag-fas-chat:create', {
         fas_id: fas.id,
