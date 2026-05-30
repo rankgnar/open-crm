@@ -129,21 +129,39 @@ export function FasChatPanel({ fas, subfaser, arbeteBySubfas, materialBySubfas, 
 
   // Load existing chat history and assistant on mount
   useEffect(() => {
-    Promise.all([
-      window.api.invoke('ai:asistenter:list'),
-      window.api.invoke('db:forslag-fas-chat:list', fas.id)
-    ]).then(([list, history]) => {
-      const found = (list as AiAssistent[]).find((a) => a.aktiv && a.uppgifter.includes('fas-revisor'))
-      setAssistent(found ?? null)
-      const rows = history as { id: string; roll: string; innehall: string; andringar: unknown; applied: boolean }[]
-      setEntries(rows.map((r) => ({
-        id: r.id,
-        roll: r.roll as 'user' | 'assistant',
-        innehall: r.innehall,
-        andringar: r.andringar ? (r.andringar as Andring[]) : undefined,
-        applied: r.applied
-      })))
-    })
+    let cancelled = false
+    async function load() {
+      try {
+        const [list, history] = await Promise.all([
+          window.api.invoke('ai:asistenter:list'),
+          window.api.invoke('db:forslag-fas-chat:list', fas.id)
+        ])
+        if (cancelled) return
+        const found = (list as AiAssistent[]).find((a) => a.aktiv && a.uppgifter.includes('fas-revisor'))
+        setAssistent(found ?? null)
+        const rows = (history ?? []) as { id: string; roll: string; innehall: string; andringar: unknown; applied: boolean }[]
+        setEntries(rows.map((r) => ({
+          id: r.id,
+          roll: r.roll as 'user' | 'assistant',
+          innehall: r.innehall,
+          andringar: r.andringar ? (r.andringar as Andring[]) : undefined,
+          applied: r.applied
+        })))
+      } catch (err) {
+        if (cancelled) return
+        console.error('FasChatPanel load error:', err)
+        // Still try to load the assistant even if chat history fails
+        try {
+          const list = await window.api.invoke('ai:asistenter:list')
+          if (!cancelled) {
+            const found = (list as AiAssistent[]).find((a) => a.aktiv && a.uppgifter.includes('fas-revisor'))
+            setAssistent(found ?? null)
+          }
+        } catch { /* show no-assistant state */ }
+      }
+    }
+    load()
+    return () => { cancelled = true }
   }, [fas.id])
 
   useEffect(() => {
