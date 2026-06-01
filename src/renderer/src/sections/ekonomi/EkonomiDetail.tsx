@@ -1,11 +1,12 @@
 import { useState, useEffect, useCallback } from 'react'
-import { ArrowLeft, Trash2, Paperclip, X, Upload } from 'lucide-react'
+import { ArrowLeft, Trash2, Paperclip, X, Upload, Pencil, Check } from 'lucide-react'
 import { WorkflowTriggerBar } from '@/components/WorkflowTriggerBar'
 import type { ProjektWithKund } from '@/sections/projekt/types'
 import type { ForslagWithProjekt, ForslagArbete, ForslagMaterial, ForslagUnderentreprenor } from '@/sections/forslag/types'
 import type { EkonomiUtfall, CreateUtfallInput, UtfallKategori } from './types'
 import { useAppConfig } from '@/context/AppConfig'
 import { SelectField } from '@/components/SelectField'
+import { aggregateForslag, computeForslagTotals } from '@/utils/forslag-totals'
 
 interface Props {
   projekt: ProjektWithKund
@@ -13,6 +14,7 @@ interface Props {
   onBack: () => void
   onAddUtfall: (input: CreateUtfallInput) => Promise<void>
   onDeleteUtfall: (id: string) => Promise<void>
+  onUpdateManuellPris: (pris: number | null) => Promise<void>
 }
 
 const KATEGORI_LABEL: Record<UtfallKategori, string> = {
@@ -34,7 +36,7 @@ function StatCard({ label, value, sub, highlight, red }: { label: string; value:
   )
 }
 
-export function EkonomiDetail({ projekt, utfall, onBack, onAddUtfall, onDeleteUtfall }: Props) {
+export function EkonomiDetail({ projekt, utfall, onBack, onAddUtfall, onDeleteUtfall, onUpdateManuellPris }: Props) {
   const { config, formatCurrency } = useAppConfig()
   const fmt = (n: number) => formatCurrency(n, 0)
   const ROT_CAP_SINGLE = config?.rot_avdrag_tak_enkel ?? 50000
@@ -43,6 +45,11 @@ export function EkonomiDetail({ projekt, utfall, onBack, onAddUtfall, onDeleteUt
   const [forslag, setForslag] = useState<ForslagWithProjekt | null>(null)
   const [forslagTotalt, setForslagTotalt] = useState(0)
   const [loadingForslag, setLoadingForslag] = useState(true)
+
+  const [editingManuellPris, setEditingManuellPris] = useState(false)
+  const [manuellPrisInput, setManuellPrisInput] = useState(
+    String(projekt.forslag_pris_manuellt ?? '')
+  )
 
   // Form state
   const [kategori, setKategori] = useState<UtfallKategori>('arbete')
@@ -102,18 +109,17 @@ export function EkonomiDetail({ projekt, utfall, onBack, onAddUtfall, onDeleteUt
         window.api.invoke('db:forslag-ue:list-by-forslag', active.id) as Promise<ForslagUnderentreprenor[]>,
       ])
 
-      const totalArbete = arbeteData.reduce((s, r) => s + r.antal_timmar * r.timpris, 0)
-      const totalMaterial = materialData.reduce((s, r) => s + r.antal * r.a_pris, 0)
-      const totalUE = ueData.reduce((s, r) => s + r.kostnad, 0)
-      const subtotal = totalArbete + totalMaterial + totalUE
-
-      let rot = 0
-      if (active.projekt.rot_avdrag) {
-        const cap = active.projekt.rot_inkludera_medsokande ? ROT_CAP_DOUBLE : ROT_CAP_SINGLE
-        rot = Math.min(totalArbete * (active.projekt.rot_procent / 100), cap)
-      }
-      const netto = subtotal - rot
-      setForslagTotalt(netto * (1 + active.moms_procent / 100))
+      const agg = aggregateForslag(arbeteData, materialData, ueData)
+      const totals = computeForslagTotals({
+        ...agg,
+        momsProcent: active.moms_procent,
+        rotAvdrag: active.projekt.rot_avdrag,
+        rotProcent: active.projekt.rot_procent,
+        rotInkluderaMedsokande: active.projekt.rot_inkludera_medsokande,
+        rotCapEnkel: ROT_CAP_SINGLE,
+        rotCapDubbel: ROT_CAP_DOUBLE,
+      })
+      setForslagTotalt(totals.totalInklMoms)
     } finally {
       setLoadingForslag(false)
     }
@@ -122,8 +128,17 @@ export function EkonomiDetail({ projekt, utfall, onBack, onAddUtfall, onDeleteUt
   useEffect(() => { loadForslag() }, [loadForslag])
 
   const utfallTotal = utfall.reduce((s, u) => s + u.belopp, 0)
-  const resultat = forslagTotalt > 0 ? forslagTotalt - utfallTotal : projekt.budget_total - utfallTotal
-  const progressPct = forslagTotalt > 0 ? Math.min((utfallTotal / forslagTotalt) * 100, 100) : 0
+  const manuellPris = projekt.forslag_pris_manuellt ?? 0
+  const effectivePris = forslagTotalt > 0 ? forslagTotalt : manuellPris
+  const resultat = effectivePris > 0 ? effectivePris - utfallTotal : projekt.budget_total - utfallTotal
+  const progressPct = effectivePris > 0 ? Math.min((utfallTotal / effectivePris) * 100, 100) : 0
+
+  async function handleSaveManuellPris() {
+    const parsed = manuellPrisInput.trim() === '' ? null : parseFloat(manuellPrisInput)
+    if (parsed !== null && isNaN(parsed)) return
+    await onUpdateManuellPris(parsed)
+    setEditingManuellPris(false)
+  }
 
   async function handleUploadPdf() {
     const file = await window.api.invoke('dialog:open-file') as { filePath: string; fileName: string; mimeType: string; size: number } | null
@@ -205,11 +220,58 @@ export function EkonomiDetail({ projekt, utfall, onBack, onAddUtfall, onDeleteUt
             value={projekt.budget_total > 0 ? fmt(projekt.budget_total) : '—'}
             sub="vid projektstart"
           />
-          <StatCard
-            label={forslag ? `Förslag pris${forslag.status?.toLowerCase() !== 'accepterat' ? ` (${forslag.status})` : ''}` : 'Förslag pris'}
-            value={loadingForslag ? '...' : forslagTotalt > 0 ? fmt(forslagTotalt) : '—'}
-            sub={forslag ? `${forslag.forslag_nummer} inkl. moms` : 'Inget förslag'}
-          />
+          {forslagTotalt > 0 ? (
+            <StatCard
+              label={`Förslag pris${forslag?.status?.toLowerCase() !== 'accepterat' ? ` (${forslag?.status})` : ''}`}
+              value={fmt(forslagTotalt)}
+              sub={`${forslag?.forslag_nummer} inkl. moms + ROT`}
+            />
+          ) : loadingForslag ? (
+            <StatCard label="Förslag pris" value="..." sub="Laddar..." />
+          ) : (
+            <div className="flex flex-col gap-1 px-6 py-5 border-r border-border">
+              <p className="text-[10px] uppercase tracking-widest text-muted font-medium">Förslag pris</p>
+              {editingManuellPris ? (
+                <div className="flex items-center gap-2">
+                  <input
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    autoFocus
+                    className="input text-xs py-1 px-2 w-28 text-right"
+                    value={manuellPrisInput}
+                    onChange={(e) => setManuellPrisInput(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') handleSaveManuellPris()
+                      if (e.key === 'Escape') setEditingManuellPris(false)
+                    }}
+                  />
+                  <button onClick={handleSaveManuellPris} className="text-fg hover:opacity-70 transition-opacity">
+                    <Check size={13} />
+                  </button>
+                  <button onClick={() => setEditingManuellPris(false)} className="text-subtle hover:text-red-400 transition-colors">
+                    <X size={13} />
+                  </button>
+                </div>
+              ) : (
+                <div className="flex items-center gap-2 group/pris">
+                  <p className="text-xl font-semibold font-mono text-fg">
+                    {manuellPris > 0 ? fmt(manuellPris) : '—'}
+                  </p>
+                  <button
+                    onClick={() => setEditingManuellPris(true)}
+                    className="opacity-0 group-hover/pris:opacity-100 text-subtle hover:text-fg transition-opacity"
+                    title="Ange manuellt pris"
+                  >
+                    <Pencil size={11} />
+                  </button>
+                </div>
+              )}
+              <p className="text-[10px] text-subtle">
+                {manuellPris > 0 ? 'Manuellt (inkl. moms + ROT)' : 'Inget förslag'}
+              </p>
+            </div>
+          )}
           <StatCard
             label="Utfall (verklig kostnad)"
             value={utfallTotal > 0 ? fmt(utfallTotal) : '—'}
@@ -218,13 +280,13 @@ export function EkonomiDetail({ projekt, utfall, onBack, onAddUtfall, onDeleteUt
           <StatCard
             label="Resultat"
             value={resultat >= 0 ? `+${fmt(resultat)}` : fmt(resultat)}
-            sub="förslag − utfall"
+            sub="pris − utfall"
             red={resultat < 0}
           />
         </div>
 
         {/* Progress bar */}
-        {forslagTotalt > 0 && (
+        {effectivePris > 0 && (
           <div className="px-8 py-4 border-b border-border shrink-0">
             <div className="flex items-center justify-between mb-2">
               <p className="text-[10px] uppercase tracking-widest text-muted font-medium">Utfall vs Förslag pris</p>

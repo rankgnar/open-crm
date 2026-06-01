@@ -31,6 +31,7 @@ export interface Projekt {
   startdatum: string | null
   slutdatum: string | null
   budget_total: number
+  forslag_pris_manuellt?: number | null
   arbetsplats_adress: string | null
   arbetsplats_postnummer: string | null
   arbetsplats_stad: string | null
@@ -66,6 +67,7 @@ export interface CreateProjektInput {
   startdatum?: string
   slutdatum?: string
   budget_total?: number
+  forslag_pris_manuellt?: number | null
   arbetsplats_adress?: string
   arbetsplats_postnummer?: string
   arbetsplats_stad?: string

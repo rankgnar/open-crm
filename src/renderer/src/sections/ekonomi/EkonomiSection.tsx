@@ -52,6 +52,17 @@ export function EkonomiSection() {
     }).catch(() => {})
   }
 
+  async function handleUpdateManuellPris(pris: number | null) {
+    if (!selectedProjekt) return
+    const updated = await window.api.invoke(
+      'db:projekt:update',
+      selectedProjekt.id,
+      { forslag_pris_manuellt: pris }
+    ) as ProjektWithKund
+    setSelectedProjekt(updated)
+    setProjekt((prev) => prev.map((p) => (p.id === updated.id ? updated : p)))
+  }
+
   async function handleDeleteUtfall(id: string) {
     const u = utfallAll.find((x) => x.id === id)
     await window.api.invoke('db:ekonomi-utfall:delete', id)
@@ -91,6 +102,7 @@ export function EkonomiSection() {
         onBack={() => { setView('list'); setSelectedProjekt(null) }}
         onAddUtfall={handleAddUtfall}
         onDeleteUtfall={handleDeleteUtfall}
+        onUpdateManuellPris={handleUpdateManuellPris}
       />
     )
   }
