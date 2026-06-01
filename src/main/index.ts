@@ -335,6 +335,28 @@ app.whenReady().then(() => {
   registerSmsHandlers()
   createWindow()
 
+  // Zoom: Ctrl+= / Ctrl+- / Ctrl+0
+  const ZOOM_STEP = 0.1
+  const ZOOM_MIN = 0.5
+  const ZOOM_MAX = 2.0
+  app.on('web-contents-created', (_, wc) => {
+    wc.on('before-input-event', (event, input) => {
+      if (!input.control && !input.meta) return
+      if (input.type !== 'keyDown') return
+      const wv = wc
+      if (input.key === '=' || input.key === '+') {
+        wv.setZoomFactor(Math.min(ZOOM_MAX, wv.getZoomFactor() + ZOOM_STEP))
+        event.preventDefault()
+      } else if (input.key === '-') {
+        wv.setZoomFactor(Math.max(ZOOM_MIN, wv.getZoomFactor() - ZOOM_STEP))
+        event.preventDefault()
+      } else if (input.key === '0') {
+        wv.setZoomFactor(1.0)
+        event.preventDefault()
+      }
+    })
+  })
+
   ipcMain.handle('window:minimize', () => BrowserWindow.getFocusedWindow()?.minimize())
   ipcMain.handle('window:maximize', () => {
     const win = BrowserWindow.getFocusedWindow()
