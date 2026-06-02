@@ -47,7 +47,13 @@ export function ForslagKostnadsPanel({
       </div>
 
       <div className="px-4 py-4 border-b border-border">
-        <Row label="Arbetskostnad" value={fmt(totalArbete)} />
+        <div className="flex items-center justify-between py-1.5">
+          <span className="text-xs text-muted">Arbetskostnad</span>
+          <div className="flex items-center gap-3">
+            <span className="text-[11px] text-subtle font-mono">{arbete.reduce((s, r) => s + r.antal_timmar, 0)} h</span>
+            <span className="text-xs font-mono text-muted">{fmt(totalArbete)}</span>
+          </div>
+        </div>
         <Row label="Materialkostnad" value={fmt(totalMaterial)} />
         {totalUE > 0 && (
           <>
